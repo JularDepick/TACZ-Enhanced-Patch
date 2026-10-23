@@ -1,10 +1,10 @@
 package com.taczenhancedpatch.client.config;
 
 import com.taczenhancedpatch.client.ConfigAccess;
+import com.taczenhancedpatch.util.UiText;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.Component;
 
 import javax.annotation.Nullable;
 
@@ -21,7 +21,7 @@ public final class ConfigHubScreen extends Screen {
     private final Screen parent;
 
     public ConfigHubScreen(@Nullable Screen parent) {
-        super(Component.literal("TACZ 增强补丁配置"));
+        super(UiText.of("screen.hub.title"));
         this.parent = parent;
     }
 
@@ -31,17 +31,14 @@ public final class ConfigHubScreen extends Screen {
         int buttonY = height / 2 - BUTTON_HEIGHT / 2;
         if (owner) {
             int left = (width - BUTTON_WIDTH * 2 - BUTTON_GAP) / 2;
-            addRenderableWidget(Button.builder(Component.literal("客户端配置"), button ->
-                            openSection(false))
+            addRenderableWidget(Button.builder(UiText.of("screen.hub.client"), button -> openSection(false))
                     .bounds(left, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT)
                     .build());
-            addRenderableWidget(Button.builder(Component.literal("服务端配置"), button ->
-                            openSection(true))
+            addRenderableWidget(Button.builder(UiText.of("screen.hub.server"), button -> openSection(true))
                     .bounds(left + BUTTON_WIDTH + BUTTON_GAP, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT)
                     .build());
         } else {
-            addRenderableWidget(Button.builder(Component.literal("客户端配置"), button ->
-                            openSection(false))
+            addRenderableWidget(Button.builder(UiText.of("screen.hub.client"), button -> openSection(false))
                     .bounds((width - BUTTON_WIDTH) / 2, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT)
                     .build());
         }
@@ -58,8 +55,7 @@ public final class ConfigHubScreen extends Screen {
         renderBackground(graphics);
         graphics.drawCenteredString(font, title, width / 2, height / 2 - 46, 0xFFFFFF);
         if (!ConfigAccess.isWorldOwner()) {
-            graphics.drawCenteredString(font, Component.literal("服务端设置由存档创建者或服务器管理员修改"),
-                    width / 2, height / 2 + 26, 0x9E9E9E);
+            graphics.drawCenteredString(font, UiText.of("screen.hub.hint"), width / 2, height / 2 + 26, 0x9E9E9E);
         }
         super.render(graphics, mouseX, mouseY, partialTick);
     }

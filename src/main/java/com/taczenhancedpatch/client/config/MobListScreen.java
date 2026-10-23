@@ -1,9 +1,11 @@
 package com.taczenhancedpatch.client.config;
 
 import com.taczenhancedpatch.config.ConfigOption;
-import com.taczenhancedpatch.config.ServerConfig;
+import com.taczenhancedpatch.config.MobListConfig;
+import com.taczenhancedpatch.config.MobMiddleConfig;
+import com.taczenhancedpatch.gunner.GunnerMobRegistry;
+import com.taczenhancedpatch.util.UiText;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -12,16 +14,15 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 
-import java.util.Locale;
-
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * 持械生物列表。
  * 只决定哪些生物可以成为枪手: 可以按分组勾选, 也可以逐个填写实体 ID;
- * 分组与名单都没有内容时沿用默认规则, 按非人形持械开关判定全部敌对生物。
+ * 界面只修改中间层规则, 具体名单由中间层展开后写入独立列表文件。
  * 本页不提供任何按生物调整的数值, 数值参数统一在服务端配置页里改。
  */
 public final class MobListScreen extends Screen {
@@ -47,10 +48,10 @@ public final class MobListScreen extends Screen {
     private int listBottom;
 
     public MobListScreen(@Nullable Screen parent) {
-        super(Component.literal("持械生物列表"));
+        super(UiText.of("moblist.title"));
         this.parent = parent;
-        this.groups = ServerConfig.mobGroupOptions();
-        this.mobIds.addAll(ServerConfig.gunnerMobIds());
+        this.groups = MobMiddleConfig.groupOptions();
+        this.mobIds.addAll(MobMiddleConfig.extraIds());
     }
 
     @Override
@@ -68,7 +69,7 @@ public final class MobListScreen extends Screen {
             Button button = Button.builder(groupText(toggle), b -> {
                 toggle.value().set(!Boolean.TRUE.equals(toggle.value().get()));
                 b.setMessage(groupText(toggle));
-                ServerConfig.save();
+                persist();
             }).bounds(columnLeft + column * (GROUP_WIDTH + GROUP_GAP), groupsTop + row * (GROUP_HEIGHT + 2),
                     GROUP_WIDTH, GROUP_HEIGHT).build();
             addRenderableWidget(button);
@@ -79,20 +80,23 @@ public final class MobListScreen extends Screen {
         listTop = controlsY + 28;
         listBottom = Math.max(listTop + ROW_HEIGHT, height - 44);
 
-        idBox = new EditBox(font, listLeft, controlsY, LIST_WIDTH - 100, 20, Component.literal("实体 ID"));
-        idBox.setHint(Component.literal("例如 minecraft:creeper"));
+        idBox = new EditBox(font, listLeft, controlsY, LIST_WIDTH - 100, 20, UiText.of("moblist.title"));
+        idBox.setHint(UiText.of("moblist.input_hint"));
         idBox.setMaxLength(96);
         addRenderableWidget(idBox);
-        addRenderableWidget(Button.builder(Component.literal("添加"), b -> addId())
+        addRenderableWidget(Button.builder(UiText.of("moblist.add"), b -> addId())
                 .bounds(listRight - 94, controlsY, 94, 20)
                 .build());
-        addRenderableWidget(Button.builder(Component.literal("完成"), b -> onClose())
-                .bounds(width / 2 - 75, height - 34, 150, 20)
+        addRenderableWidget(Button.builder(UiText.of("moblist.done"), b -> onClose())
+                .bounds(width / 2 - 155, height - 34, 150, 20)
+                .build());
+        addRenderableWidget(Button.builder(UiText.of("moblist.rescan"), b -> rescan())
+                .bounds(width / 2 + 5, height - 34, 150, 20)
                 .build());
 
         for (int i = 0; i < mobIds.size(); i++) {
             String id = mobIds.get(i);
-            Button remove = Button.builder(Component.literal("移除"), b -> removeId(id))
+            Button remove = Button.builder(UiText.of("moblist.remove"), b -> removeId(id))
                     .bounds(0, 0, REMOVE_WIDTH, 18)
                     .build();
             idRows.add(new IdRow(id, remove));
@@ -100,7 +104,8 @@ public final class MobListScreen extends Screen {
     }
 
     private static Component groupText(ConfigOption.ToggleOption toggle) {
-        return Component.literal(toggle.label() + ": " + (Boolean.TRUE.equals(toggle.value().get()) ? "开" : "关"));
+        String state = UiText.plain(Boolean.TRUE.equals(toggle.value().get()) ? "screen.on" : "screen.off");
+        return Component.literal(UiText.plain(toggle.label()) + ": " + state);
     }
 
     private void addId() {
@@ -109,33 +114,41 @@ public final class MobListScreen extends Screen {
         }
         String raw = idBox.getValue().trim().toLowerCase(Locale.ROOT);
         if (raw.isEmpty()) {
-            setHint("先填写实体 ID", 0xFF8080);
+            setHint(UiText.plain("moblist.need_id"), 0xFF8080);
             return;
         }
         ResourceLocation id = ResourceLocation.tryParse(raw);
         if (id == null || !BuiltInRegistries.ENTITY_TYPE.containsKey(id)) {
-            setHint("找不到该实体: " + raw, 0xFF8080);
+            setHint(UiText.of("moblist.unknown_id", raw).getString(), 0xFF8080);
             return;
         }
         if (mobIds.contains(raw)) {
-            setHint("列表中已有该实体", 0xFF8080);
+            setHint(UiText.plain("moblist.duplicate"), 0xFF8080);
             return;
         }
         mobIds.add(raw);
         persist();
         idBox.setValue("");
-        setHint("已添加 " + raw, 0x80FF80);
+        setHint(UiText.of("moblist.added", raw).getString(), 0x80FF80);
     }
 
     private void removeId(String id) {
         mobIds.remove(id);
         persist();
-        setHint("已移除 " + id, 0x80FF80);
+        setHint(UiText.of("moblist.removed", id).getString(), 0x80FF80);
     }
 
+    /* 手动重扫: 按当前规则重新展开注册表并写回列表文件 */
+    private void rescan() {
+        GunnerMobRegistry.refresh();
+        setHint(UiText.of("moblist.rescanned", MobListConfig.mobs().size()).getString(), 0x80FF80);
+    }
+
+    /* 中间层负责把规则展开成具体列表, 界面只改规则 */
     private void persist() {
-        ServerConfig.setGunnerMobIds(mobIds);
-        ServerConfig.save();
+        MobMiddleConfig.setExtraIds(mobIds);
+        MobMiddleConfig.save();
+        GunnerMobRegistry.refresh();
         clearWidgets();
         init();
     }
@@ -149,10 +162,8 @@ public final class MobListScreen extends Screen {
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         renderBackground(graphics);
         graphics.drawCenteredString(font, title, width / 2, 18, 0xFFFFFF);
-        graphics.drawCenteredString(font,
-                Component.literal("分组与名单都没有内容时, 按非人形持械开关判定全部敌对生物"),
-                width / 2, 30, 0x9E9E9E);
-        graphics.drawCenteredString(font, Component.literal(hint.isEmpty() ? "仅决定哪些生物可以持械" : hint),
+        graphics.drawCenteredString(font, UiText.of("moblist.hint_default"), width / 2, 30, 0x9E9E9E);
+        graphics.drawCenteredString(font, Component.literal(hint.isEmpty() ? UiText.plain("moblist.hint_idle") : hint),
                 width / 2, listTop - 12, hint.isEmpty() ? 0x9E9E9E : hintColor);
         graphics.fill(listLeft - 4, listTop - 4, listRight + 4, listBottom + 4, 0x66000000);
         scroll = Mth.clamp(scroll, 0.0D, maxScroll());
@@ -171,7 +182,7 @@ public final class MobListScreen extends Screen {
             row.button().render(graphics, mouseX, mouseY, partialTick);
         }
         if (idRows.isEmpty()) {
-            graphics.drawString(font, "名单为空", listLeft + 8, listTop + 6, 0x808080, false);
+            graphics.drawString(font, UiText.of("moblist.empty"), listLeft + 8, listTop + 6, 0x808080, false);
         }
         graphics.disableScissor();
         super.render(graphics, mouseX, mouseY, partialTick);

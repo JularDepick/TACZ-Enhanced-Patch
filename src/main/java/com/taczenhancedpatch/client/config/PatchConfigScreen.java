@@ -6,6 +6,7 @@ import com.taczenhancedpatch.config.ClientConfig;
 import com.taczenhancedpatch.config.ConfigOption;
 import com.taczenhancedpatch.config.ConfigOptionGroup;
 import com.taczenhancedpatch.config.ServerConfig;
+import com.taczenhancedpatch.util.UiText;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -53,7 +54,7 @@ public final class PatchConfigScreen extends Screen {
     private AbstractWidget dragging;
 
     public PatchConfigScreen(@Nullable Screen parent, boolean serverSection) {
-        super(Component.literal(serverSection && ConfigAccess.isWorldOwner() ? "服务端配置" : "客户端配置"));
+        super(UiText.of(serverSection && ConfigAccess.isWorldOwner() ? "screen.server.title" : "screen.client.title"));
         this.parent = parent;
         /* 服务端页只在创建者一侧生效, 越权构造时退化为客户端页 */
         this.serverSection = serverSection && ConfigAccess.isWorldOwner();
@@ -81,10 +82,10 @@ public final class PatchConfigScreen extends Screen {
                 addServerEntries();
             }
         }
-        addRenderableWidget(Button.builder(Component.literal("保存并关闭"), button -> finish(true))
+        addRenderableWidget(Button.builder(UiText.of("screen.save"), button -> finish(true))
                 .bounds(width / 2 - 155, height - 34, 150, 20)
                 .build());
-        addRenderableWidget(Button.builder(Component.literal("取消"), button -> finish(false))
+        addRenderableWidget(Button.builder(UiText.of("screen.cancel"), button -> finish(false))
                 .bounds(width / 2 + 5, height - 34, 150, 20)
                 .build());
     }
@@ -94,25 +95,25 @@ public final class PatchConfigScreen extends Screen {
         shortcutButton = Button.builder(shortcutText(), button -> startCapturingKey())
                 .bounds(0, 0, WIDGET_WIDTH, 20)
                 .build();
-        rows.add(new Row("打开本页快捷键", shortcutButton, false));
-        Button mobListButton = Button.builder(Component.literal("打开"), button -> {
+        rows.add(new Row("screen.shortcut", shortcutButton, false));
+        Button mobListButton = Button.builder(UiText.of("screen.open"), button -> {
             if (minecraft != null) {
                 minecraft.setScreen(new MobListScreen(this));
             }
         }).bounds(0, 0, WIDGET_WIDTH, 20).build();
-        rows.add(new Row("持械生物列表", mobListButton, false));
+        rows.add(new Row("screen.mob_list", mobListButton, false));
     }
 
     private void startCapturingKey() {
         capturingKey = true;
         if (shortcutButton != null) {
-            shortcutButton.setMessage(Component.literal("按下新的按键"));
+            shortcutButton.setMessage(UiText.of("screen.press_key"));
         }
     }
 
     private static Component shortcutText() {
         InputConstants.Key key = InputConstants.getKey(ClientConfig.serverConfigKey(), 0);
-        return Component.literal("Shift + " + key.getDisplayName().getString());
+        return UiText.of("screen.shift_key", key.getDisplayName());
     }
 
     @Override
@@ -156,13 +157,13 @@ public final class PatchConfigScreen extends Screen {
                 continue;
             }
             if (row.header()) {
-                graphics.drawString(font, row.label(), listLeft + 6, rowY + 7, 0xFFD080, false);
+                graphics.drawString(font, UiText.plain(row.label()), listLeft + 6, rowY + 7, 0xFFD080, false);
                 continue;
             }
             if (widget == null) {
                 continue;
             }
-            graphics.drawString(font, row.label(), listLeft + 14, rowY + 7, 0xE0E0E0, false);
+            graphics.drawString(font, UiText.plain(row.label()), listLeft + 14, rowY + 7, 0xE0E0E0, false);
             widget.render(graphics, mouseX, mouseY, partialTick);
         }
         graphics.disableScissor();
@@ -290,7 +291,7 @@ public final class PatchConfigScreen extends Screen {
     }
 
     private static Component toggleText(ConfigOption.ToggleOption option) {
-        return Component.literal(Boolean.TRUE.equals(option.value().get()) ? "开" : "关");
+        return UiText.of(Boolean.TRUE.equals(option.value().get()) ? "screen.on" : "screen.off");
     }
 
     private static Object read(ConfigOption option) {
@@ -344,7 +345,7 @@ public final class PatchConfigScreen extends Screen {
 
         @Override
         protected void updateMessage() {
-            setMessage(Component.literal(label + ": " + format(currentValue())));
+            setMessage(Component.literal(UiText.plain(label) + ": " + format(currentValue())));
         }
 
         @Override
