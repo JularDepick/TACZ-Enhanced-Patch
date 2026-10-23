@@ -48,7 +48,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 
 | Item | Description |
 |:---:|:---|
-| Client configuration | Local preferences such as automatic reload, stored per player |
+| Client configuration | Local preferences such as automatic reload and the incoming fire indicator, stored per player |
 | Server configuration | 29 parameters grouped into basics, spawning, candidates, targeting, ammo, toughness, loot, ruins and debug, synced from the server |
 | Configuration screen | Opening it first offers a client or a server entry, and the server entry only appears for the world owner |
 | Shortcut | The world owner can press Shift plus the main key to open the server page directly, and the key can be rebound there |

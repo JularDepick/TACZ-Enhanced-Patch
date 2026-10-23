@@ -171,6 +171,14 @@ public final class TaczApi {
         return gun == null ? 0 : gun.getDummyAmmoAmount(gunStack);
     }
 
+    /**
+     * 判断实体是否为上游的枪械子弹。
+     * 子弹实体不在公开 API 内, 这里用类名判断, 避免直接引用其内部类型。
+     */
+    public static boolean isGunProjectile(@Nullable net.minecraft.world.entity.Entity entity) {
+        return entity != null && entity.getClass().getName().startsWith("com.tacz.guns.entity.EntityKineticBullet");
+    }
+
     /* 清空虚拟备弹, 用于把剩余弹药单独作为战利品掉落, 避免与枪械重复 */
     public static void clearDummyAmmo(@Nullable ItemStack gunStack) {
         IGun gun = getGun(gunStack);

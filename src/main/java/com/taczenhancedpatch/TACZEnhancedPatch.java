@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
 import com.taczenhancedpatch.client.config.ModConfigScreen;
 import com.taczenhancedpatch.config.ClientConfig;
 import com.taczenhancedpatch.config.ServerConfig;
+import com.taczenhancedpatch.network.PatchNetwork;
 import com.taczenhancedpatch.world.ModFeatures;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
@@ -25,6 +26,7 @@ public final class TACZEnhancedPatch {
     public TACZEnhancedPatch(FMLJavaModLoadingContext context) {
         context.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
         context.registerConfig(ModConfig.Type.SERVER, ServerConfig.SPEC);
+        PatchNetwork.register();
         ModFeatures.FEATURES.register(context.getModEventBus());
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ModConfigScreen.register(context));
         LOGGER.info("{} initialized", MOD_NAME);

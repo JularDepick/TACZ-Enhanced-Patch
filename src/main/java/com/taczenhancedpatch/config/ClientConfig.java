@@ -17,6 +17,11 @@ public final class ClientConfig {
                     "只影响本客户端的操作习惯, 与上游模组自带的自动换弹互不影响")
             .define("autoReload", false);
 
+    private static final ForgeConfigSpec.BooleanValue HIT_INDICATOR = BUILDER
+            .comment("枪击来源提示: 被枪械子弹命中时在屏幕上用弧形指向伤害来源",
+                    "只影响本客户端显示, 停止受击一秒后自动淡出")
+            .define("hitIndicator", false);
+
     /* 默认值 67 对应 GLFW 的 C 键, 这里用字面量避免在服务端加载客户端输入库 */
     private static final ForgeConfigSpec.IntValue SERVER_CONFIG_KEY = BUILDER
             .comment("打开服务端配置页的快捷键主键, 取值是 GLFW 键码, 默认 67 即 C 键",
@@ -31,6 +36,14 @@ public final class ClientConfig {
     public static boolean autoReload() {
         try {
             return AUTO_RELOAD.get();
+        } catch (IllegalStateException ignored) {
+            return false;
+        }
+    }
+
+    public static boolean hitIndicator() {
+        try {
+            return HIT_INDICATOR.get();
         } catch (IllegalStateException ignored) {
             return false;
         }
@@ -55,7 +68,8 @@ public final class ClientConfig {
 
     public static List<ConfigOptionGroup> groups() {
         return List.of(new ConfigOptionGroup("本机偏好", List.of(
-                new ConfigOption.ToggleOption("自动换弹", AUTO_RELOAD))));
+                new ConfigOption.ToggleOption("自动换弹", AUTO_RELOAD),
+                new ConfigOption.ToggleOption("枪击来源提示", HIT_INDICATOR))));
     }
 
     public static void save() {
