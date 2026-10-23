@@ -1,17 +1,18 @@
 package com.taczenhancedpatch.client.config;
 
+import com.mojang.blaze3d.platform.InputConstants;
+import com.taczenhancedpatch.client.ConfigAccess;
 import com.taczenhancedpatch.config.ClientConfig;
 import com.taczenhancedpatch.config.ConfigOption;
 import com.taczenhancedpatch.config.ServerConfig;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
+import org.lwjgl.glfw.GLFW;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -22,9 +23,9 @@ import java.util.Map;
 import java.util.function.DoubleConsumer;
 
 /**
- * 模组配置界面。
- * 客户端设置对所有玩家可见并可改; 服务端设置只在当前存档的创建者侧显示,
- * 联机客户端与服务器成员看不到这些参数, 也改不了。
+ * 单页配置列表。
+ * 客户端页对所有玩家可见并可改; 服务端页只在存档创建者一侧打开, 普通客户端看不到入口。
+ * 服务端页顶部额外提供打开本页的快捷键设置。
  */
 public final class PatchConfigScreen extends Screen {
     private static final int LIST_WIDTH = 340;
@@ -34,8 +35,8 @@ public final class PatchConfigScreen extends Screen {
     private static final int LIST_BOTTOM_MARGIN = 46;
 
     private final Screen parent;
-    private final List<ConfigOption> clientOptions;
-    private final List<ConfigOption> serverOptions;
+    private final boolean serverSection;
+    private final List<ConfigOption> options;
     private final Map<ConfigOption, Object> originals = new IdentityHashMap<>();
     private final List<Row> rows = new ArrayList<>();
     private double scroll;
@@ -44,26 +45,21 @@ public final class PatchConfigScreen extends Screen {
     private int listTop;
     private int listBottom;
     private boolean saved;
+    private boolean capturingKey;
+    @Nullable
+    private Button shortcutButton;
     @Nullable
     private AbstractWidget dragging;
 
-    public PatchConfigScreen(@Nullable Screen parent) {
-        super(Component.literal("TACZ 增强补丁配置"));
+    public PatchConfigScreen(@Nullable Screen parent, boolean serverSection) {
+        super(Component.literal(serverSection && ConfigAccess.isWorldOwner() ? "服务端配置" : "客户端配置"));
         this.parent = parent;
-        this.clientOptions = ClientConfig.options();
-        this.serverOptions = isWorldOwner() ? ServerConfig.options() : List.of();
-        for (ConfigOption option : clientOptions) {
+        /* 服务端页只在创建者一侧生效, 越权构造时退化为客户端页 */
+        this.serverSection = serverSection && ConfigAccess.isWorldOwner();
+        this.options = this.serverSection ? ServerConfig.options() : ClientConfig.options();
+        for (ConfigOption option : options) {
             originals.put(option, read(option));
         }
-        for (ConfigOption option : serverOptions) {
-            originals.put(option, read(option));
-        }
-    }
-
-    /* 与服务端处于内存连接时, 说明本机就是存档创建者所在的服务端; 其余情况一律视为普通客户端 */
-    private static boolean isWorldOwner() {
-        ClientPacketListener listener = Minecraft.getInstance().getConnection();
-        return listener != null && listener.getConnection().isMemoryConnection();
     }
 
     @Override
@@ -73,17 +69,17 @@ public final class PatchConfigScreen extends Screen {
         listRight = listLeft + LIST_WIDTH;
         listTop = LIST_TOP;
         listBottom = height - LIST_BOTTOM_MARGIN;
-        rows.add(new Row("客户端设置", null, true));
-        for (ConfigOption option : clientOptions) {
-            rows.add(new Row(option.label(), createWidget(option), false));
-        }
-        if (serverOptions.isEmpty()) {
-            rows.add(new Row("服务端设置由存档创建者或服务器管理员修改", null, true));
+        if (serverSection) {
+            rows.add(new Row("服务端设置会同步给所有客户端", null, true));
+            shortcutButton = Button.builder(shortcutText(), button -> startCapturingKey())
+                    .bounds(0, 0, WIDGET_WIDTH, 20)
+                    .build();
+            rows.add(new Row("打开本页快捷键", shortcutButton, false));
         } else {
-            rows.add(new Row("服务端设置", null, true));
-            for (ConfigOption option : serverOptions) {
-                rows.add(new Row(option.label(), createWidget(option), false));
-            }
+            rows.add(new Row("客户端设置只影响本机", null, true));
+        }
+        for (ConfigOption option : options) {
+            rows.add(new Row(option.label(), createWidget(option), false));
         }
         addRenderableWidget(Button.builder(Component.literal("保存并关闭"), button -> finish(true))
                 .bounds(width / 2 - 155, height - 34, 150, 20)
@@ -91,6 +87,36 @@ public final class PatchConfigScreen extends Screen {
         addRenderableWidget(Button.builder(Component.literal("取消"), button -> finish(false))
                 .bounds(width / 2 + 5, height - 34, 150, 20)
                 .build());
+    }
+
+    private void startCapturingKey() {
+        capturingKey = true;
+        if (shortcutButton != null) {
+            shortcutButton.setMessage(Component.literal("按下新的按键"));
+        }
+    }
+
+    private static Component shortcutText() {
+        InputConstants.Key key = InputConstants.getKey(ClientConfig.serverConfigKey(), 0);
+        return Component.literal("Shift + " + key.getDisplayName().getString());
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (capturingKey) {
+            capturingKey = false;
+            /* 只接受主键, 修饰键本身与退出键不作为绑定 */
+            if (keyCode != GLFW.GLFW_KEY_ESCAPE
+                    && keyCode != GLFW.GLFW_KEY_LEFT_SHIFT
+                    && keyCode != GLFW.GLFW_KEY_RIGHT_SHIFT) {
+                ClientConfig.setServerConfigKey(keyCode);
+            }
+            if (shortcutButton != null) {
+                shortcutButton.setMessage(shortcutText());
+            }
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
@@ -197,7 +223,7 @@ public final class PatchConfigScreen extends Screen {
     private void finish(boolean saveNow) {
         if (saveNow) {
             ClientConfig.save();
-            if (!serverOptions.isEmpty()) {
+            if (serverSection) {
                 ServerConfig.save();
             }
             saved = true;
