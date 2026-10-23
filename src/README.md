@@ -12,9 +12,13 @@ src/main/
 │   ├── balance/
 │   │   └── GunDamageBalanceHandler.java # 枪手子弹伤害调节
 │   ├── client/
-│   │   └── TACZEnhancedPatchClient.java # 客户端入口
+│   │   ├── TACZEnhancedPatchClient.java # 客户端入口
+│   │   └── config/
+│   │       ├── CommonConfigScreen.java  # 配置界面
+│   │       └── ModConfigScreen.java     # 配置界面注册
 │   ├── config/
-│   │   └── CommonConfig.java           # 通用配置与枪手配置
+│   │   ├── CommonConfig.java           # 通用配置与配置项列表
+│   │   └── ConfigEvents.java           # 配置生命周期与保存
 │   ├── debug/
 │   │   └── TaczEventProbe.java         # TACZ API 事件探针(默认关闭)
 │   ├── gunner/

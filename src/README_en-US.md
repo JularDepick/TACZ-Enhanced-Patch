@@ -12,9 +12,13 @@ src/main/
 │   ├── balance/
 │   │   └── GunDamageBalanceHandler.java # Damage adjustment for gunner bullets
 │   ├── client/
-│   │   └── TACZEnhancedPatchClient.java # Client entry point
+│   │   ├── TACZEnhancedPatchClient.java # Client entry point
+│   │   └── config/
+│   │       ├── CommonConfigScreen.java  # Configuration screen
+│   │       └── ModConfigScreen.java     # Configuration screen registration
 │   ├── config/
-│   │   └── CommonConfig.java           # Common configuration and gunner options
+│   │   ├── CommonConfig.java           # Common configuration and option list
+│   │   └── ConfigEvents.java           # Configuration lifecycle and saving
 │   ├── debug/
 │   │   └── TaczEventProbe.java         # TACZ API event probe (disabled by default)
 │   ├── gunner/
