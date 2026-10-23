@@ -8,6 +8,8 @@ import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
+import java.util.Objects;
+
 /**
  * 模组网络通道。
  * 目前只用于把枪击来源方向发给受击玩家, 协议版本变化时递增即可。
@@ -16,7 +18,7 @@ public final class PatchNetwork {
     private static final String PROTOCOL = "1";
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.ChannelBuilder
-            .named(new ResourceLocation(TACZEnhancedPatch.MOD_ID, "main"))
+            .named(Objects.requireNonNull(ResourceLocation.tryParse(TACZEnhancedPatch.MOD_ID + ":main")))
             .networkProtocolVersion(() -> PROTOCOL)
             .clientAcceptedVersions(PROTOCOL::equals)
             .serverAcceptedVersions(PROTOCOL::equals)

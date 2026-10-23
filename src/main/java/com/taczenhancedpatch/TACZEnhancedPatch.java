@@ -3,6 +3,8 @@ package com.taczenhancedpatch;
 import com.mojang.logging.LogUtils;
 import com.taczenhancedpatch.client.config.ModConfigScreen;
 import com.taczenhancedpatch.config.ClientConfig;
+import com.taczenhancedpatch.config.MobListConfig;
+import com.taczenhancedpatch.config.MobMiddleConfig;
 import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.network.PatchNetwork;
 import com.taczenhancedpatch.world.ModFeatures;
@@ -26,6 +28,8 @@ public final class TACZEnhancedPatch {
     public TACZEnhancedPatch(FMLJavaModLoadingContext context) {
         context.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
         context.registerConfig(ModConfig.Type.SERVER, ServerConfig.SPEC);
+        context.registerConfig(ModConfig.Type.SERVER, MobMiddleConfig.SPEC, "tacz_enhanced_patch-mobmgr.toml");
+        context.registerConfig(ModConfig.Type.SERVER, MobListConfig.SPEC, "tacz_enhanced_patch-moblist.toml");
         PatchNetwork.register();
         ModFeatures.FEATURES.register(context.getModEventBus());
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ModConfigScreen.register(context));

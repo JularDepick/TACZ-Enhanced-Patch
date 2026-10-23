@@ -100,7 +100,7 @@ public final class GunnerCombat {
         if (ServerConfig.gunnerForcedRetaliation()) {
             return true;
         }
-        /* 关闭强制反击时, 同族与同队伍之间不互相攻击 */
+        /* 关闭强制反击时, 同类与同队伍之间不互相攻击 */
         if (attacker.getType() == mob.getType()) {
             return false;
         }

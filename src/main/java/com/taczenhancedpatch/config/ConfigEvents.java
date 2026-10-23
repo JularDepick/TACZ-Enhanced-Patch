@@ -18,6 +18,10 @@ public final class ConfigEvents {
     private static ModConfig clientConfig;
     @Nullable
     private static ModConfig serverConfig;
+    @Nullable
+    private static ModConfig mobMiddleConfig;
+    @Nullable
+    private static ModConfig mobListConfig;
 
     private ConfigEvents() {
     }
@@ -29,6 +33,10 @@ public final class ConfigEvents {
             clientConfig = config;
         } else if (config.getSpec() == ServerConfig.SPEC) {
             serverConfig = config;
+        } else if (config.getSpec() == MobMiddleConfig.SPEC) {
+            mobMiddleConfig = config;
+        } else if (config.getSpec() == MobListConfig.SPEC) {
+            mobListConfig = config;
         }
     }
 
@@ -40,5 +48,15 @@ public final class ConfigEvents {
     @Nullable
     public static ModConfig serverConfig() {
         return serverConfig;
+    }
+
+    @Nullable
+    public static ModConfig mobMiddleConfig() {
+        return mobMiddleConfig;
+    }
+
+    @Nullable
+    public static ModConfig mobListConfig() {
+        return mobListConfig;
     }
 }
