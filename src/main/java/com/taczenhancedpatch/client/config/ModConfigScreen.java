@@ -12,6 +12,6 @@ public final class ModConfigScreen {
 
     public static void register(ModLoadingContext context) {
         context.registerExtensionPoint(ConfigScreenHandler.ConfigScreenFactory.class,
-                () -> new ConfigScreenHandler.ConfigScreenFactory((minecraft, parent) -> new CommonConfigScreen(parent)));
+                () -> new ConfigScreenHandler.ConfigScreenFactory((minecraft, parent) -> new PatchConfigScreen(parent)));
     }
 }

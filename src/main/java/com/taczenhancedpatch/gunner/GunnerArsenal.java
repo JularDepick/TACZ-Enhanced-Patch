@@ -27,6 +27,19 @@ public final class GunnerArsenal {
         HIGH
     }
 
+    /* 分档护甲材质, 只决定穿戴的四件护甲, 具体数值由原版物品决定 */
+    public enum ArmorTier {
+        LEATHER,
+        CHAIN,
+        IRON
+    }
+
+    /* 分档耐久: 护甲材质, 生命倍率系数, 额外护甲韧性 */
+    public record Durability(ArmorTier armorTier, double healthFactor, int extraToughness) {
+    }
+
+    private static final Map<Tier, Durability> BY_TIER_DURABILITY = new EnumMap<>(Tier.class);
+
     public record GunProfile(ResourceLocation gunId,
                              ResourceLocation ammoId,
                              Tier tier,
@@ -71,6 +84,12 @@ public final class GunnerArsenal {
         register("ai_awp", "338", Tier.HIGH, TaczApi.FireMode.SEMI, 15, 4, 8);
     }
 
+    static {
+        BY_TIER_DURABILITY.put(Tier.LOW, new Durability(ArmorTier.LEATHER, 1.0D, 0));
+        BY_TIER_DURABILITY.put(Tier.MID, new Durability(ArmorTier.CHAIN, 1.15D, 1));
+        BY_TIER_DURABILITY.put(Tier.HIGH, new Durability(ArmorTier.IRON, 1.3D, 2));
+    }
+
     private GunnerArsenal() {
     }
 
@@ -101,6 +120,11 @@ public final class GunnerArsenal {
             return null;
         }
         return pool.get(random.nextInt(pool.size()));
+    }
+
+    public static Durability durability(Tier tier) {
+        Durability durability = BY_TIER_DURABILITY.get(tier);
+        return durability == null ? BY_TIER_DURABILITY.get(Tier.LOW) : durability;
     }
 
     public static Tier pickTier(RandomSource random, int lowWeight, int midWeight, int highWeight) {

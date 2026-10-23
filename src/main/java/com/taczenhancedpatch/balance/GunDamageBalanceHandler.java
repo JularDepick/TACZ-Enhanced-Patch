@@ -1,7 +1,7 @@
 package com.taczenhancedpatch.balance;
 
 import com.taczenhancedpatch.TACZEnhancedPatch;
-import com.taczenhancedpatch.config.CommonConfig;
+import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.gunner.GunnerMarker;
 import com.tacz.guns.api.event.common.EntityHurtByGunEvent;
 import net.minecraft.world.entity.LivingEntity;
@@ -23,14 +23,14 @@ public final class GunDamageBalanceHandler {
 
     @SubscribeEvent
     public static void onGunHurt(EntityHurtByGunEvent.Pre event) {
-        if (event.getLogicalSide().isClient() || !CommonConfig.gunnerEnabled()) {
+        if (event.getLogicalSide().isClient() || !ServerConfig.gunnerEnabled()) {
             return;
         }
         LivingEntity attacker = event.getAttacker();
         if (attacker == null || attacker instanceof Player || !GunnerMarker.isGunner(attacker)) {
             return;
         }
-        float multiplier = (float) CommonConfig.gunnerDamageMultiplier();
+        float multiplier = (float) ServerConfig.gunnerDamageMultiplier();
         if (multiplier > 0.0F) {
             event.setBaseAmount(event.getBaseAmount() * multiplier);
         }

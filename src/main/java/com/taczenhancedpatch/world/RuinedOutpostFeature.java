@@ -1,7 +1,7 @@
 package com.taczenhancedpatch.world;
 
 import com.mojang.serialization.Codec;
-import com.taczenhancedpatch.config.CommonConfig;
+import com.taczenhancedpatch.config.ServerConfig;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
@@ -36,7 +36,7 @@ public class RuinedOutpostFeature extends Feature<NoneFeatureConfiguration> {
 
     @Override
     public boolean place(FeaturePlaceContext<NoneFeatureConfiguration> context) {
-        if (!CommonConfig.ruinsEnabled()) {
+        if (!ServerConfig.ruinsEnabled()) {
             return false;
         }
         WorldGenLevel level = context.level();

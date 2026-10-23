@@ -1,7 +1,7 @@
 package com.taczenhancedpatch.gunner;
 
 import com.taczenhancedpatch.TACZEnhancedPatch;
-import com.taczenhancedpatch.config.CommonConfig;
+import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.integration.TaczApi;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
@@ -52,14 +52,21 @@ public final class GunnerSpawnHandler {
             tryArm(mob, difficulty, false);
         }
         GunnerMarker.Loadout loadout = GunnerMarker.loadout(mob);
-        if (loadout == null || TaczApi.isGun(mob.getMainHandItem())) {
+        if (loadout == null) {
+            return;
+        }
+        if (!GunnerMarker.isBuffed(mob)) {
+            GunnerDurability.apply(mob, loadout.tier());
+            GunnerMarker.setBuffed(mob, true);
+        }
+        if (TaczApi.isGun(mob.getMainHandItem())) {
             return;
         }
         equip(mob, loadout.gunId(), loadout.fireMode(), loadout.ammoPool());
     }
 
     private static void tryArm(Mob mob, Difficulty difficulty, boolean fromSpawner) {
-        if (!CommonConfig.gunnerEnabled() || mob.isBaby()) {
+        if (!ServerConfig.gunnerEnabled() || mob.isBaby()) {
             return;
         }
         if (GunnerMarker.isGunner(mob) || TaczApi.isGun(mob.getMainHandItem())) {
@@ -70,14 +77,14 @@ public final class GunnerSpawnHandler {
         }
         double chance = spawnChance(difficulty);
         if (fromSpawner) {
-            chance = Math.max(chance, CommonConfig.gunnerSpawnerChance());
+            chance = Math.max(chance, ServerConfig.gunnerSpawnerChance());
         }
         if (mob.getRandom().nextDouble() >= chance) {
             return;
         }
 
-        int[] weights = CommonConfig.gunnerTierWeights();
-        if (CommonConfig.gunnerDifficultyScaling()) {
+        int[] weights = ServerConfig.gunnerTierWeights();
+        if (ServerConfig.gunnerDifficultyScaling()) {
             if (difficulty == Difficulty.HARD) {
                 weights[2] *= 2;
             } else if (difficulty == Difficulty.EASY) {
@@ -97,7 +104,7 @@ public final class GunnerSpawnHandler {
             return false;
         }
         mob.setItemSlot(EquipmentSlot.MAINHAND, gun);
-        if (CommonConfig.debugEvents()) {
+        if (ServerConfig.debugEvents()) {
             TACZEnhancedPatch.LOGGER.info("[gunner] armed {} with {}", mob.getType(), gunId);
         }
         return true;
@@ -105,12 +112,12 @@ public final class GunnerSpawnHandler {
 
     private static boolean isBlacklistedDimension(Mob mob) {
         String dimension = mob.level().dimension().location().toString();
-        return CommonConfig.gunnerDimensionBlacklist().contains(dimension);
+        return ServerConfig.gunnerDimensionBlacklist().contains(dimension);
     }
 
     private static double spawnChance(Difficulty difficulty) {
-        double chance = CommonConfig.gunnerSpawnChance();
-        if (CommonConfig.gunnerDifficultyScaling()) {
+        double chance = ServerConfig.gunnerSpawnChance();
+        if (ServerConfig.gunnerDifficultyScaling()) {
             chance *= switch (difficulty) {
                 case EASY -> 0.6D;
                 case HARD -> 1.5D;

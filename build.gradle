@@ -13,7 +13,7 @@ def mcVersion = '1.20.1'
 def forgeVersion = '47.4.23'
 def forgeMajor = '47'
 
-/* 前置模组 TACZ: 依赖版本与 CurseForge 文件编号, 升级前置时同步修改 */
+/* 上游模组 TACZ: 依赖版本与 CurseForge 文件编号, 升级上游时同步修改 */
 def taczVersion = '1.1.8-hotfix2'
 def taczMinVersion = '1.1.8'
 def taczCurseFileId = '9037989'
@@ -47,7 +47,7 @@ repositories {
         url 'https://libraries.minecraft.net/'
     }
     maven {
-        /* TACZ 前置模组的获取来源 */
+        /* 上游模组 TACZ 的获取来源 */
         url 'https://cursemaven.com'
         content {
             includeGroup 'curse.maven'
@@ -64,7 +64,7 @@ minecraft {
             workingDirectory project.file('run')
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
-            /* 前置模组 TACZ 使用 Mixin, 开发环境需要把 SRG 引用表重映射到运行时映射 */
+            /* 上游模组 TACZ 使用 Mixin, 开发环境需要把 SRG 引用表重映射到运行时映射 */
             property 'mixin.env.remapRefMap', 'true'
             property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
             mods {
@@ -78,7 +78,7 @@ minecraft {
             workingDirectory project.file('run')
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
-            /* 前置模组 TACZ 使用 Mixin, 开发环境需要把 SRG 引用表重映射到运行时映射 */
+            /* 上游模组 TACZ 使用 Mixin, 开发环境需要把 SRG 引用表重映射到运行时映射 */
             property 'mixin.env.remapRefMap', 'true'
             property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
             mods {
@@ -93,7 +93,7 @@ minecraft {
 dependencies {
     minecraft "net.minecraftforge:forge:${mcVersion}-${forgeVersion}"
 
-    /* 前置模组只参与编译与开发运行, 不打包进产物, 由玩家自行安装 */
+    /* 上游模组只参与编译与开发运行, 不打包进产物, 由玩家自行安装 */
     implementation fg.deobf("curse.maven:timeless-and-classics-zero-1028108:${taczCurseFileId}")
 }
 

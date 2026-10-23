@@ -10,20 +10,25 @@ src/main/
 ├── java/com/taczenhancedpatch/
 │   ├── TACZEnhancedPatch.java          # Mod entry point
 │   ├── balance/
-│   │   └── GunDamageBalanceHandler.java # Damage adjustment for gunner bullets
+│   │   ├── GunDamageBalanceHandler.java # Damage adjustment for gunner bullets
+│   │   └── GunnerDefenseHandler.java    # Damage adjustment for hits on gunners
 │   ├── client/
+│   │   ├── AutoReloadHandler.java       # Automatic reload
 │   │   ├── TACZEnhancedPatchClient.java # Client entry point
 │   │   └── config/
-│   │       ├── CommonConfigScreen.java  # Configuration screen
-│   │       └── ModConfigScreen.java     # Configuration screen registration
+│   │       ├── ModConfigScreen.java     # Configuration screen registration
+│   │       └── PatchConfigScreen.java   # Configuration screen
 │   ├── config/
-│   │   ├── CommonConfig.java           # Common configuration and option list
-│   │   └── ConfigEvents.java           # Configuration lifecycle and saving
+│   │   ├── ClientConfig.java           # Client configuration
+│   │   ├── ConfigEvents.java           # Configuration lifecycle and saving
+│   │   ├── ConfigOption.java           # Configuration option descriptor
+│   │   └── ServerConfig.java           # Server configuration and option list
 │   ├── debug/
 │   │   └── TaczEventProbe.java         # TACZ API event probe (disabled by default)
 │   ├── gunner/
 │   │   ├── GunnerArsenal.java          # Gunner arsenal and balance constants
 │   │   ├── GunnerCombat.java           # Gunner targeting and firing logic
+│   │   ├── GunnerDurability.java       # Gunner health, armor and armor equipping
 │   │   ├── GunnerEligibility.java      # Gunner candidate scan over registered entity types
 │   │   ├── GunnerMarker.java           # Gunner identity marker
 │   │   ├── GunnerSpawnHandler.java     # Gunner spawn assignment
@@ -48,6 +53,7 @@ src/main/
 
 - Add a dedicated package under `java/com/taczenhancedpatch/` for each new patch feature
 - Keep all TACZ type references inside the `integration/` package, and let other code use only the abstraction exposed by `TaczApi`
-- Keep gunner balance values in `gunner/GunnerArsenal.java` and `config/CommonConfig.java`
+- Keep gunner balance values in `gunner/GunnerArsenal.java` and `config/ServerConfig.java`
+- Keep client preferences in `config/ClientConfig.java`; anything that affects gameplay belongs in the server configuration
 - Organize resources under `assets/tacz_enhanced_patch/` and `data/tacz_enhanced_patch/`
 - Put client-only code in the `client/` package and load it only for `Dist.CLIENT`

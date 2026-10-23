@@ -21,7 +21,9 @@ A Minecraft mod that is an enhancement patch for TACZ. It constrains the origina
 - Gunners carry limited ammunition and fall back to melee combat once dry, giving players room to fight back or retreat
 - Killing a gunner drops matching ammunition, with a chance to drop guns and random attachments to sustain combat-based progression
 - Ruined outposts generate in the wild, guarded by armed mobs and stocked with ammunition, attachments and basic supplies
-- Targeting range, accuracy, damage and drop rates can be tuned from the mod list configuration screen
+- Targeting range, accuracy, damage and drop rates are adjusted by the world owner from the configuration screen
+- Configuration is split into client and server parts: the client keeps local preferences only, server parameters are synced from the server and hidden from regular clients
+- Automatic reload can be toggled separately in the client configuration
 - Spawn chance, reaction speed, aim error and damage multiplier are configurable, and all behavior returns to vanilla when disabled
 
 ## Requirements

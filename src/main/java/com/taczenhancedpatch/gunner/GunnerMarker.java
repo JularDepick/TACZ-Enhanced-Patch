@@ -22,6 +22,7 @@ public final class GunnerMarker {
     private static final String DROP_MIN = "dropMin";
     private static final String DROP_MAX = "dropMax";
     private static final String DRY = "dry";
+    private static final String BUFFED = "buffed";
     /* 是否已经做过枪手判定, 记录在实体持久化数据的顶层, 不随身份标记一起清除 */
     private static final String SPAWN_EVALUATED = "tacz_enhanced_patch_spawn_evaluated";
 
@@ -47,6 +48,7 @@ public final class GunnerMarker {
         data.putInt(DROP_MIN, profile.ammoDropMin());
         data.putInt(DROP_MAX, profile.ammoDropMax());
         data.putBoolean(DRY, false);
+        data.putBoolean(BUFFED, false);
         entity.getPersistentData().put(ROOT, data);
     }
 
@@ -88,6 +90,22 @@ public final class GunnerMarker {
             return;
         }
         root.getCompound(ROOT).putBoolean(DRY, dry);
+    }
+
+    public static boolean isBuffed(LivingEntity entity) {
+        CompoundTag root = entity.getPersistentData();
+        if (!root.contains(ROOT, Tag.TAG_COMPOUND)) {
+            return false;
+        }
+        return root.getCompound(ROOT).getBoolean(BUFFED);
+    }
+
+    public static void setBuffed(LivingEntity entity, boolean buffed) {
+        CompoundTag root = entity.getPersistentData();
+        if (!root.contains(ROOT, Tag.TAG_COMPOUND)) {
+            return;
+        }
+        root.getCompound(ROOT).putBoolean(BUFFED, buffed);
     }
 
     public static boolean isSpawnEvaluated(LivingEntity entity) {

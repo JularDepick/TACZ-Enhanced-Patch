@@ -6,11 +6,12 @@ import net.minecraftforge.fml.config.ModConfig;
 import java.util.List;
 
 /**
- * 通用配置。
- * 配置文件由 Forge 生成于 config/tacz_enhanced_patch-common.toml。
+ * 服务端配置。
+ * 由服务端持有: 单人存档写入该存档的 serverconfig 目录, 专用服务端写入 config 目录,
+ * 客户端只接收同步值, 不能自行修改。
  * 枪手系统全部开关集中在此, 关闭后行为与未安装本模组时一致。
  */
-public final class CommonConfig {
+public final class ServerConfig {
     private static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
 
     private static final ForgeConfigSpec.BooleanValue DEBUG_EVENTS = BUILDER
@@ -36,6 +37,10 @@ public final class CommonConfig {
     private static final ForgeConfigSpec.IntValue GUNNER_BURST_PAUSE_MAX;
     private static final ForgeConfigSpec.DoubleValue GUNNER_ACCURACY;
     private static final ForgeConfigSpec.DoubleValue GUNNER_DAMAGE_MULTIPLIER;
+    private static final ForgeConfigSpec.DoubleValue GUNNER_DAMAGE_TAKEN_MULTIPLIER;
+    private static final ForgeConfigSpec.DoubleValue GUNNER_HEALTH_MULTIPLIER;
+    private static final ForgeConfigSpec.IntValue GUNNER_ARMOR_BONUS;
+    private static final ForgeConfigSpec.DoubleValue GUNNER_ARMOR_DROP_CHANCE;
     private static final ForgeConfigSpec.DoubleValue GUNNER_AMMO_DROP_CHANCE;
     private static final ForgeConfigSpec.DoubleValue GUNNER_AMMO_DROP_MULTIPLIER;
     private static final ForgeConfigSpec.DoubleValue GUNNER_GUN_DROP_CHANCE;
@@ -104,6 +109,18 @@ public final class CommonConfig {
         GUNNER_DAMAGE_MULTIPLIER = BUILDER
                 .comment("枪手子弹对目标的伤害倍率, 用于压制 TACZ 原始伤害对玩家的压制力")
                 .defineInRange("damageMultiplier", 0.6D, 0.1D, 3.0D);
+        GUNNER_DAMAGE_TAKEN_MULTIPLIER = BUILDER
+                .comment("玩家枪械打向枪手的伤害倍率, 用于让枪手经得起数次命中; 枪手误伤, 近战与爆炸伤害不受影响")
+                .defineInRange("damageTakenMultiplier", 0.6D, 0.1D, 1.0D);
+        GUNNER_HEALTH_MULTIPLIER = BUILDER
+                .comment("枪手最大生命值倍率, 与分档耐久系数相乘")
+                .defineInRange("healthMultiplier", 2.5D, 1.0D, 10.0D);
+        GUNNER_ARMOR_BONUS = BUILDER
+                .comment("枪手额外护甲点数, 叠加在穿戴的护甲之上")
+                .defineInRange("armorBonus", 4, 0, 30);
+        GUNNER_ARMOR_DROP_CHANCE = BUILDER
+                .comment("枪手穿戴的护甲每个部位的掉落概率")
+                .defineInRange("armorDropChance", 0.05D, 0.0D, 1.0D);
         GUNNER_AMMO_DROP_CHANCE = BUILDER
                 .comment("枪手死亡时掉落弹药的概率")
                 .defineInRange("ammoDropChance", 1.0D, 0.0D, 1.0D);
@@ -127,7 +144,7 @@ public final class CommonConfig {
         SPEC = BUILDER.build();
     }
 
-    private CommonConfig() {
+    private ServerConfig() {
     }
 
     public static boolean debugEvents() {
@@ -198,6 +215,22 @@ public final class CommonConfig {
         return value(GUNNER_DAMAGE_MULTIPLIER, 0.6D);
     }
 
+    public static double gunnerDamageTakenMultiplier() {
+        return value(GUNNER_DAMAGE_TAKEN_MULTIPLIER, 0.6D);
+    }
+
+    public static double gunnerHealthMultiplier() {
+        return value(GUNNER_HEALTH_MULTIPLIER, 2.5D);
+    }
+
+    public static int gunnerArmorBonus() {
+        return value(GUNNER_ARMOR_BONUS, 4);
+    }
+
+    public static double gunnerArmorDropChance() {
+        return value(GUNNER_ARMOR_DROP_CHANCE, 0.05D);
+    }
+
     public static double gunnerAmmoDropChance() {
         return value(GUNNER_AMMO_DROP_CHANCE, 1.0D);
     }
@@ -214,46 +247,37 @@ public final class CommonConfig {
         return value(GUNNER_ATTACHMENT_DROP_CHANCE, 0.08D);
     }
 
-    public sealed interface Option permits ToggleOption, DoubleOption, IntOption {
-        String label();
-    }
-
-    public record ToggleOption(String label, ForgeConfigSpec.BooleanValue value) implements Option {
-    }
-
-    public record DoubleOption(String label, ForgeConfigSpec.DoubleValue value, double min, double max, double step) implements Option {
-    }
-
-    public record IntOption(String label, ForgeConfigSpec.IntValue value, int min, int max) implements Option {
-    }
-
-    public static List<Option> options() {
+    public static List<ConfigOption> options() {
         return List.of(
-                new ToggleOption("启用枪手系统", GUNNER_ENABLED),
-                new DoubleOption("枪手生成概率", GUNNER_SPAWN_CHANCE, 0.0D, 1.0D, 0.01D),
-                new DoubleOption("刷怪笼守卫武装率", GUNNER_SPAWNER_CHANCE, 0.0D, 1.0D, 0.01D),
-                new ToggleOption("按难度缩放", GUNNER_DIFFICULTY_SCALING),
-                new DoubleOption("锁定范围", GUNNER_TARGET_RANGE, 4.0D, 64.0D, 1.0D),
-                new DoubleOption("开火距离", GUNNER_FIRE_RANGE, 4.0D, 64.0D, 1.0D),
-                new DoubleOption("命中准度", GUNNER_ACCURACY, 0.0D, 1.0D, 0.01D),
-                new IntOption("反应时间下限", GUNNER_REACTION_TICKS_MIN, 0, 400),
-                new IntOption("反应时间上限", GUNNER_REACTION_TICKS_MAX, 0, 400),
-                new IntOption("点射发数下限", GUNNER_BURST_MIN, 1, 100),
-                new IntOption("点射发数上限", GUNNER_BURST_MAX, 1, 100),
-                new IntOption("停火时间下限", GUNNER_BURST_PAUSE_MIN, 0, 200),
-                new IntOption("停火时间上限", GUNNER_BURST_PAUSE_MAX, 0, 200),
-                new DoubleOption("伤害倍率", GUNNER_DAMAGE_MULTIPLIER, 0.1D, 3.0D, 0.05D),
-                new DoubleOption("弹药掉落概率", GUNNER_AMMO_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
-                new DoubleOption("弹药数量倍率", GUNNER_AMMO_DROP_MULTIPLIER, 0.0D, 5.0D, 0.1D),
-                new DoubleOption("枪械掉落概率", GUNNER_GUN_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
-                new DoubleOption("配件掉落概率", GUNNER_ATTACHMENT_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
-                new ToggleOption("启用遗迹生成", RUINS_ENABLED),
-                new ToggleOption("调试日志", DEBUG_EVENTS)
+                new ConfigOption.ToggleOption("启用枪手系统", GUNNER_ENABLED),
+                new ConfigOption.DoubleOption("枪手生成概率", GUNNER_SPAWN_CHANCE, 0.0D, 1.0D, 0.01D),
+                new ConfigOption.DoubleOption("刷怪笼守卫武装率", GUNNER_SPAWNER_CHANCE, 0.0D, 1.0D, 0.01D),
+                new ConfigOption.ToggleOption("按难度缩放", GUNNER_DIFFICULTY_SCALING),
+                new ConfigOption.DoubleOption("锁定范围", GUNNER_TARGET_RANGE, 4.0D, 64.0D, 1.0D),
+                new ConfigOption.DoubleOption("开火距离", GUNNER_FIRE_RANGE, 4.0D, 64.0D, 1.0D),
+                new ConfigOption.DoubleOption("命中准度", GUNNER_ACCURACY, 0.0D, 1.0D, 0.01D),
+                new ConfigOption.IntOption("反应时间下限", GUNNER_REACTION_TICKS_MIN, 0, 400),
+                new ConfigOption.IntOption("反应时间上限", GUNNER_REACTION_TICKS_MAX, 0, 400),
+                new ConfigOption.IntOption("点射发数下限", GUNNER_BURST_MIN, 1, 100),
+                new ConfigOption.IntOption("点射发数上限", GUNNER_BURST_MAX, 1, 100),
+                new ConfigOption.IntOption("停火时间下限", GUNNER_BURST_PAUSE_MIN, 0, 200),
+                new ConfigOption.IntOption("停火时间上限", GUNNER_BURST_PAUSE_MAX, 0, 200),
+                new ConfigOption.DoubleOption("伤害倍率", GUNNER_DAMAGE_MULTIPLIER, 0.1D, 3.0D, 0.05D),
+                new ConfigOption.DoubleOption("受伤倍率", GUNNER_DAMAGE_TAKEN_MULTIPLIER, 0.1D, 1.0D, 0.05D),
+                new ConfigOption.DoubleOption("生命值倍率", GUNNER_HEALTH_MULTIPLIER, 1.0D, 10.0D, 0.1D),
+                new ConfigOption.IntOption("额外护甲", GUNNER_ARMOR_BONUS, 0, 30),
+                new ConfigOption.DoubleOption("护甲掉落概率", GUNNER_ARMOR_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
+                new ConfigOption.DoubleOption("弹药掉落概率", GUNNER_AMMO_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
+                new ConfigOption.DoubleOption("弹药数量倍率", GUNNER_AMMO_DROP_MULTIPLIER, 0.0D, 5.0D, 0.1D),
+                new ConfigOption.DoubleOption("枪械掉落概率", GUNNER_GUN_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
+                new ConfigOption.DoubleOption("配件掉落概率", GUNNER_ATTACHMENT_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
+                new ConfigOption.ToggleOption("启用遗迹生成", RUINS_ENABLED),
+                new ConfigOption.ToggleOption("调试日志", DEBUG_EVENTS)
         );
     }
 
     public static void save() {
-        ModConfig config = ConfigEvents.commonConfig();
+        ModConfig config = ConfigEvents.serverConfig();
         if (config != null) {
             config.save();
         }

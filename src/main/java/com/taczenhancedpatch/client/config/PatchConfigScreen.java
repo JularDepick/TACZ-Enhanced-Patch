@@ -1,7 +1,11 @@
 package com.taczenhancedpatch.client.config;
 
-import com.taczenhancedpatch.config.CommonConfig;
+import com.taczenhancedpatch.config.ClientConfig;
+import com.taczenhancedpatch.config.ConfigOption;
+import com.taczenhancedpatch.config.ServerConfig;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
@@ -11,15 +15,18 @@ import net.minecraft.util.Mth;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.function.DoubleConsumer;
 
 /**
- * 通用配置界面。
- * 从模组列表的配置按钮进入, 只编辑标量配置项, 生物黑名单与维度黑名单仍需直接编辑配置文件。
+ * 模组配置界面。
+ * 客户端设置对所有玩家可见并可改; 服务端设置只在当前存档的创建者侧显示,
+ * 联机客户端与服务器成员看不到这些参数, 也改不了。
  */
-public final class CommonConfigScreen extends Screen {
+public final class PatchConfigScreen extends Screen {
     private static final int LIST_WIDTH = 340;
     private static final int ROW_HEIGHT = 24;
     private static final int WIDGET_WIDTH = 160;
@@ -27,8 +34,9 @@ public final class CommonConfigScreen extends Screen {
     private static final int LIST_BOTTOM_MARGIN = 46;
 
     private final Screen parent;
-    private final List<CommonConfig.Option> options;
-    private final List<Object> originals = new ArrayList<>();
+    private final List<ConfigOption> clientOptions;
+    private final List<ConfigOption> serverOptions;
+    private final Map<ConfigOption, Object> originals = new IdentityHashMap<>();
     private final List<Row> rows = new ArrayList<>();
     private double scroll;
     private int listLeft;
@@ -39,13 +47,23 @@ public final class CommonConfigScreen extends Screen {
     @Nullable
     private AbstractWidget dragging;
 
-    public CommonConfigScreen(@Nullable Screen parent) {
+    public PatchConfigScreen(@Nullable Screen parent) {
         super(Component.literal("TACZ 增强补丁配置"));
         this.parent = parent;
-        this.options = CommonConfig.options();
-        for (CommonConfig.Option option : options) {
-            originals.add(read(option));
+        this.clientOptions = ClientConfig.options();
+        this.serverOptions = isWorldOwner() ? ServerConfig.options() : List.of();
+        for (ConfigOption option : clientOptions) {
+            originals.put(option, read(option));
         }
+        for (ConfigOption option : serverOptions) {
+            originals.put(option, read(option));
+        }
+    }
+
+    /* 与服务端处于内存连接时, 说明本机就是存档创建者所在的服务端; 其余情况一律视为普通客户端 */
+    private static boolean isWorldOwner() {
+        ClientPacketListener listener = Minecraft.getInstance().getConnection();
+        return listener != null && listener.getConnection().isMemoryConnection();
     }
 
     @Override
@@ -55,8 +73,17 @@ public final class CommonConfigScreen extends Screen {
         listRight = listLeft + LIST_WIDTH;
         listTop = LIST_TOP;
         listBottom = height - LIST_BOTTOM_MARGIN;
-        for (CommonConfig.Option option : options) {
-            rows.add(new Row(option.label(), createWidget(option)));
+        rows.add(new Row("客户端设置", null, true));
+        for (ConfigOption option : clientOptions) {
+            rows.add(new Row(option.label(), createWidget(option), false));
+        }
+        if (serverOptions.isEmpty()) {
+            rows.add(new Row("服务端设置由存档创建者或服务器管理员修改", null, true));
+        } else {
+            rows.add(new Row("服务端设置", null, true));
+            for (ConfigOption option : serverOptions) {
+                rows.add(new Row(option.label(), createWidget(option), false));
+            }
         }
         addRenderableWidget(Button.builder(Component.literal("保存并关闭"), button -> finish(true))
                 .bounds(width / 2 - 155, height - 34, 150, 20)
@@ -76,14 +103,26 @@ public final class CommonConfigScreen extends Screen {
         for (int i = 0; i < rows.size(); i++) {
             Row row = rows.get(i);
             int rowY = listTop + i * ROW_HEIGHT - (int) scroll;
+            boolean visible = rowY + ROW_HEIGHT > listTop && rowY < listBottom;
             AbstractWidget widget = row.widget();
-            widget.setX(listRight - WIDGET_WIDTH - 6);
-            widget.setY(rowY + 2);
-            widget.visible = rowY + ROW_HEIGHT > listTop && rowY < listBottom;
-            if (!widget.visible) {
+            if (widget != null) {
+                widget.visible = visible;
+                if (visible) {
+                    widget.setX(listRight - WIDGET_WIDTH - 6);
+                    widget.setY(rowY + 2);
+                }
+            }
+            if (!visible) {
                 continue;
             }
-            graphics.drawString(font, row.label(), listLeft + 4, rowY + 7, 0xE0E0E0, false);
+            if (row.header()) {
+                graphics.drawString(font, row.label(), listLeft + 6, rowY + 7, 0xFFD080, false);
+                continue;
+            }
+            if (widget == null) {
+                continue;
+            }
+            graphics.drawString(font, row.label(), listLeft + 14, rowY + 7, 0xE0E0E0, false);
             widget.render(graphics, mouseX, mouseY, partialTick);
         }
         graphics.disableScissor();
@@ -109,7 +148,7 @@ public final class CommonConfigScreen extends Screen {
         if (insideList(mouseX, mouseY)) {
             for (Row row : rows) {
                 AbstractWidget widget = row.widget();
-                if (widget.visible && widget.mouseClicked(mouseX, mouseY, button)) {
+                if (widget != null && widget.visible && widget.mouseClicked(mouseX, mouseY, button)) {
                     dragging = widget;
                     return true;
                 }
@@ -157,7 +196,10 @@ public final class CommonConfigScreen extends Screen {
 
     private void finish(boolean saveNow) {
         if (saveNow) {
-            CommonConfig.save();
+            ClientConfig.save();
+            if (!serverOptions.isEmpty()) {
+                ServerConfig.save();
+            }
             saved = true;
         } else if (!saved) {
             restoreOriginals();
@@ -168,8 +210,8 @@ public final class CommonConfigScreen extends Screen {
     }
 
     private void restoreOriginals() {
-        for (int i = 0; i < options.size(); i++) {
-            write(options.get(i), originals.get(i));
+        for (Map.Entry<ConfigOption, Object> entry : originals.entrySet()) {
+            write(entry.getKey(), entry.getValue());
         }
     }
 
@@ -183,21 +225,21 @@ public final class CommonConfigScreen extends Screen {
         return Math.max(0.0D, contentHeight - viewHeight);
     }
 
-    private AbstractWidget createWidget(CommonConfig.Option option) {
-        if (option instanceof CommonConfig.ToggleOption toggle) {
+    private AbstractWidget createWidget(ConfigOption option) {
+        if (option instanceof ConfigOption.ToggleOption toggle) {
             return Button.builder(toggleText(toggle), button -> {
                 toggle.value().set(!Boolean.TRUE.equals(toggle.value().get()));
                 button.setMessage(toggleText(toggle));
             }).bounds(0, 0, WIDGET_WIDTH, 20).build();
         }
-        if (option instanceof CommonConfig.DoubleOption doubleOption) {
+        if (option instanceof ConfigOption.DoubleOption doubleOption) {
             double current = Mth.clamp(doubleOption.value().get(), doubleOption.min(), doubleOption.max());
             double fraction = (current - doubleOption.min()) / (doubleOption.max() - doubleOption.min());
             return new NumberSlider(doubleOption.label(), doubleOption.min(), doubleOption.max(),
                     doubleOption.step(), false, fraction,
                     value -> doubleOption.value().set(Mth.clamp(value, doubleOption.min(), doubleOption.max())));
         }
-        if (option instanceof CommonConfig.IntOption intOption) {
+        if (option instanceof ConfigOption.IntOption intOption) {
             double current = Mth.clamp(intOption.value().get(), intOption.min(), intOption.max());
             double fraction = (current - intOption.min()) / (double) (intOption.max() - intOption.min());
             return new NumberSlider(intOption.label(), intOption.min(), intOption.max(),
@@ -207,37 +249,37 @@ public final class CommonConfigScreen extends Screen {
         throw new IllegalStateException("unsupported option " + option.label());
     }
 
-    private static Component toggleText(CommonConfig.ToggleOption option) {
+    private static Component toggleText(ConfigOption.ToggleOption option) {
         return Component.literal(Boolean.TRUE.equals(option.value().get()) ? "开" : "关");
     }
 
-    private static Object read(CommonConfig.Option option) {
-        if (option instanceof CommonConfig.ToggleOption toggle) {
+    private static Object read(ConfigOption option) {
+        if (option instanceof ConfigOption.ToggleOption toggle) {
             return toggle.value().get();
         }
-        if (option instanceof CommonConfig.DoubleOption doubleOption) {
+        if (option instanceof ConfigOption.DoubleOption doubleOption) {
             return doubleOption.value().get();
         }
-        if (option instanceof CommonConfig.IntOption intOption) {
+        if (option instanceof ConfigOption.IntOption intOption) {
             return intOption.value().get();
         }
         return null;
     }
 
-    private static void write(CommonConfig.Option option, @Nullable Object value) {
+    private static void write(ConfigOption option, @Nullable Object value) {
         if (value == null) {
             return;
         }
-        if (option instanceof CommonConfig.ToggleOption toggle) {
+        if (option instanceof ConfigOption.ToggleOption toggle) {
             toggle.value().set(Boolean.TRUE.equals(value));
-        } else if (option instanceof CommonConfig.DoubleOption doubleOption) {
+        } else if (option instanceof ConfigOption.DoubleOption doubleOption) {
             doubleOption.value().set(((Number) value).doubleValue());
-        } else if (option instanceof CommonConfig.IntOption intOption) {
+        } else if (option instanceof ConfigOption.IntOption intOption) {
             intOption.value().set(((Number) value).intValue());
         }
     }
 
-    private record Row(String label, AbstractWidget widget) {
+    private record Row(String label, @Nullable AbstractWidget widget, boolean header) {
     }
 
     private static final class NumberSlider extends AbstractSliderButton {

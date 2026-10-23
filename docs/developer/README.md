@@ -11,7 +11,7 @@
 
 构建产物输出到 Gradle 默认的 `build/libs/` 目录
 
-开发运行已配置 Mixin 引用表重映射, 以支持前置模组 TACZ 的混入; 服务端冒烟测试可使用 `gradlew.bat runServer`
+开发运行已配置 Mixin 引用表重映射, 以支持上游模组 TACZ 的混入; 服务端冒烟测试可使用 `gradlew.bat runServer`
 
 配置界面从模组列表的配置按钮进入, 不属于快捷键入口
 

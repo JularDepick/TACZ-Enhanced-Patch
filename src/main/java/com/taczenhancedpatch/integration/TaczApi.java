@@ -19,7 +19,7 @@ import java.util.Optional;
 /**
  * TACZ 公开 API 的统一入口。
  * 所有对 TACZ 的类型引用集中在此处, 其余包只使用本类的抽象类型,
- * 便于前置模组版本变化时定位适配点。
+ * 便于上游模组版本变化时定位适配点。
  */
 public final class TaczApi {
     /** 对外暴露的开火模式, 与 TACZ 的 FireMode 一一对应 */
@@ -139,6 +139,16 @@ public final class TaczApi {
     public static int magazineAmmo(@Nullable ItemStack gunStack) {
         IGun gun = getGun(gunStack);
         return gun == null ? 0 : gun.getCurrentAmmoCount(gunStack);
+    }
+
+    public static boolean hasBulletInBarrel(@Nullable ItemStack gunStack) {
+        IGun gun = getGun(gunStack);
+        return gun != null && gun.hasBulletInBarrel(gunStack);
+    }
+
+    public static boolean usesInventoryAmmo(@Nullable ItemStack gunStack) {
+        IGun gun = getGun(gunStack);
+        return gun != null && gun.useInventoryAmmo(gunStack);
     }
 
     public static int dummyAmmo(@Nullable ItemStack gunStack) {

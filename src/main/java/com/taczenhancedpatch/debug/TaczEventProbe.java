@@ -1,7 +1,7 @@
 package com.taczenhancedpatch.debug;
 
 import com.taczenhancedpatch.TACZEnhancedPatch;
-import com.taczenhancedpatch.config.CommonConfig;
+import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.integration.TaczApi;
 import com.tacz.guns.api.event.common.EntityHurtByGunEvent;
 import com.tacz.guns.api.event.common.EntityKillByGunEvent;
@@ -27,7 +27,7 @@ public final class TaczEventProbe {
 
     @SubscribeEvent
     public static void onGunFire(GunFireEvent event) {
-        if (CommonConfig.debugEvents()) {
+        if (ServerConfig.debugEvents()) {
             TACZEnhancedPatch.LOGGER.info("[probe] GunFire side={} gun={} shooter={}",
                     event.getLogicalSide(), gunId(event.getGunItemStack()), name(event.getShooter()));
         }
@@ -35,7 +35,7 @@ public final class TaczEventProbe {
 
     @SubscribeEvent
     public static void onGunShoot(GunShootEvent event) {
-        if (CommonConfig.debugEvents()) {
+        if (ServerConfig.debugEvents()) {
             TACZEnhancedPatch.LOGGER.info("[probe] GunShoot side={} gun={} shooter={}",
                     event.getLogicalSide(), gunId(event.getGunItemStack()), name(event.getShooter()));
         }
@@ -43,7 +43,7 @@ public final class TaczEventProbe {
 
     @SubscribeEvent
     public static void onGunReload(GunReloadEvent event) {
-        if (CommonConfig.debugEvents()) {
+        if (ServerConfig.debugEvents()) {
             TACZEnhancedPatch.LOGGER.info("[probe] GunReload side={} gun={} entity={}",
                     event.getLogicalSide(), gunId(event.getGunItemStack()), name(event.getEntity()));
         }
@@ -51,7 +51,7 @@ public final class TaczEventProbe {
 
     @SubscribeEvent
     public static void onGunHurt(EntityHurtByGunEvent.Pre event) {
-        if (CommonConfig.debugEvents()) {
+        if (ServerConfig.debugEvents()) {
             TACZEnhancedPatch.LOGGER.info("[probe] GunHurtPre side={} gun={} attacker={} hurt={} amount={} headshot={}",
                     event.getLogicalSide(), event.getGunId(), name(event.getAttacker()), name(event.getHurtEntity()),
                     event.getBaseAmount(), event.isHeadShot());
@@ -60,7 +60,7 @@ public final class TaczEventProbe {
 
     @SubscribeEvent
     public static void onGunKill(EntityKillByGunEvent event) {
-        if (CommonConfig.debugEvents()) {
+        if (ServerConfig.debugEvents()) {
             TACZEnhancedPatch.LOGGER.info("[probe] GunKill side={} gun={} attacker={} killed={} damage={}",
                     event.getLogicalSide(), event.getGunId(), name(event.getAttacker()), name(event.getKilledEntity()),
                     event.getBaseDamage());

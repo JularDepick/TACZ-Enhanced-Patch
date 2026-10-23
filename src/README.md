@@ -10,20 +10,25 @@ src/main/
 ├── java/com/taczenhancedpatch/
 │   ├── TACZEnhancedPatch.java          # 模组主入口
 │   ├── balance/
-│   │   └── GunDamageBalanceHandler.java # 枪手子弹伤害调节
+│   │   ├── GunDamageBalanceHandler.java # 枪手子弹伤害调节
+│   │   └── GunnerDefenseHandler.java    # 枪手受击伤害调节
 │   ├── client/
+│   │   ├── AutoReloadHandler.java       # 自动换弹
 │   │   ├── TACZEnhancedPatchClient.java # 客户端入口
 │   │   └── config/
-│   │       ├── CommonConfigScreen.java  # 配置界面
-│   │       └── ModConfigScreen.java     # 配置界面注册
+│   │       ├── ModConfigScreen.java     # 配置界面注册
+│   │       └── PatchConfigScreen.java   # 配置界面
 │   ├── config/
-│   │   ├── CommonConfig.java           # 通用配置与配置项列表
-│   │   └── ConfigEvents.java           # 配置生命周期与保存
+│   │   ├── ClientConfig.java           # 客户端配置
+│   │   ├── ConfigEvents.java           # 配置生命周期与保存
+│   │   ├── ConfigOption.java           # 配置项描述
+│   │   └── ServerConfig.java           # 服务端配置与配置项列表
 │   ├── debug/
 │   │   └── TaczEventProbe.java         # TACZ API 事件探针(默认关闭)
 │   ├── gunner/
 │   │   ├── GunnerArsenal.java          # 枪手军械库与平衡常量
 │   │   ├── GunnerCombat.java           # 枪手索敌与开火逻辑
+│   │   ├── GunnerDurability.java       # 枪手生命, 护甲与护甲穿戴
 │   │   ├── GunnerEligibility.java      # 枪手候选判定, 按实际实体类型扫描
 │   │   ├── GunnerMarker.java           # 枪手身份标记
 │   │   ├── GunnerSpawnHandler.java     # 枪手生成
@@ -48,6 +53,7 @@ src/main/
 
 - 新增补丁功能时, 在 `java/com/taczenhancedpatch/` 下按功能建立独立包
 - 与 TACZ 的类型交互集中在 `integration/` 包内, 其余代码只使用 `TaczApi` 暴露的抽象类型
-- 枪手玩法的可调数值集中在 `gunner/GunnerArsenal.java` 与 `config/CommonConfig.java`
+- 枪手玩法的可调数值集中在 `gunner/GunnerArsenal.java` 与 `config/ServerConfig.java`
+- 客户端偏好放 `config/ClientConfig.java`, 只放不影响服务端判定的项; 影响玩法的参数一律进服务端配置
 - 资源文件按 `assets/tacz_enhanced_patch/` 与 `data/tacz_enhanced_patch/` 组织
 - 客户端专用代码放在 `client/` 包内, 并通过 `Dist.CLIENT` 限定加载

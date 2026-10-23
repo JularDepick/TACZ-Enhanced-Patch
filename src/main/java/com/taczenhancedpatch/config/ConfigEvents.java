@@ -10,25 +10,35 @@ import javax.annotation.Nullable;
 
 /**
  * 配置生命周期。
- * 保存当前通用配置对象, 供配置界面在修改后立即写盘。
+ * 分别保存客户端与服务端配置对象, 供配置界面在修改后立即写盘。
  */
 @Mod.EventBusSubscriber(modid = TACZEnhancedPatch.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class ConfigEvents {
     @Nullable
-    private static ModConfig commonConfig;
+    private static ModConfig clientConfig;
+    @Nullable
+    private static ModConfig serverConfig;
 
     private ConfigEvents() {
     }
 
     @SubscribeEvent
     public static void onConfigEvent(ModConfigEvent event) {
-        if (event.getConfig().getSpec() == CommonConfig.SPEC) {
-            commonConfig = event.getConfig();
+        ModConfig config = event.getConfig();
+        if (config.getSpec() == ClientConfig.SPEC) {
+            clientConfig = config;
+        } else if (config.getSpec() == ServerConfig.SPEC) {
+            serverConfig = config;
         }
     }
 
     @Nullable
-    public static ModConfig commonConfig() {
-        return commonConfig;
+    public static ModConfig clientConfig() {
+        return clientConfig;
+    }
+
+    @Nullable
+    public static ModConfig serverConfig() {
+        return serverConfig;
     }
 }

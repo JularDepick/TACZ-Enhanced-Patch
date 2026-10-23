@@ -1,7 +1,7 @@
 package com.taczenhancedpatch.gunner;
 
 import com.taczenhancedpatch.TACZEnhancedPatch;
-import com.taczenhancedpatch.config.CommonConfig;
+import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.integration.TaczApi;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
@@ -39,7 +39,7 @@ public final class GunnerCombat {
         if (mob.level().isClientSide() || !GunnerMarker.isGunner(mob)) {
             return;
         }
-        if (!CommonConfig.gunnerEnabled()) {
+        if (!ServerConfig.gunnerEnabled()) {
             return;
         }
         tick(mob);
@@ -63,7 +63,7 @@ public final class GunnerCombat {
             TaczApi.initOperator(mob);
             state.initialized = true;
             state.gunId = gunId;
-            state.burstSize = randomRange(mob, CommonConfig.gunnerBurstSize());
+            state.burstSize = randomRange(mob, ServerConfig.gunnerBurstSize());
             GunnerMarker.setDry(mob, false);
         }
         if (GunnerMarker.isDry(mob)) {
@@ -104,8 +104,8 @@ public final class GunnerCombat {
                 state.shotsInBurst++;
                 if (state.shotsInBurst >= state.burstSize) {
                     state.shotsInBurst = 0;
-                    state.burstSize = randomRange(mob, CommonConfig.gunnerBurstSize());
-                    state.pauseTicks = randomRange(mob, CommonConfig.gunnerBurstPause());
+                    state.burstSize = randomRange(mob, ServerConfig.gunnerBurstSize());
+                    state.pauseTicks = randomRange(mob, ServerConfig.gunnerBurstPause());
                 }
             }
             case NO_AMMO -> {
@@ -115,7 +115,7 @@ public final class GunnerCombat {
                 } else {
                     GunnerMarker.setDry(mob, true);
                     TaczApi.aim(mob, false);
-                    if (CommonConfig.debugEvents()) {
+                    if (ServerConfig.debugEvents()) {
                         TACZEnhancedPatch.LOGGER.info("[gunner] {} ran out of ammo", mob.getType());
                     }
                 }
@@ -138,7 +138,7 @@ public final class GunnerCombat {
         LivingEntity found = findTarget(mob);
         if (found != state.target) {
             state.target = found;
-            state.reactionTicks = randomRange(mob, CommonConfig.gunnerReactionTicks());
+            state.reactionTicks = randomRange(mob, ServerConfig.gunnerReactionTicks());
             state.pauseTicks = 0;
             state.shotsInBurst = 0;
         }
@@ -147,7 +147,7 @@ public final class GunnerCombat {
 
     @Nullable
     private static LivingEntity findTarget(Mob mob) {
-        double range = CommonConfig.gunnerTargetRange();
+        double range = ServerConfig.gunnerTargetRange();
         double rangeSqr = range * range;
         Player best = null;
         double bestDistance = Double.MAX_VALUE;
@@ -175,7 +175,7 @@ public final class GunnerCombat {
         if (target.level() != mob.level()) {
             return false;
         }
-        double range = CommonConfig.gunnerFireRange();
+        double range = ServerConfig.gunnerFireRange();
         return mob.distanceToSqr(target) <= range * range && mob.hasLineOfSight(target);
     }
 
@@ -193,7 +193,7 @@ public final class GunnerCombat {
         } else {
             direction = direction.scale(1.0D / length);
         }
-        double errorDegrees = (1.0D - CommonConfig.gunnerAccuracy()) * GunnerArsenal.MAX_AIM_ERROR_DEGREES;
+        double errorDegrees = (1.0D - ServerConfig.gunnerAccuracy()) * GunnerArsenal.MAX_AIM_ERROR_DEGREES;
         double yaw = Math.toDegrees(Math.atan2(-direction.x, direction.z))
                 + mob.getRandom().nextGaussian() * errorDegrees;
         double pitch = Math.toDegrees(-Math.asin(Mth.clamp(direction.y, -1.0D, 1.0D)))

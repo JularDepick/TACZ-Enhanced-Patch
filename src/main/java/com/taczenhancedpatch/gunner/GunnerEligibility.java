@@ -1,6 +1,6 @@
 package com.taczenhancedpatch.gunner;
 
-import com.taczenhancedpatch.config.CommonConfig;
+import com.taczenhancedpatch.config.ServerConfig;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
@@ -67,6 +67,6 @@ public final class GunnerEligibility {
 
     private static boolean isBlacklisted(Mob mob) {
         ResourceLocation id = ForgeRegistries.ENTITY_TYPES.getKey(mob.getType());
-        return id != null && CommonConfig.gunnerMobBlacklist().contains(id.toString());
+        return id != null && ServerConfig.gunnerMobBlacklist().contains(id.toString());
     }
 }

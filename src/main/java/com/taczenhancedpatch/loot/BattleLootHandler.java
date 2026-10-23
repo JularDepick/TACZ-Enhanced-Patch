@@ -1,7 +1,7 @@
 package com.taczenhancedpatch.loot;
 
 import com.taczenhancedpatch.TACZEnhancedPatch;
-import com.taczenhancedpatch.config.CommonConfig;
+import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.gunner.GunnerMarker;
 import com.taczenhancedpatch.integration.TaczApi;
 import net.minecraft.resources.ResourceLocation;
@@ -30,7 +30,7 @@ public final class BattleLootHandler {
 
     @SubscribeEvent
     public static void onLivingDrops(LivingDropsEvent event) {
-        if (!CommonConfig.gunnerEnabled()) {
+        if (!ServerConfig.gunnerEnabled()) {
             return;
         }
         LivingEntity dead = event.getEntity();
@@ -46,24 +46,24 @@ public final class BattleLootHandler {
             return gunId != null && gunId.equals(loadout.gunId());
         });
 
-        if (random.nextDouble() < CommonConfig.gunnerAmmoDropChance()) {
+        if (random.nextDouble() < ServerConfig.gunnerAmmoDropChance()) {
             int base = Mth.nextInt(random, loadout.ammoDropMin(), loadout.ammoDropMax());
             int bonus = event.getLootingLevel() * LOOTING_AMMO_BONUS;
-            int count = (int) Math.round((base + bonus) * CommonConfig.gunnerAmmoDropMultiplier());
+            int count = (int) Math.round((base + bonus) * ServerConfig.gunnerAmmoDropMultiplier());
             count = Mth.clamp(count, 1, MAX_AMMO_PER_DROP);
             addDrop(dead, TaczApi.createAmmo(loadout.ammoId(), count), event);
         }
 
-        if (random.nextDouble() < CommonConfig.gunnerGunDropChance()) {
+        if (random.nextDouble() < ServerConfig.gunnerGunDropChance()) {
             addDrop(dead, TaczApi.createGun(loadout.gunId(), loadout.fireMode(), 0), event);
         }
 
-        if (random.nextDouble() < CommonConfig.gunnerAttachmentDropChance()) {
+        if (random.nextDouble() < ServerConfig.gunnerAttachmentDropChance()) {
             Optional<ItemStack> attachment = TaczApi.randomAttachment(random);
             attachment.ifPresent(stack -> addDrop(dead, stack, event));
         }
 
-        if (CommonConfig.debugEvents()) {
+        if (ServerConfig.debugEvents()) {
             TACZEnhancedPatch.LOGGER.info("[gunner] loot from {}: ammo {}", dead.getType(), loadout.ammoId());
         }
     }

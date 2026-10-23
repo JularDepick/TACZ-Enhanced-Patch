@@ -2,7 +2,8 @@ package com.taczenhancedpatch;
 
 import com.mojang.logging.LogUtils;
 import com.taczenhancedpatch.client.config.ModConfigScreen;
-import com.taczenhancedpatch.config.CommonConfig;
+import com.taczenhancedpatch.config.ClientConfig;
+import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.world.ModFeatures;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
@@ -22,7 +23,8 @@ public final class TACZEnhancedPatch {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public TACZEnhancedPatch(FMLJavaModLoadingContext context) {
-        context.registerConfig(ModConfig.Type.COMMON, CommonConfig.SPEC);
+        context.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
+        context.registerConfig(ModConfig.Type.SERVER, ServerConfig.SPEC);
         ModFeatures.FEATURES.register(context.getModEventBus());
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ModConfigScreen.register(context));
         LOGGER.info("{} initialized", MOD_NAME);
