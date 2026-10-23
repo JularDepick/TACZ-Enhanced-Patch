@@ -23,6 +23,9 @@ public final class GunnerMarker {
     private static final String DROP_MAX = "dropMax";
     private static final String DRY = "dry";
     private static final String BUFFED = "buffed";
+    private static final String IMPROVISED = "improvised";
+    /* 是否已经做过临场武装判定, 记录在实体持久化数据的顶层 */
+    private static final String RETALIATION_CHECKED = "tacz_enhanced_patch_retaliation_checked";
     /* 是否已经做过枪手判定, 记录在实体持久化数据的顶层, 不随身份标记一起清除 */
     private static final String SPAWN_EVALUATED = "tacz_enhanced_patch_spawn_evaluated";
 
@@ -32,23 +35,25 @@ public final class GunnerMarker {
                           TaczApi.FireMode fireMode,
                           int ammoPool,
                           int ammoDropMin,
-                          int ammoDropMax) {
+                          int ammoDropMax,
+                          boolean improvised) {
     }
 
     private GunnerMarker() {
     }
 
-    public static void mark(LivingEntity entity, GunnerArsenal.GunProfile profile) {
+    public static void mark(LivingEntity entity, GunnerArsenal.GunProfile profile, int ammoPool, boolean improvised) {
         CompoundTag data = new CompoundTag();
         data.putString(GUN, profile.gunId().toString());
         data.putString(AMMO, profile.ammoId().toString());
         data.putString(TIER, profile.tier().name());
         data.putString(FIRE_MODE, profile.fireMode().name());
-        data.putInt(AMMO_POOL, profile.ammoPool());
+        data.putInt(AMMO_POOL, Math.max(1, ammoPool));
         data.putInt(DROP_MIN, profile.ammoDropMin());
         data.putInt(DROP_MAX, profile.ammoDropMax());
         data.putBoolean(DRY, false);
         data.putBoolean(BUFFED, false);
+        data.putBoolean(IMPROVISED, improvised);
         entity.getPersistentData().put(ROOT, data);
     }
 
@@ -73,7 +78,7 @@ public final class GunnerMarker {
         int ammoPool = Math.max(0, data.getInt(AMMO_POOL));
         int dropMin = Math.max(1, data.getInt(DROP_MIN));
         int dropMax = Math.max(dropMin, data.getInt(DROP_MAX));
-        return new Loadout(gunId, ammoId, tier, fireMode, ammoPool, dropMin, dropMax);
+        return new Loadout(gunId, ammoId, tier, fireMode, ammoPool, dropMin, dropMax, data.getBoolean(IMPROVISED));
     }
 
     public static boolean isDry(LivingEntity entity) {
@@ -110,6 +115,14 @@ public final class GunnerMarker {
 
     public static boolean isSpawnEvaluated(LivingEntity entity) {
         return entity.getPersistentData().getBoolean(SPAWN_EVALUATED);
+    }
+
+    public static boolean isRetaliationChecked(LivingEntity entity) {
+        return entity.getPersistentData().getBoolean(RETALIATION_CHECKED);
+    }
+
+    public static void markRetaliationChecked(LivingEntity entity) {
+        entity.getPersistentData().putBoolean(RETALIATION_CHECKED, true);
     }
 
     public static void markSpawnEvaluated(LivingEntity entity) {

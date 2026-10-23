@@ -26,11 +26,13 @@ src/main/
 │   ├── debug/
 │   │   └── TaczEventProbe.java         # TACZ API event probe (disabled by default)
 │   ├── gunner/
+│   │   ├── GunnerArming.java          # Gun arming with random attachments and ammo
 │   │   ├── GunnerArsenal.java          # Gunner arsenal and balance constants
 │   │   ├── GunnerCombat.java           # Gunner targeting and firing logic
 │   │   ├── GunnerDurability.java       # Gunner health, armor and armor equipping
 │   │   ├── GunnerEligibility.java      # Gunner candidate scan over registered entity types
 │   │   ├── GunnerMarker.java           # Gunner identity marker
+│   │   ├── GunnerRetaliation.java      # Improvised arming and retaliation for non-hostile mobs
 │   │   ├── GunnerSpawnHandler.java     # Gunner spawn assignment
 │   │   └── GunnerState.java            # Transient gunner state
 │   ├── integration/

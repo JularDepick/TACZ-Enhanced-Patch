@@ -55,7 +55,7 @@ public final class BattleLootHandler {
         }
 
         if (random.nextDouble() < ServerConfig.gunnerGunDropChance()) {
-            addDrop(dead, TaczApi.createGun(loadout.gunId(), loadout.fireMode(), 0), event);
+            addDrop(dead, gunForDrop(dead, loadout), event);
         }
 
         if (random.nextDouble() < ServerConfig.gunnerAttachmentDropChance()) {
@@ -66,6 +66,15 @@ public final class BattleLootHandler {
         if (ServerConfig.debugEvents()) {
             TACZEnhancedPatch.LOGGER.info("[gunner] loot from {}: ammo {}", dead.getType(), loadout.ammoId());
         }
+    }
+
+    /* 掉落实际使用的那把枪, 随机配件与剩余备弹随枪一起转移 */
+    private static ItemStack gunForDrop(LivingEntity dead, GunnerMarker.Loadout loadout) {
+        ItemStack held = dead.getMainHandItem();
+        if (TaczApi.isGun(held)) {
+            return held.copy();
+        }
+        return TaczApi.createGun(loadout.gunId(), loadout.fireMode(), 0);
     }
 
     private static void addDrop(LivingEntity dead, ItemStack stack, LivingDropsEvent event) {

@@ -136,6 +136,21 @@ public final class TaczApi {
         return stack.isEmpty() ? Optional.empty() : Optional.of(stack);
     }
 
+    /**
+     * 给枪械随机安装一件配件。
+     * 返回 false 表示池中没有可用配件或该枪不接受这件配件。
+     */
+    public static boolean installRandomAttachment(ItemStack gunStack, RandomSource random) {
+        IGun gun = getGun(gunStack);
+        if (gun == null) {
+            return false;
+        }
+        return randomAttachment(random).map(attachment -> {
+            gun.installAttachment(gunStack, attachment);
+            return true;
+        }).orElse(false);
+    }
+
     public static int magazineAmmo(@Nullable ItemStack gunStack) {
         IGun gun = getGun(gunStack);
         return gun == null ? 0 : gun.getCurrentAmmoCount(gunStack);

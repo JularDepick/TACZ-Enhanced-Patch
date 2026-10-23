@@ -26,11 +26,13 @@ src/main/
 │   ├── debug/
 │   │   └── TaczEventProbe.java         # TACZ API 事件探针(默认关闭)
 │   ├── gunner/
+│   │   ├── GunnerArming.java          # 枪械装配与随机配件, 随机备弹
 │   │   ├── GunnerArsenal.java          # 枪手军械库与平衡常量
 │   │   ├── GunnerCombat.java           # 枪手索敌与开火逻辑
 │   │   ├── GunnerDurability.java       # 枪手生命, 护甲与护甲穿戴
 │   │   ├── GunnerEligibility.java      # 枪手候选判定, 按实际实体类型扫描
 │   │   ├── GunnerMarker.java           # 枪手身份标记
+│   │   ├── GunnerRetaliation.java      # 非敌对生物临场武装与反击
 │   │   ├── GunnerSpawnHandler.java     # 枪手生成
 │   │   └── GunnerState.java            # 枪手瞬时状态
 │   ├── integration/

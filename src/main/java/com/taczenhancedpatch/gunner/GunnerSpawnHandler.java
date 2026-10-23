@@ -3,13 +3,10 @@ package com.taczenhancedpatch.gunner;
 import com.taczenhancedpatch.TACZEnhancedPatch;
 import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.integration.TaczApi;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.Difficulty;
-import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
-import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.living.MobSpawnEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -55,14 +52,14 @@ public final class GunnerSpawnHandler {
         if (loadout == null) {
             return;
         }
-        if (!GunnerMarker.isBuffed(mob)) {
+        if (!loadout.improvised() && !GunnerMarker.isBuffed(mob)) {
             GunnerDurability.apply(mob, loadout.tier());
             GunnerMarker.setBuffed(mob, true);
         }
         if (TaczApi.isGun(mob.getMainHandItem())) {
             return;
         }
-        equip(mob, loadout.gunId(), loadout.fireMode(), loadout.ammoPool());
+        GunnerArming.equip(mob, loadout.gunId(), loadout.fireMode(), loadout.ammoPool(), mob.getRandom());
     }
 
     private static void tryArm(Mob mob, Difficulty difficulty, boolean fromSpawner) {
@@ -82,32 +79,12 @@ public final class GunnerSpawnHandler {
         if (mob.getRandom().nextDouble() >= chance) {
             return;
         }
-
-        int[] weights = ServerConfig.gunnerTierWeights();
-        if (ServerConfig.gunnerDifficultyScaling()) {
-            if (difficulty == Difficulty.HARD) {
-                weights[2] *= 2;
-            } else if (difficulty == Difficulty.EASY) {
-                weights[0] *= 2;
-            }
+        GunnerArming.Arming arming = GunnerArming.roll(mob.getRandom(), difficulty);
+        if (arming == null) {
+            return;
         }
-        GunnerArsenal.Tier tier = GunnerArsenal.pickTier(mob.getRandom(), weights[0], weights[1], weights[2]);
-        GunnerArsenal.GunProfile profile = GunnerArsenal.pick(tier, mob.getRandom());
-        if (profile != null) {
-            GunnerMarker.mark(mob, profile);
-        }
-    }
-
-    private static boolean equip(Mob mob, ResourceLocation gunId, TaczApi.FireMode fireMode, int ammoPool) {
-        ItemStack gun = TaczApi.createGun(gunId, fireMode, ammoPool);
-        if (gun.isEmpty()) {
-            return false;
-        }
-        mob.setItemSlot(EquipmentSlot.MAINHAND, gun);
-        if (ServerConfig.debugEvents()) {
-            TACZEnhancedPatch.LOGGER.info("[gunner] armed {} with {}", mob.getType(), gunId);
-        }
-        return true;
+        /* 只在此处决定身份, 装配统一交给实体进入世界后的补装步骤 */
+        GunnerMarker.mark(mob, arming.profile(), arming.ammoPool(), false);
     }
 
     private static boolean isBlacklistedDimension(Mob mob) {

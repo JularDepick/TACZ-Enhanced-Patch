@@ -12,6 +12,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
+import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -48,6 +49,45 @@ public final class GunnerCombat {
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
         STATES.remove(event.getEntity());
+    }
+
+    /**
+     * 受击索敌。
+     * 枪手被任何生物或玩家打中时, 若攻击者在锁定范围内就立刻把目标换成攻击者,
+     * 之后按正常的反应时间与点射节奏还击。
+     */
+    @SubscribeEvent
+    public static void onLivingHurt(LivingHurtEvent event) {
+        if (!(event.getEntity() instanceof Mob mob) || mob.level().isClientSide()) {
+            return;
+        }
+        if (!ServerConfig.gunnerEnabled() || !GunnerMarker.isGunner(mob)) {
+            return;
+        }
+        if (!(event.getSource().getEntity() instanceof LivingEntity attacker) || attacker == mob) {
+            return;
+        }
+        if (attacker.level() != mob.level()) {
+            return;
+        }
+        double range = ServerConfig.gunnerTargetRange();
+        if (mob.distanceToSqr(attacker) > range * range) {
+            return;
+        }
+        retaliate(mob, attacker);
+    }
+
+    /* 供临场武装复用: 直接把目标设为攻击者, 重置反应与点射节奏 */
+    static void retaliate(Mob mob, @Nullable LivingEntity attacker) {
+        if (attacker == null) {
+            return;
+        }
+        GunnerState state = STATES.computeIfAbsent(mob, key -> new GunnerState());
+        state.target = attacker;
+        state.reactionTicks = randomRange(mob, ServerConfig.gunnerReactionTicks());
+        state.pauseTicks = 0;
+        state.shotsInBurst = 0;
+        state.retargetTicks = RETARGET_INTERVAL;
     }
 
     private static void tick(Mob mob) {
@@ -131,7 +171,10 @@ public final class GunnerCombat {
 
     private static void updateTarget(Mob mob, GunnerState state) {
         state.retargetTicks--;
-        boolean needRetarget = state.target == null || !isValidTarget(mob, state.target) || state.retargetTicks <= 0;
+        boolean valid = state.target != null && isValidTarget(mob, state.target);
+        /* 非玩家目标来自受击反击, 只要还有效就不主动换成路过玩家 */
+        boolean keepRetaliation = valid && !(state.target instanceof Player);
+        boolean needRetarget = state.target == null || !valid || (state.retargetTicks <= 0 && !keepRetaliation);
         if (!needRetarget) {
             return;
         }
@@ -169,10 +212,10 @@ public final class GunnerCombat {
     }
 
     private static boolean isValidTarget(Mob mob, LivingEntity target) {
-        if (!(target instanceof Player player) || !isValidPlayer(player)) {
+        if (target == mob || target.level() != mob.level() || !target.isAlive()) {
             return false;
         }
-        if (target.level() != mob.level()) {
+        if (target instanceof Player player && !isValidPlayer(player)) {
             return false;
         }
         double range = ServerConfig.gunnerFireRange();

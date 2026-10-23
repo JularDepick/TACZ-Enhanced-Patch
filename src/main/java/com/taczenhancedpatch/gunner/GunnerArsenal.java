@@ -21,6 +21,12 @@ public final class GunnerArsenal {
     /* 准度为 0 时的瞄准误差标准差, 单位角度 */
     public static final double MAX_AIM_ERROR_DEGREES = 16.0D;
 
+    /* 和平, 中立与友军生物受击后触发临场武装的生命比例阈值 */
+    public static final double RETALIATION_HEALTH_THRESHOLD = 0.5D;
+
+    /* 随机配件每个槽位实际安装的概率 */
+    public static final double ATTACHMENT_SLOT_CHANCE = 0.6D;
+
     public enum Tier {
         LOW,
         MID,
@@ -120,6 +126,22 @@ public final class GunnerArsenal {
             return null;
         }
         return pool.get(random.nextInt(pool.size()));
+    }
+
+    /**
+     * 按浮动百分比生成随机备弹量。
+     * 结果始终至少为 1, 因此枪手的弹药依旧有限。
+     */
+    public static int randomAmmo(int baseAmmo, RandomSource random, int variationPercent) {
+        int base = Math.max(1, baseAmmo);
+        int variation = Math.max(0, Math.min(100, variationPercent));
+        if (variation == 0) {
+            return base;
+        }
+        int delta = (int) Math.round(base * variation / 100.0D);
+        int low = Math.max(1, base - delta);
+        int high = Math.max(low, base + delta);
+        return low >= high ? low : low + random.nextInt(high - low + 1);
     }
 
     public static Durability durability(Tier tier) {

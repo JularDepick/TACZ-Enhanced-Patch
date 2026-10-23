@@ -41,6 +41,9 @@ public final class ServerConfig {
     private static final ForgeConfigSpec.DoubleValue GUNNER_HEALTH_MULTIPLIER;
     private static final ForgeConfigSpec.IntValue GUNNER_ARMOR_BONUS;
     private static final ForgeConfigSpec.DoubleValue GUNNER_ARMOR_DROP_CHANCE;
+    private static final ForgeConfigSpec.DoubleValue GUNNER_RETALIATION_CHANCE;
+    private static final ForgeConfigSpec.IntValue GUNNER_AMMO_VARIATION;
+    private static final ForgeConfigSpec.IntValue GUNNER_RANDOM_ATTACHMENT_SLOTS;
     private static final ForgeConfigSpec.DoubleValue GUNNER_AMMO_DROP_CHANCE;
     private static final ForgeConfigSpec.DoubleValue GUNNER_AMMO_DROP_MULTIPLIER;
     private static final ForgeConfigSpec.DoubleValue GUNNER_GUN_DROP_CHANCE;
@@ -121,6 +124,16 @@ public final class ServerConfig {
         GUNNER_ARMOR_DROP_CHANCE = BUILDER
                 .comment("枪手穿戴的护甲每个部位的掉落概率")
                 .defineInRange("armorDropChance", 0.05D, 0.0D, 1.0D);
+        GUNNER_RETALIATION_CHANCE = BUILDER
+                .comment("和平生物, 中立生物与友军生物受击后生命降到一半时临场获得枪械的概率",
+                        "每只生物只判定一次, 取 0 表示关闭临场武装")
+                .defineInRange("retaliationChance", 0.35D, 0.0D, 1.0D);
+        GUNNER_AMMO_VARIATION = BUILDER
+                .comment("枪手备弹量相对基准值的随机浮动百分比, 取值 0 到 100")
+                .defineInRange("ammoVariation", 40, 0, 100);
+        GUNNER_RANDOM_ATTACHMENT_SLOTS = BUILDER
+                .comment("每把枪最多随机安装的配件数量, 每个槽位还有单独的概率判定")
+                .defineInRange("randomAttachmentSlots", 2, 0, 4);
         GUNNER_AMMO_DROP_CHANCE = BUILDER
                 .comment("枪手死亡时掉落弹药的概率")
                 .defineInRange("ammoDropChance", 1.0D, 0.0D, 1.0D);
@@ -231,6 +244,18 @@ public final class ServerConfig {
         return value(GUNNER_ARMOR_DROP_CHANCE, 0.05D);
     }
 
+    public static double gunnerRetaliationChance() {
+        return value(GUNNER_RETALIATION_CHANCE, 0.35D);
+    }
+
+    public static int gunnerAmmoVariation() {
+        return value(GUNNER_AMMO_VARIATION, 40);
+    }
+
+    public static int gunnerRandomAttachmentSlots() {
+        return value(GUNNER_RANDOM_ATTACHMENT_SLOTS, 2);
+    }
+
     public static double gunnerAmmoDropChance() {
         return value(GUNNER_AMMO_DROP_CHANCE, 1.0D);
     }
@@ -267,6 +292,9 @@ public final class ServerConfig {
                 new ConfigOption.DoubleOption("生命值倍率", GUNNER_HEALTH_MULTIPLIER, 1.0D, 10.0D, 0.1D),
                 new ConfigOption.IntOption("额外护甲", GUNNER_ARMOR_BONUS, 0, 30),
                 new ConfigOption.DoubleOption("护甲掉落概率", GUNNER_ARMOR_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
+                new ConfigOption.DoubleOption("临场武装概率", GUNNER_RETALIATION_CHANCE, 0.0D, 1.0D, 0.01D),
+                new ConfigOption.IntOption("备弹浮动百分比", GUNNER_AMMO_VARIATION, 0, 100),
+                new ConfigOption.IntOption("随机配件数量", GUNNER_RANDOM_ATTACHMENT_SLOTS, 0, 4),
                 new ConfigOption.DoubleOption("弹药掉落概率", GUNNER_AMMO_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
                 new ConfigOption.DoubleOption("弹药数量倍率", GUNNER_AMMO_DROP_MULTIPLIER, 0.0D, 5.0D, 0.1D),
                 new ConfigOption.DoubleOption("枪械掉落概率", GUNNER_GUN_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
