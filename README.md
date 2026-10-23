@@ -15,6 +15,13 @@
 
 ---
 
+## 玩法特性
+
+- 原版敌对生物会按难度概率携带 TACZ 枪械, 使用真实弹道与真实换弹流程
+- 枪手弹药有限, 弹尽后转入近战, 给玩家反击与撤退的窗口
+- 击杀枪手掉落对应口径弹药, 并有概率掉落枪械与随机配件, 支撑以战养战
+- 生成概率, 反应速度, 瞄准误差与伤害倍率均可配置, 关闭开关后恢复原版体验
+
 ## 前置要求
 
 | 项 | 要求 |
@@ -36,3 +43,7 @@
 Copyright (c) 2026 JularDepick
 
 详见 [COPYRIGHT](./COPYRIGHT)
+
+## 相关链接
+
+- [TACZ 原模组 (CurseForge)](https://www.curseforge.com/minecraft/mc-mods/timeless-and-classics-zero)

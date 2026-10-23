@@ -15,6 +15,13 @@ A Minecraft mod that is an enhancement patch for TACZ. It constrains the origina
 
 ---
 
+## Features
+
+- Hostile mobs can carry TACZ guns based on difficulty, firing with real ballistics and the real reload flow
+- Gunners carry limited ammunition and fall back to melee combat once dry, giving players room to fight back or retreat
+- Killing a gunner drops matching ammunition, with a chance to drop guns and random attachments to sustain combat-based progression
+- Spawn chance, reaction speed, aim error and damage multiplier are configurable, and all behavior returns to vanilla when disabled
+
 ## Requirements
 
 | Item | Requirement |
@@ -36,3 +43,7 @@ This project is licensed under the [Apache-2.0 License](./LICENSE)
 Copyright (c) 2026 JularDepick
 
 See [COPYRIGHT](./COPYRIGHT)
+
+## Links
+
+- [TACZ original mod (CurseForge)](https://www.curseforge.com/minecraft/mc-mods/timeless-and-classics-zero)

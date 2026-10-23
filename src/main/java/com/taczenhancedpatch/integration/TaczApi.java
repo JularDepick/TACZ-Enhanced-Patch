@@ -1,17 +1,56 @@
 package com.taczenhancedpatch.integration;
 
+import com.tacz.guns.api.TimelessAPI;
+import com.tacz.guns.api.entity.IGunOperator;
 import com.tacz.guns.api.item.IAttachment;
 import com.tacz.guns.api.item.IGun;
+import com.tacz.guns.api.item.builder.AmmoItemBuilder;
+import com.tacz.guns.api.item.builder.AttachmentItemBuilder;
+import com.tacz.guns.api.item.builder.GunItemBuilder;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 
 import javax.annotation.Nullable;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * TACZ 公开 API 的统一入口。
- * 所有对 TACZ 的类型引用集中在此处, 便于前置模组版本变化时定位适配点。
+ * 所有对 TACZ 的类型引用集中在此处, 其余包只使用本类的抽象类型,
+ * 便于前置模组版本变化时定位适配点。
  */
 public final class TaczApi {
+    /** 对外暴露的开火模式, 与 TACZ 的 FireMode 一一对应 */
+    public enum FireMode {
+        SEMI,
+        AUTO,
+        BURST;
+
+        com.tacz.guns.api.item.gun.FireMode toTacz() {
+            return com.tacz.guns.api.item.gun.FireMode.valueOf(name());
+        }
+
+        public static FireMode fromName(String name) {
+            try {
+                return valueOf(name);
+            } catch (IllegalArgumentException ignored) {
+                return SEMI;
+            }
+        }
+    }
+
+    /** 对外暴露的射击结果, 收窄 TACZ 的 ShootResult 取值 */
+    public enum ShotOutcome {
+        SUCCESS,
+        COOLDOWN,
+        NO_AMMO,
+        BLOCKED,
+        INVALID,
+        UNKNOWN
+    }
+
     private TaczApi() {
     }
 
@@ -43,5 +82,95 @@ public final class TaczApi {
     public static ResourceLocation getAttachmentId(@Nullable ItemStack stack) {
         IAttachment attachment = getAttachment(stack);
         return attachment == null ? null : attachment.getAttachmentId(stack);
+    }
+
+    /**
+     * 构建一把带虚拟备弹的枪械物品。
+     * 虚拟备弹让非玩家实体无需背包即可换弹, 同时保留弹尽断火的平衡阀门。
+     */
+    public static ItemStack createGun(ResourceLocation gunId, FireMode fireMode, int dummyAmmo) {
+        ItemStack gun = GunItemBuilder.create()
+                .setId(gunId)
+                .setFireMode(fireMode.toTacz())
+                .build();
+        if (gun.isEmpty()) {
+            gun = GunItemBuilder.create()
+                    .setId(gunId)
+                    .setFireMode(fireMode.toTacz())
+                    .forceBuild();
+        }
+        IGun iGun = getGun(gun);
+        if (iGun == null) {
+            return ItemStack.EMPTY;
+        }
+        if (dummyAmmo > 0) {
+            iGun.setMaxDummyAmmoAmount(gun, dummyAmmo);
+            iGun.setDummyAmmoAmount(gun, dummyAmmo);
+        }
+        return gun;
+    }
+
+    public static ItemStack createAmmo(ResourceLocation ammoId, int count) {
+        if (ammoId == null || count <= 0) {
+            return ItemStack.EMPTY;
+        }
+        return AmmoItemBuilder.create()
+                .setId(ammoId)
+                .setCount(count)
+                .build();
+    }
+
+    public static Optional<ItemStack> randomAttachment(RandomSource random) {
+        ResourceLocation chosen = null;
+        int seen = 0;
+        for (Map.Entry<ResourceLocation, ?> entry : TimelessAPI.getAllCommonAttachmentIndex()) {
+            seen++;
+            if (random.nextInt(seen) == 0) {
+                chosen = entry.getKey();
+            }
+        }
+        if (chosen == null) {
+            return Optional.empty();
+        }
+        ItemStack stack = AttachmentItemBuilder.create().setId(chosen).build();
+        return stack.isEmpty() ? Optional.empty() : Optional.of(stack);
+    }
+
+    public static int magazineAmmo(@Nullable ItemStack gunStack) {
+        IGun gun = getGun(gunStack);
+        return gun == null ? 0 : gun.getCurrentAmmoCount(gunStack);
+    }
+
+    public static int dummyAmmo(@Nullable ItemStack gunStack) {
+        IGun gun = getGun(gunStack);
+        return gun == null ? 0 : gun.getDummyAmmoAmount(gunStack);
+    }
+
+    /**
+     * 初始化实体的射击状态, 必须在使用任何射击 API 前调用一次。
+     * 未初始化时 TACZ 内部的配件属性缓存为空, 射击会被静默跳过。
+     */
+    public static void initOperator(LivingEntity entity) {
+        IGunOperator.fromLivingEntity(entity).initialData();
+    }
+
+    public static void aim(LivingEntity entity, boolean aiming) {
+        IGunOperator.fromLivingEntity(entity).aim(aiming);
+    }
+
+    public static void reload(LivingEntity entity) {
+        IGunOperator.fromLivingEntity(entity).reload();
+    }
+
+    public static ShotOutcome shoot(LivingEntity shooter, float pitch, float yaw) {
+        return switch (IGunOperator.fromLivingEntity(shooter).shoot(() -> pitch, () -> yaw)) {
+            case SUCCESS -> ShotOutcome.SUCCESS;
+            case COOL_DOWN -> ShotOutcome.COOLDOWN;
+            case NO_AMMO -> ShotOutcome.NO_AMMO;
+            case NOT_GUN, NOT_DRAW, ID_NOT_EXIST -> ShotOutcome.INVALID;
+            case IS_RELOADING, IS_DRAWING, IS_BOLTING, IS_SPRINTING, IS_MELEE, NEED_BOLT,
+                 NETWORK_FAIL, OVERHEATED, FORGE_EVENT_CANCEL -> ShotOutcome.BLOCKED;
+            case UNKNOWN_FAIL -> ShotOutcome.UNKNOWN;
+        };
     }
 }
