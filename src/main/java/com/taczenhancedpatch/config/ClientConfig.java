@@ -53,8 +53,9 @@ public final class ClientConfig {
         save();
     }
 
-    public static List<ConfigOption> options() {
-        return List.of(new ConfigOption.ToggleOption("自动换弹", AUTO_RELOAD));
+    public static List<ConfigOptionGroup> groups() {
+        return List.of(new ConfigOptionGroup("本机偏好", List.of(
+                new ConfigOption.ToggleOption("自动换弹", AUTO_RELOAD))));
     }
 
     public static void save() {

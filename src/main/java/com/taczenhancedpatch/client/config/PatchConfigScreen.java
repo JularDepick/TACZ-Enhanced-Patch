@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import com.taczenhancedpatch.client.ConfigAccess;
 import com.taczenhancedpatch.config.ClientConfig;
 import com.taczenhancedpatch.config.ConfigOption;
+import com.taczenhancedpatch.config.ConfigOptionGroup;
 import com.taczenhancedpatch.config.ServerConfig;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
@@ -28,15 +29,15 @@ import java.util.function.DoubleConsumer;
  * 服务端页顶部额外提供打开本页的快捷键设置。
  */
 public final class PatchConfigScreen extends Screen {
-    private static final int LIST_WIDTH = 340;
+    private static final int LIST_WIDTH = 380;
     private static final int ROW_HEIGHT = 24;
-    private static final int WIDGET_WIDTH = 160;
+    private static final int WIDGET_WIDTH = 190;
     private static final int LIST_TOP = 42;
     private static final int LIST_BOTTOM_MARGIN = 46;
 
     private final Screen parent;
     private final boolean serverSection;
-    private final List<ConfigOption> options;
+    private final List<ConfigOptionGroup> groups;
     private final Map<ConfigOption, Object> originals = new IdentityHashMap<>();
     private final List<Row> rows = new ArrayList<>();
     private double scroll;
@@ -56,9 +57,11 @@ public final class PatchConfigScreen extends Screen {
         this.parent = parent;
         /* 服务端页只在创建者一侧生效, 越权构造时退化为客户端页 */
         this.serverSection = serverSection && ConfigAccess.isWorldOwner();
-        this.options = this.serverSection ? ServerConfig.options() : ClientConfig.options();
-        for (ConfigOption option : options) {
-            originals.put(option, read(option));
+        this.groups = this.serverSection ? ServerConfig.groups() : ClientConfig.groups();
+        for (ConfigOptionGroup group : groups) {
+            for (ConfigOption option : group.options()) {
+                originals.put(option, read(option));
+            }
         }
     }
 
@@ -69,17 +72,14 @@ public final class PatchConfigScreen extends Screen {
         listRight = listLeft + LIST_WIDTH;
         listTop = LIST_TOP;
         listBottom = height - LIST_BOTTOM_MARGIN;
-        if (serverSection) {
-            rows.add(new Row("服务端设置会同步给所有客户端", null, true));
-            shortcutButton = Button.builder(shortcutText(), button -> startCapturingKey())
-                    .bounds(0, 0, WIDGET_WIDTH, 20)
-                    .build();
-            rows.add(new Row("打开本页快捷键", shortcutButton, false));
-        } else {
-            rows.add(new Row("客户端设置只影响本机", null, true));
-        }
-        for (ConfigOption option : options) {
-            rows.add(new Row(option.label(), createWidget(option), false));
+        for (ConfigOptionGroup group : groups) {
+            rows.add(new Row(group.label(), null, true));
+            for (ConfigOption option : group.options()) {
+                rows.add(new Row(option.label(), createWidget(option), false));
+            }
+            if (serverSection && ServerConfig.GROUP_UI.equals(group.label())) {
+                addServerEntries();
+            }
         }
         addRenderableWidget(Button.builder(Component.literal("保存并关闭"), button -> finish(true))
                 .bounds(width / 2 - 155, height - 34, 150, 20)
@@ -87,6 +87,20 @@ public final class PatchConfigScreen extends Screen {
         addRenderableWidget(Button.builder(Component.literal("取消"), button -> finish(false))
                 .bounds(width / 2 + 5, height - 34, 150, 20)
                 .build());
+    }
+
+    /* 服务端页在界面与调试组之后追加两个自定义入口条目 */
+    private void addServerEntries() {
+        shortcutButton = Button.builder(shortcutText(), button -> startCapturingKey())
+                .bounds(0, 0, WIDGET_WIDTH, 20)
+                .build();
+        rows.add(new Row("打开本页快捷键", shortcutButton, false));
+        Button mobListButton = Button.builder(Component.literal("打开"), button -> {
+            if (minecraft != null) {
+                minecraft.setScreen(new MobListScreen(this));
+            }
+        }).bounds(0, 0, WIDGET_WIDTH, 20).build();
+        rows.add(new Row("持械生物列表", mobListButton, false));
     }
 
     private void startCapturingKey() {

@@ -49,9 +49,10 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Item | Description |
 |:---:|:---|
 | Client configuration | Local preferences such as automatic reload, stored per player |
-| Server configuration | 29 parameters covering gunners, toughness, loot and ruins, synced from the server |
+| Server configuration | 29 parameters grouped into basics, spawning, candidates, targeting, ammo, toughness, loot, ruins and debug, synced from the server |
 | Configuration screen | Opening it first offers a client or a server entry, and the server entry only appears for the world owner |
 | Shortcut | The world owner can press Shift plus the main key to open the server page directly, and the key can be rebound there |
+| Armed mob list | The server page offers group toggles and exact entity IDs, deciding only which mobs may carry guns |
 
 ## Gameplay highlights
 

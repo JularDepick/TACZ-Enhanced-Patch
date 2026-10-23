@@ -46,6 +46,14 @@ public final class ServerConfig {
     private static final ForgeConfigSpec.IntValue GUNNER_RANDOM_ATTACHMENT_SLOTS;
     private static final ForgeConfigSpec.BooleanValue GUNNER_ALLOW_NON_HUMANOID;
     private static final ForgeConfigSpec.BooleanValue GUNNER_FORCED_RETALIATION;
+    private static final ForgeConfigSpec.BooleanValue MOB_GROUP_UNDEAD;
+    private static final ForgeConfigSpec.BooleanValue MOB_GROUP_ILLAGER;
+    private static final ForgeConfigSpec.BooleanValue MOB_GROUP_ARTHROPOD;
+    private static final ForgeConfigSpec.BooleanValue MOB_GROUP_CREEPER;
+    private static final ForgeConfigSpec.BooleanValue MOB_GROUP_NETHER;
+    private static final ForgeConfigSpec.BooleanValue MOB_GROUP_HUMANOID;
+    private static final ForgeConfigSpec.BooleanValue MOB_GROUP_NON_HUMANOID;
+    private static final ForgeConfigSpec.ConfigValue<List<? extends String>> MOB_IDS;
     private static final ForgeConfigSpec.DoubleValue GUNNER_HIGH_TIER_AMMO_CHANCE;
     private static final ForgeConfigSpec.DoubleValue GUNNER_AMMO_DROP_MULTIPLIER;
     private static final ForgeConfigSpec.DoubleValue GUNNER_GUN_DROP_CHANCE;
@@ -144,6 +152,31 @@ public final class ServerConfig {
                 .comment("是否强制反击伤害来源",
                         "开启时无论伤害来源是谁都会立刻还击; 关闭时先判断敌对关系, 同族与盟友之间不还击")
                 .define("forcedRetaliation", true);
+        MOB_GROUP_UNDEAD = BUILDER
+                .comment("持械生物分组: 亡灵, 包含僵尸与骷髅的各类变种")
+                .define("mobGroupUndead", false);
+        MOB_GROUP_ILLAGER = BUILDER
+                .comment("持械生物分组: 灾厄村民阵营, 包含掠夺者, 卫道士, 唤魔者, 劫掠兽与女巫")
+                .define("mobGroupIllager", false);
+        MOB_GROUP_ARTHROPOD = BUILDER
+                .comment("持械生物分组: 节肢, 包含蜘蛛, 洞穴蜘蛛, 蠹虫与末影螨")
+                .define("mobGroupArthropod", false);
+        MOB_GROUP_CREEPER = BUILDER
+                .comment("持械生物分组: 苦力怕")
+                .define("mobGroupCreeper", false);
+        MOB_GROUP_NETHER = BUILDER
+                .comment("持械生物分组: 下界生物, 包含烈焰人, 恶魂, 猪灵, 疣猪兽与岩浆怪")
+                .define("mobGroupNether", false);
+        MOB_GROUP_HUMANOID = BUILDER
+                .comment("持械生物分组: 能正常持握物品的类型, 由实体能否挂载物品自动判定")
+                .define("mobGroupHumanoid", false);
+        MOB_GROUP_NON_HUMANOID = BUILDER
+                .comment("持械生物分组: 没有手部挂载部位的类型, 由实体能否挂载物品自动判定")
+                .define("mobGroupNonHumanoid", false);
+        MOB_IDS = BUILDER
+                .comment("持械生物名单, 每行一个具体实体 ID, 例如 minecraft:creeper",
+                        "分组与名单都没有内容时沿用默认规则: 按非人形持械开关判定全部敌对生物")
+                .defineListAllowEmpty("mobIds", List.of(), element -> element instanceof String);
         GUNNER_AMMO_DROP_MULTIPLIER = BUILDER
                 .comment("枪手掉落弹药数量的倍率, 同时作用于剩余备弹与随机数量")
                 .defineInRange("ammoDropMultiplier", 1.0D, 0.0D, 5.0D);
@@ -263,6 +296,61 @@ public final class ServerConfig {
         return value(GUNNER_FORCED_RETALIATION, true);
     }
 
+    /* 持械生物分组开关, 供配置界面单独渲染 */
+    public static List<ConfigOption> mobGroupOptions() {
+        return List.of(
+                new ConfigOption.ToggleOption("亡灵", MOB_GROUP_UNDEAD),
+                new ConfigOption.ToggleOption("灾厄村民", MOB_GROUP_ILLAGER),
+                new ConfigOption.ToggleOption("节肢", MOB_GROUP_ARTHROPOD),
+                new ConfigOption.ToggleOption("苦力怕", MOB_GROUP_CREEPER),
+                new ConfigOption.ToggleOption("下界生物", MOB_GROUP_NETHER),
+                new ConfigOption.ToggleOption("人形", MOB_GROUP_HUMANOID),
+                new ConfigOption.ToggleOption("非人形", MOB_GROUP_NON_HUMANOID));
+    }
+
+    public static boolean mobGroupUndead() {
+        return value(MOB_GROUP_UNDEAD, false);
+    }
+
+    public static boolean mobGroupIllager() {
+        return value(MOB_GROUP_ILLAGER, false);
+    }
+
+    public static boolean mobGroupArthropod() {
+        return value(MOB_GROUP_ARTHROPOD, false);
+    }
+
+    public static boolean mobGroupCreeper() {
+        return value(MOB_GROUP_CREEPER, false);
+    }
+
+    public static boolean mobGroupNether() {
+        return value(MOB_GROUP_NETHER, false);
+    }
+
+    public static boolean mobGroupHumanoid() {
+        return value(MOB_GROUP_HUMANOID, false);
+    }
+
+    public static boolean mobGroupNonHumanoid() {
+        return value(MOB_GROUP_NON_HUMANOID, false);
+    }
+
+    public static List<String> gunnerMobIds() {
+        try {
+            return List.copyOf(MOB_IDS.get());
+        } catch (IllegalStateException ignored) {
+            return List.of();
+        }
+    }
+
+    public static void setGunnerMobIds(List<String> ids) {
+        try {
+            MOB_IDS.set(List.copyOf(ids));
+        } catch (IllegalStateException ignored) {
+        }
+    }
+
     public static double gunnerRetaliationChance() {
         return value(GUNNER_RETALIATION_CHANCE, 0.35D);
     }
@@ -291,37 +379,49 @@ public final class ServerConfig {
         return value(GUNNER_ATTACHMENT_DROP_CHANCE, 0.08D);
     }
 
-    public static List<ConfigOption> options() {
+    /* 分组标题: 界面与调试, 供配置界面判断把自定义入口条目插在哪一组之后 */
+    public static final String GROUP_UI = "界面与调试";
+
+    public static List<ConfigOptionGroup> groups() {
         return List.of(
-                new ConfigOption.ToggleOption("启用枪手系统", GUNNER_ENABLED),
-                new ConfigOption.DoubleOption("枪手生成概率", GUNNER_SPAWN_CHANCE, 0.0D, 1.0D, 0.01D),
-                new ConfigOption.DoubleOption("刷怪笼守卫武装率", GUNNER_SPAWNER_CHANCE, 0.0D, 1.0D, 0.01D),
-                new ConfigOption.ToggleOption("按难度缩放", GUNNER_DIFFICULTY_SCALING),
-                new ConfigOption.DoubleOption("锁定范围", GUNNER_TARGET_RANGE, 4.0D, 64.0D, 1.0D),
-                new ConfigOption.DoubleOption("开火距离", GUNNER_FIRE_RANGE, 4.0D, 64.0D, 1.0D),
-                new ConfigOption.DoubleOption("命中准度", GUNNER_ACCURACY, 0.0D, 1.0D, 0.01D),
-                new ConfigOption.IntOption("反应时间下限", GUNNER_REACTION_TICKS_MIN, 0, 400),
-                new ConfigOption.IntOption("反应时间上限", GUNNER_REACTION_TICKS_MAX, 0, 400),
-                new ConfigOption.IntOption("点射发数下限", GUNNER_BURST_MIN, 1, 100),
-                new ConfigOption.IntOption("点射发数上限", GUNNER_BURST_MAX, 1, 100),
-                new ConfigOption.IntOption("停火时间下限", GUNNER_BURST_PAUSE_MIN, 0, 200),
-                new ConfigOption.IntOption("停火时间上限", GUNNER_BURST_PAUSE_MAX, 0, 200),
-                new ConfigOption.DoubleOption("伤害倍率", GUNNER_DAMAGE_MULTIPLIER, 0.1D, 3.0D, 0.05D),
-                new ConfigOption.DoubleOption("受伤倍率", GUNNER_DAMAGE_TAKEN_MULTIPLIER, 0.1D, 1.0D, 0.05D),
-                new ConfigOption.DoubleOption("生命值倍率", GUNNER_HEALTH_MULTIPLIER, 1.0D, 10.0D, 0.1D),
-                new ConfigOption.IntOption("额外护甲", GUNNER_ARMOR_BONUS, 0, 30),
-                new ConfigOption.DoubleOption("护甲掉落概率", GUNNER_ARMOR_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
-                new ConfigOption.DoubleOption("临场武装概率", GUNNER_RETALIATION_CHANCE, 0.0D, 1.0D, 0.01D),
-                new ConfigOption.IntOption("基本弹药量", GUNNER_BASE_AMMO, 1, 1000),
-                new ConfigOption.IntOption("随机配件数量", GUNNER_RANDOM_ATTACHMENT_SLOTS, 0, 4),
-                new ConfigOption.ToggleOption("非人形持械", GUNNER_ALLOW_NON_HUMANOID),
-                new ConfigOption.ToggleOption("强制反击", GUNNER_FORCED_RETALIATION),
-                new ConfigOption.DoubleOption("弹药数量倍率", GUNNER_AMMO_DROP_MULTIPLIER, 0.0D, 5.0D, 0.1D),
-                new ConfigOption.DoubleOption("高级弹药概率", GUNNER_HIGH_TIER_AMMO_CHANCE, 0.0D, 1.0D, 0.01D),
-                new ConfigOption.DoubleOption("枪械掉落概率", GUNNER_GUN_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
-                new ConfigOption.DoubleOption("配件掉落概率", GUNNER_ATTACHMENT_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
-                new ConfigOption.ToggleOption("启用遗迹生成", RUINS_ENABLED),
-                new ConfigOption.ToggleOption("调试日志", DEBUG_EVENTS)
+                new ConfigOptionGroup("基础", List.of(
+                        new ConfigOption.ToggleOption("启用枪手系统", GUNNER_ENABLED),
+                        new ConfigOption.ToggleOption("难度缩放", GUNNER_DIFFICULTY_SCALING))),
+                new ConfigOptionGroup("生成", List.of(
+                        new ConfigOption.DoubleOption("生成概率", GUNNER_SPAWN_CHANCE, 0.0D, 1.0D, 0.01D),
+                        new ConfigOption.DoubleOption("刷怪笼武装率", GUNNER_SPAWNER_CHANCE, 0.0D, 1.0D, 0.01D))),
+                new ConfigOptionGroup("候选生物", List.of(
+                        new ConfigOption.ToggleOption("允许非人形持械", GUNNER_ALLOW_NON_HUMANOID),
+                        new ConfigOption.ToggleOption("强制反击", GUNNER_FORCED_RETALIATION))),
+                new ConfigOptionGroup("索敌与射击", List.of(
+                        new ConfigOption.DoubleOption("索敌范围", GUNNER_TARGET_RANGE, 4.0D, 64.0D, 1.0D),
+                        new ConfigOption.DoubleOption("开火距离", GUNNER_FIRE_RANGE, 4.0D, 64.0D, 1.0D),
+                        new ConfigOption.DoubleOption("命中准度", GUNNER_ACCURACY, 0.0D, 1.0D, 0.01D),
+                        new ConfigOption.IntOption("反应时间 下限", GUNNER_REACTION_TICKS_MIN, 0, 400),
+                        new ConfigOption.IntOption("反应时间 上限", GUNNER_REACTION_TICKS_MAX, 0, 400),
+                        new ConfigOption.IntOption("点射发数 下限", GUNNER_BURST_MIN, 1, 100),
+                        new ConfigOption.IntOption("点射发数 上限", GUNNER_BURST_MAX, 1, 100),
+                        new ConfigOption.IntOption("点射间隔 下限", GUNNER_BURST_PAUSE_MIN, 0, 200),
+                        new ConfigOption.IntOption("点射间隔 上限", GUNNER_BURST_PAUSE_MAX, 0, 200))),
+                new ConfigOptionGroup("弹药与装备", List.of(
+                        new ConfigOption.IntOption("基础备弹量", GUNNER_BASE_AMMO, 1, 1000),
+                        new ConfigOption.IntOption("随机配件槽数", GUNNER_RANDOM_ATTACHMENT_SLOTS, 0, 4))),
+                new ConfigOptionGroup("耐久与平衡", List.of(
+                        new ConfigOption.DoubleOption("子弹伤害倍率", GUNNER_DAMAGE_MULTIPLIER, 0.1D, 3.0D, 0.05D),
+                        new ConfigOption.DoubleOption("受击伤害倍率", GUNNER_DAMAGE_TAKEN_MULTIPLIER, 0.1D, 1.0D, 0.05D),
+                        new ConfigOption.DoubleOption("生命倍率", GUNNER_HEALTH_MULTIPLIER, 1.0D, 10.0D, 0.1D),
+                        new ConfigOption.IntOption("额外护甲", GUNNER_ARMOR_BONUS, 0, 30),
+                        new ConfigOption.DoubleOption("护甲掉落率", GUNNER_ARMOR_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
+                        new ConfigOption.DoubleOption("临场武装率", GUNNER_RETALIATION_CHANCE, 0.0D, 1.0D, 0.01D))),
+                new ConfigOptionGroup("战利品", List.of(
+                        new ConfigOption.DoubleOption("弹药掉落倍率", GUNNER_AMMO_DROP_MULTIPLIER, 0.0D, 5.0D, 0.1D),
+                        new ConfigOption.DoubleOption("高级弹药概率", GUNNER_HIGH_TIER_AMMO_CHANCE, 0.0D, 1.0D, 0.01D),
+                        new ConfigOption.DoubleOption("枪械掉落率", GUNNER_GUN_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
+                        new ConfigOption.DoubleOption("配件掉落率", GUNNER_ATTACHMENT_DROP_CHANCE, 0.0D, 1.0D, 0.01D))),
+                new ConfigOptionGroup("遗迹", List.of(
+                        new ConfigOption.ToggleOption("启用遗迹生成", RUINS_ENABLED))),
+                new ConfigOptionGroup(GROUP_UI, List.of(
+                        new ConfigOption.ToggleOption("调试日志", DEBUG_EVENTS)))
         );
     }
 
