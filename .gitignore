@@ -1,0 +1,52 @@
+# mod dependences
+TACZ/
+
+# Agent Runtime
+AGENTS.md
+.agent/
+.agents/
+
+# build
+build/
+dist/
+out/
+bin/
+mcmodsrepo/
+
+# gradle
+.gradle/
+gradle/*
+!gradle/wrapper/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+.vscode/
+.vs/
+
+# run
+run/
+logs/
+*.log
+*.log.gz
+
+# temp
+temp/
+tmp/
+
+# docs for some versions
+v*-*.md
+
+# other
+release/
+releases/
+.env
+Thumbs.db
+*.swp
+*~
+__pycache__/
