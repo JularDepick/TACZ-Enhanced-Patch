@@ -98,9 +98,6 @@ dependencies {
 }
 
 jar {
-    /* 产物统一输出到项目根目录的 release/, 不留在构建缓存目录 */
-    destinationDirectory = layout.projectDirectory.dir('release')
-    archiveFileName = "${archivesBaseName}-v${project.version}-mc-${mcVersion}-forge.jar"
     manifest {
         attributes([
             "Specification-Title"     : "TACZ Enhanced Patch",

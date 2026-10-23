@@ -17,7 +17,7 @@ import java.util.function.DoubleConsumer;
 
 /**
  * 通用配置界面。
- * 从模组列表的配置按钮进入, 只编辑标量配置项, 白名单与维度黑名单仍需直接编辑配置文件。
+ * 从模组列表的配置按钮进入, 只编辑标量配置项, 生物黑名单与维度黑名单仍需直接编辑配置文件。
  */
 public final class CommonConfigScreen extends Screen {
     private static final int LIST_WIDTH = 340;

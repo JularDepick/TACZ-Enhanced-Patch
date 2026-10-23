@@ -13,7 +13,7 @@ echo.
 echo Build successful!
 echo.
 echo Output:
-dir /b release\TACZEnhancedPatch-v*.jar
+dir /b build\libs\TACZEnhancedPatch-*.jar
 echo.
-echo Full path: %cd%\release\
+echo Full path: %cd%\build\libs\
 pause

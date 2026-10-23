@@ -24,6 +24,7 @@ src/main/
 │   ├── gunner/
 │   │   ├── GunnerArsenal.java          # Gunner arsenal and balance constants
 │   │   ├── GunnerCombat.java           # Gunner targeting and firing logic
+│   │   ├── GunnerEligibility.java      # Gunner candidate scan over registered entity types
 │   │   ├── GunnerMarker.java           # Gunner identity marker
 │   │   ├── GunnerSpawnHandler.java     # Gunner spawn assignment
 │   │   └── GunnerState.java            # Transient gunner state

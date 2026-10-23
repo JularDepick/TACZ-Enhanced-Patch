@@ -17,23 +17,11 @@ public final class CommonConfig {
             .comment("是否把 TACZ API 事件写入日志, 用于补丁开发期的接入诊断")
             .define("debugEvents", false);
 
-    private static final List<String> DEFAULT_MOB_WHITELIST = List.of(
-            "minecraft:zombie",
-            "minecraft:husk",
-            "minecraft:drowned",
-            "minecraft:skeleton",
-            "minecraft:stray",
-            "minecraft:pillager",
-            "minecraft:vindicator",
-            "minecraft:zombified_piglin",
-            "minecraft:piglin_brute"
-    );
-
     private static final ForgeConfigSpec.BooleanValue GUNNER_ENABLED;
     private static final ForgeConfigSpec.DoubleValue GUNNER_SPAWN_CHANCE;
     private static final ForgeConfigSpec.DoubleValue GUNNER_SPAWNER_CHANCE;
     private static final ForgeConfigSpec.BooleanValue GUNNER_DIFFICULTY_SCALING;
-    private static final ForgeConfigSpec.ConfigValue<List<? extends String>> GUNNER_MOB_WHITELIST;
+    private static final ForgeConfigSpec.ConfigValue<List<? extends String>> GUNNER_MOB_BLACKLIST;
     private static final ForgeConfigSpec.ConfigValue<List<? extends String>> GUNNER_DIMENSION_BLACKLIST;
     private static final ForgeConfigSpec.IntValue GUNNER_TIER_WEIGHT_LOW;
     private static final ForgeConfigSpec.IntValue GUNNER_TIER_WEIGHT_MID;
@@ -70,9 +58,10 @@ public final class CommonConfig {
         GUNNER_DIFFICULTY_SCALING = BUILDER
                 .comment("是否按游戏难度缩放枪手生成概率")
                 .define("difficultyScaling", true);
-        GUNNER_MOB_WHITELIST = BUILDER
-                .comment("允许成为枪手的生物实体 ID 列表")
-                .defineList("mobWhitelist", DEFAULT_MOB_WHITELIST, o -> o instanceof String);
+        GUNNER_MOB_BLACKLIST = BUILDER
+                .comment("额外排除的生物实体 ID 列表",
+                        "候选生物由游戏实际的实体类型自动判定, 敌方生物默认全部纳入, 这里只做减法")
+                .defineListAllowEmpty("mobBlacklist", List.<String>of(), o -> o instanceof String);
         GUNNER_DIMENSION_BLACKLIST = BUILDER
                 .comment("禁止出现枪手的维度 ID 列表")
                 .defineListAllowEmpty("dimensionBlacklist", List.<String>of(), o -> o instanceof String);
@@ -165,8 +154,8 @@ public final class CommonConfig {
         return value(GUNNER_DIFFICULTY_SCALING, true);
     }
 
-    public static List<String> gunnerMobWhitelist() {
-        return stringList(GUNNER_MOB_WHITELIST, DEFAULT_MOB_WHITELIST);
+    public static List<String> gunnerMobBlacklist() {
+        return stringList(GUNNER_MOB_BLACKLIST, List.of());
     }
 
     public static List<String> gunnerDimensionBlacklist() {

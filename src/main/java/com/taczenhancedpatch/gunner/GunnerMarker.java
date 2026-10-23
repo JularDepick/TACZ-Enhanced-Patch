@@ -22,6 +22,8 @@ public final class GunnerMarker {
     private static final String DROP_MIN = "dropMin";
     private static final String DROP_MAX = "dropMax";
     private static final String DRY = "dry";
+    /* 是否已经做过枪手判定, 记录在实体持久化数据的顶层, 不随身份标记一起清除 */
+    private static final String SPAWN_EVALUATED = "tacz_enhanced_patch_spawn_evaluated";
 
     public record Loadout(ResourceLocation gunId,
                           ResourceLocation ammoId,
@@ -86,6 +88,14 @@ public final class GunnerMarker {
             return;
         }
         root.getCompound(ROOT).putBoolean(DRY, dry);
+    }
+
+    public static boolean isSpawnEvaluated(LivingEntity entity) {
+        return entity.getPersistentData().getBoolean(SPAWN_EVALUATED);
+    }
+
+    public static void markSpawnEvaluated(LivingEntity entity) {
+        entity.getPersistentData().putBoolean(SPAWN_EVALUATED, true);
     }
 
     public static void clear(LivingEntity entity) {
