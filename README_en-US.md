@@ -44,11 +44,18 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Ruined outpost | An 11 by 11 collapsed outpost generates in the wild, with a chest of ammunition and attachments and a spawner that produces guards |
 | Terrain fitting | The site requires an even surface, fills low spots, shaves high ones, and never generates at or below sea level |
 
+### Client features
+
+| Feature | Description |
+|:---:|:---|
+| Incoming fire indicator | When hit by a gun, an arc on screen points to the source, up to three directions at once, off by default |
+| Heading ruler | A horizontal compass tape at the top of the screen showing cardinal directions and a bearing readout, off by default |
+
 ### Configuration and permissions
 
 | Item | Description |
 |:---:|:---|
-| Client configuration | Local preferences such as automatic reload and the incoming fire indicator, stored per player |
+| Client configuration | Local preferences such as automatic reload, the incoming fire indicator and the heading ruler, stored per player |
 | Server configuration | 29 parameters grouped into basics, spawning, candidates, targeting, ammo, toughness, loot, ruins and debug, synced from the server |
 | Configuration screen | Opening it first offers a client or a server entry, and the server entry only appears for the world owner |
 | Shortcut | The world owner can press Shift plus the main key to open the server page directly, and the key can be rebound there |
@@ -65,7 +72,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 
 ## Configuration
 
-Every server parameter belongs to the world owner and is written to disk as soon as it is changed in the screen; the client only keeps automatic reload. Runtime file locations and the full parameter list are in the [developer documentation](./docs/developer/README.md)
+Every server parameter belongs to the world owner and is written to disk as soon as it is changed in the screen; the client only keeps local preferences such as automatic reload and the incoming fire indicator. Runtime file locations and the full parameter list are in the [developer documentation](./docs/developer/README.md)
 
 ## Compatibility
 

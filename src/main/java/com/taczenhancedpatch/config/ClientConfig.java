@@ -22,6 +22,11 @@ public final class ClientConfig {
                     "只影响本客户端显示, 停止受击一秒后自动淡出")
             .define("hitIndicator", false);
 
+    private static final ForgeConfigSpec.BooleanValue HEADING_RULER = BUILDER
+            .comment("方向标尺: 屏幕正上方显示横向方位标尺, 随视角滚动并标注基本方向与角度",
+                    "只影响本客户端显示, 不改变任何玩法判定")
+            .define("headingRuler", false);
+
     /* 默认值 67 对应 GLFW 的 C 键, 这里用字面量避免在服务端加载客户端输入库 */
     private static final ForgeConfigSpec.IntValue SERVER_CONFIG_KEY = BUILDER
             .comment("打开服务端配置页的快捷键主键, 取值是 GLFW 键码, 默认 67 即 C 键",
@@ -49,6 +54,14 @@ public final class ClientConfig {
         }
     }
 
+    public static boolean headingRuler() {
+        try {
+            return HEADING_RULER.get();
+        } catch (IllegalStateException ignored) {
+            return false;
+        }
+    }
+
     public static int serverConfigKey() {
         try {
             return SERVER_CONFIG_KEY.get();
@@ -67,9 +80,10 @@ public final class ClientConfig {
     }
 
     public static List<ConfigOptionGroup> groups() {
-        return List.of(new ConfigOptionGroup("本机偏好", List.of(
-                new ConfigOption.ToggleOption("自动换弹", AUTO_RELOAD),
-                new ConfigOption.ToggleOption("枪击来源提示", HIT_INDICATOR))));
+        return List.of(new ConfigOptionGroup("group.client_prefs", List.of(
+                new ConfigOption.ToggleOption("opt.auto_reload", AUTO_RELOAD),
+                new ConfigOption.ToggleOption("opt.hit_indicator", HIT_INDICATOR),
+                new ConfigOption.ToggleOption("opt.heading_ruler", HEADING_RULER))));
     }
 
     public static void save() {
