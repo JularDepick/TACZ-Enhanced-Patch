@@ -25,11 +25,18 @@ src/main/
 │   │   └── GunnerState.java            # 枪手瞬时状态
 │   ├── integration/
 │   │   └── TaczApi.java                # TACZ 公开 API 统一入口
-│   └── loot/
-│       └── BattleLootHandler.java      # 枪手战利品掉落
+│   ├── loot/
+│   │   └── BattleLootHandler.java      # 枪手战利品掉落
+│   └── world/
+│       ├── ModFeatures.java            # 世界生成特性注册
+│       └── RuinedOutpostFeature.java   # 废弃前哨遗迹生成
 └── resources/
     ├── META-INF/mods.toml              # 模组元信息
-    └── pack.mcmeta                     # 资源包元信息
+    ├── pack.mcmeta                     # 资源包元信息
+    └── data/tacz_enhanced_patch/       # 世界生成与战利品数据
+        ├── forge/biome_modifier/       # 群系注入
+        ├── loot_tables/chests/         # 宝箱战利品
+        └── worldgen/                   # 特性与放置规则
 ```
 
 ## 组织约定

@@ -2,9 +2,11 @@ package com.taczenhancedpatch;
 
 import com.mojang.logging.LogUtils;
 import com.taczenhancedpatch.config.CommonConfig;
+import com.taczenhancedpatch.world.ModFeatures;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.slf4j.Logger;
 
 /**
@@ -19,6 +21,7 @@ public final class TACZEnhancedPatch {
 
     public TACZEnhancedPatch() {
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, CommonConfig.SPEC);
+        ModFeatures.FEATURES.register(FMLJavaModLoadingContext.get().getModEventBus());
         LOGGER.info("{} initialized", MOD_NAME);
     }
 }

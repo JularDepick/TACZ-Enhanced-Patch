@@ -8,6 +8,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.entity.living.MobSpawnEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -39,7 +40,11 @@ public final class GunnerSpawnHandler {
             return;
         }
         Difficulty difficulty = event.getDifficulty().getDifficulty();
-        if (mob.getRandom().nextDouble() >= spawnChance(difficulty)) {
+        double chance = spawnChance(difficulty);
+        if (event.getSpawnType() == MobSpawnType.SPAWNER) {
+            chance = Math.max(chance, CommonConfig.gunnerSpawnerChance());
+        }
+        if (mob.getRandom().nextDouble() >= chance) {
             return;
         }
 

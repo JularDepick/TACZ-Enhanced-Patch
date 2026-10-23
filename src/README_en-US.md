@@ -25,11 +25,18 @@ src/main/
 │   │   └── GunnerState.java            # Transient gunner state
 │   ├── integration/
 │   │   └── TaczApi.java                # Single access point for the TACZ public API
-│   └── loot/
-│       └── BattleLootHandler.java      # Gunner loot drops
+│   ├── loot/
+│   │   └── BattleLootHandler.java      # Gunner loot drops
+│   └── world/
+│       ├── ModFeatures.java            # World generation feature registration
+│       └── RuinedOutpostFeature.java   # Ruined outpost generation
 └── resources/
     ├── META-INF/mods.toml              # Mod metadata
-    └── pack.mcmeta                     # Resource pack metadata
+    ├── pack.mcmeta                     # Resource pack metadata
+    └── data/tacz_enhanced_patch/       # World generation and loot data
+        ├── forge/biome_modifier/       # Biome injection
+        ├── loot_tables/chests/         # Chest loot
+        └── worldgen/                   # Features and placement rules
 ```
 
 ## Conventions

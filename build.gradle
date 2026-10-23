@@ -64,6 +64,9 @@ minecraft {
             workingDirectory project.file('run')
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
+            /* 前置模组 TACZ 使用 Mixin, 开发环境需要把 SRG 引用表重映射到运行时映射 */
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
             mods {
                 tacz_enhanced_patch {
                     source sourceSets.main
@@ -75,6 +78,9 @@ minecraft {
             workingDirectory project.file('run')
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
+            /* 前置模组 TACZ 使用 Mixin, 开发环境需要把 SRG 引用表重映射到运行时映射 */
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
             mods {
                 tacz_enhanced_patch {
                     source sourceSets.main

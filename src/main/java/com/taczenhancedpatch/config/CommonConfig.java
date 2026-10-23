@@ -30,6 +30,7 @@ public final class CommonConfig {
 
     private static final ForgeConfigSpec.BooleanValue GUNNER_ENABLED;
     private static final ForgeConfigSpec.DoubleValue GUNNER_SPAWN_CHANCE;
+    private static final ForgeConfigSpec.DoubleValue GUNNER_SPAWNER_CHANCE;
     private static final ForgeConfigSpec.BooleanValue GUNNER_DIFFICULTY_SCALING;
     private static final ForgeConfigSpec.ConfigValue<List<? extends String>> GUNNER_MOB_WHITELIST;
     private static final ForgeConfigSpec.ConfigValue<List<? extends String>> GUNNER_DIMENSION_BLACKLIST;
@@ -49,6 +50,7 @@ public final class CommonConfig {
     private static final ForgeConfigSpec.DoubleValue GUNNER_AMMO_DROP_MULTIPLIER;
     private static final ForgeConfigSpec.DoubleValue GUNNER_GUN_DROP_CHANCE;
     private static final ForgeConfigSpec.DoubleValue GUNNER_ATTACHMENT_DROP_CHANCE;
+    private static final ForgeConfigSpec.BooleanValue RUINS_ENABLED;
 
     public static final ForgeConfigSpec SPEC;
 
@@ -60,6 +62,9 @@ public final class CommonConfig {
         GUNNER_SPAWN_CHANCE = BUILDER
                 .comment("单个敌对生物成为枪手的基础概率, 取值 0 到 1")
                 .defineInRange("spawnChance", 0.2D, 0.0D, 1.0D);
+        GUNNER_SPAWNER_CHANCE = BUILDER
+                .comment("刷怪笼生成敌对生物时成为枪手的最低概率, 用于保证遗迹守卫的武装率")
+                .defineInRange("spawnerGunnerChance", 0.6D, 0.0D, 1.0D);
         GUNNER_DIFFICULTY_SCALING = BUILDER
                 .comment("是否按游戏难度缩放枪手生成概率")
                 .define("difficultyScaling", true);
@@ -119,6 +124,12 @@ public final class CommonConfig {
                 .defineInRange("attachmentDropChance", 0.08D, 0.0D, 1.0D);
         BUILDER.pop();
 
+        BUILDER.comment("世界生成").push("worldgen");
+        RUINS_ENABLED = BUILDER
+                .comment("是否生成废弃前哨遗迹, 关闭后不再新增遗迹但已生成的保留")
+                .define("ruinsEnabled", true);
+        BUILDER.pop();
+
         SPEC = BUILDER.build();
     }
 
@@ -135,6 +146,14 @@ public final class CommonConfig {
 
     public static double gunnerSpawnChance() {
         return value(GUNNER_SPAWN_CHANCE, 0.2D);
+    }
+
+    public static double gunnerSpawnerChance() {
+        return value(GUNNER_SPAWNER_CHANCE, 0.6D);
+    }
+
+    public static boolean ruinsEnabled() {
+        return value(RUINS_ENABLED, true);
     }
 
     public static boolean gunnerDifficultyScaling() {

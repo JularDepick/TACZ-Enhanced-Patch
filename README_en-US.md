@@ -20,6 +20,7 @@ A Minecraft mod that is an enhancement patch for TACZ. It constrains the origina
 - Hostile mobs can carry TACZ guns based on difficulty, firing with real ballistics and the real reload flow
 - Gunners carry limited ammunition and fall back to melee combat once dry, giving players room to fight back or retreat
 - Killing a gunner drops matching ammunition, with a chance to drop guns and random attachments to sustain combat-based progression
+- Ruined outposts generate in the wild, guarded by armed mobs and stocked with ammunition, attachments and basic supplies
 - Spawn chance, reaction speed, aim error and damage multiplier are configurable, and all behavior returns to vanilla when disabled
 
 ## Requirements

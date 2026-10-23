@@ -1,0 +1,275 @@
+{
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": {
+        "type": "minecraft:uniform",
+        "min": 2,
+        "max": 3
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "tacz:ammo",
+          "weight": 5,
+          "functions": [
+            {
+              "function": "minecraft:set_nbt",
+              "tag": "{AmmoId:\"tacz:9mm\"}"
+            },
+            {
+              "function": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 12,
+                "max": 24
+              }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "tacz:ammo",
+          "weight": 4,
+          "functions": [
+            {
+              "function": "minecraft:set_nbt",
+              "tag": "{AmmoId:\"tacz:556x45\"}"
+            },
+            {
+              "function": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 10,
+                "max": 20
+              }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "tacz:ammo",
+          "weight": 4,
+          "functions": [
+            {
+              "function": "minecraft:set_nbt",
+              "tag": "{AmmoId:\"tacz:762x39\"}"
+            },
+            {
+              "function": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 10,
+                "max": 20
+              }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "tacz:ammo",
+          "weight": 3,
+          "functions": [
+            {
+              "function": "minecraft:set_nbt",
+              "tag": "{AmmoId:\"tacz:45acp\"}"
+            },
+            {
+              "function": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 10,
+                "max": 18
+              }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "tacz:ammo",
+          "weight": 2,
+          "functions": [
+            {
+              "function": "minecraft:set_nbt",
+              "tag": "{AmmoId:\"tacz:12g\"}"
+            },
+            {
+              "function": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 6,
+                "max": 12
+              }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "tacz:ammo",
+          "weight": 2,
+          "functions": [
+            {
+              "function": "minecraft:set_nbt",
+              "tag": "{AmmoId:\"tacz:308\"}"
+            },
+            {
+              "function": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 5,
+                "max": 10
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "tacz:attachment",
+          "weight": 2,
+          "functions": [
+            {
+              "function": "minecraft:set_nbt",
+              "tag": "{AttachmentId:\"tacz:scope_acog_ta31\"}"
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "tacz:attachment",
+          "weight": 2,
+          "functions": [
+            {
+              "function": "minecraft:set_nbt",
+              "tag": "{AttachmentId:\"tacz:sight_acro_rifle\"}"
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "tacz:attachment",
+          "weight": 2,
+          "functions": [
+            {
+              "function": "minecraft:set_nbt",
+              "tag": "{AttachmentId:\"tacz:grip_td\"}"
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "tacz:attachment",
+          "weight": 1,
+          "functions": [
+            {
+              "function": "minecraft:set_nbt",
+              "tag": "{AttachmentId:\"tacz:muzzle_silencer_vulture\"}"
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "tacz:attachment",
+          "weight": 1,
+          "functions": [
+            {
+              "function": "minecraft:set_nbt",
+              "tag": "{AttachmentId:\"tacz:extended_mag_1\"}"
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "tacz:attachment",
+          "weight": 1,
+          "functions": [
+            {
+              "function": "minecraft:set_nbt",
+              "tag": "{AttachmentId:\"tacz:laser_peq15\"}"
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "tacz:attachment",
+          "weight": 1,
+          "functions": [
+            {
+              "function": "minecraft:set_nbt",
+              "tag": "{AttachmentId:\"tacz:oem_stock_tactical\"}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rolls": {
+        "type": "minecraft:uniform",
+        "min": 2,
+        "max": 3
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:gunpowder",
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 8,
+                "max": 16
+              }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:copper_ingot",
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 4,
+                "max": 8
+              }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:iron_ingot",
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 2,
+                "max": 4
+              }
+            }
+          ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:bread",
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 3,
+                "max": 6
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
