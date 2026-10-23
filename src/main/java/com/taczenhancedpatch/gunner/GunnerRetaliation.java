@@ -45,6 +45,10 @@ public final class GunnerRetaliation {
             return;
         }
         GunnerMarker.markRetaliationChecked(mob);
+        LivingEntity attacker = event.getSource().getEntity() instanceof LivingEntity living ? living : null;
+        if (attacker != null && !GunnerCombat.shouldRetaliate(mob, attacker)) {
+            return;
+        }
         if (mob.getRandom().nextDouble() >= ServerConfig.gunnerRetaliationChance()) {
             return;
         }
@@ -55,7 +59,6 @@ public final class GunnerRetaliation {
         }
         GunnerMarker.mark(mob, arming.profile(), arming.ammoPool(), true);
         GunnerArming.equip(mob, arming.profile().gunId(), arming.profile().fireMode(), arming.ammoPool(), mob.getRandom());
-        LivingEntity attacker = event.getSource().getEntity() instanceof LivingEntity living ? living : null;
         if (attacker != null) {
             mob.setTarget(attacker);
             mob.setLastHurtByMob(attacker);

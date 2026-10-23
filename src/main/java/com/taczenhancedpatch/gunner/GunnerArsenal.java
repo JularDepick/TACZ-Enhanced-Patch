@@ -14,8 +14,9 @@ import java.util.Objects;
 
 /**
  * 枪手军械库。
- * 枪械 ID, 口径, 开火模式, 备弹量与掉落区间属于可个性化调整的设计细节,
+ * 枪械 ID, 口径, 开火模式, 掉落区间与分档耐久属于可个性化调整的设计细节,
  * 全部集中在本类, 调整平衡时只需要改这里。
+ * 备弹量不在这里, 由服务端参数"基本弹药量"统一换算为基准值的 0.5 到 2 倍。
  */
 public final class GunnerArsenal {
     /* 准度为 0 时的瞄准误差标准差, 单位角度 */
@@ -26,6 +27,18 @@ public final class GunnerArsenal {
 
     /* 随机配件每个槽位实际安装的概率 */
     public static final double ATTACHMENT_SLOT_CHANCE = 0.6D;
+
+    /* 备弹量相对基本弹药量的随机下限与上限 */
+    public static final double AMMO_MIN_FACTOR = 0.5D;
+    public static final double AMMO_MAX_FACTOR = 2.0D;
+
+    /* 高级弹药: 高阶口径, 击杀枪手时按概率额外掉落 */
+    public static final int HIGH_TIER_AMMO_MIN = 6;
+    public static final int HIGH_TIER_AMMO_MAX = 18;
+    private static final List<ResourceLocation> HIGH_TIER_AMMO = List.of(
+            Objects.requireNonNull(ResourceLocation.tryParse("tacz:308")),
+            Objects.requireNonNull(ResourceLocation.tryParse("tacz:338")),
+            Objects.requireNonNull(ResourceLocation.tryParse("tacz:50bmg")));
 
     public enum Tier {
         LOW,
@@ -50,7 +63,6 @@ public final class GunnerArsenal {
                              ResourceLocation ammoId,
                              Tier tier,
                              TaczApi.FireMode fireMode,
-                             int ammoPool,
                              int ammoDropMin,
                              int ammoDropMax) {
     }
@@ -64,30 +76,30 @@ public final class GunnerArsenal {
         }
 
         /* 低阶: 手枪与冲锋枪, 威胁低, 生成权重高 */
-        register("glock_17", "9mm", Tier.LOW, TaczApi.FireMode.SEMI, 34, 6, 10);
-        register("cz75", "9mm", Tier.LOW, TaczApi.FireMode.AUTO, 32, 6, 10);
-        register("m1911", "45acp", Tier.LOW, TaczApi.FireMode.SEMI, 21, 5, 9);
-        register("hk_mp5a5", "9mm", Tier.LOW, TaczApi.FireMode.AUTO, 60, 8, 14);
-        register("p90", "57x28", Tier.LOW, TaczApi.FireMode.AUTO, 80, 8, 14);
-        register("b93r", "9mm", Tier.LOW, TaczApi.FireMode.BURST, 40, 6, 10);
+        register("glock_17", "9mm", Tier.LOW, TaczApi.FireMode.SEMI, 6, 10);
+        register("cz75", "9mm", Tier.LOW, TaczApi.FireMode.AUTO, 6, 10);
+        register("m1911", "45acp", Tier.LOW, TaczApi.FireMode.SEMI, 5, 9);
+        register("hk_mp5a5", "9mm", Tier.LOW, TaczApi.FireMode.AUTO, 8, 14);
+        register("p90", "57x28", Tier.LOW, TaczApi.FireMode.AUTO, 8, 14);
+        register("b93r", "9mm", Tier.LOW, TaczApi.FireMode.BURST, 6, 10);
 
         /* 中阶: 步枪与霰弹枪, 威胁明显, 需要玩家利用掩体 */
-        register("ak47", "762x39", Tier.MID, TaczApi.FireMode.AUTO, 90, 10, 18);
-        register("m4a1", "556x45", Tier.MID, TaczApi.FireMode.AUTO, 90, 10, 18);
-        register("hk416d", "556x45", Tier.MID, TaczApi.FireMode.AUTO, 90, 10, 18);
-        register("g36k", "556x45", Tier.MID, TaczApi.FireMode.AUTO, 90, 10, 18);
-        register("qbz_95", "58x42", Tier.MID, TaczApi.FireMode.AUTO, 90, 10, 18);
-        register("ump45", "45acp", Tier.MID, TaczApi.FireMode.AUTO, 75, 9, 15);
-        register("m870", "12g", Tier.MID, TaczApi.FireMode.SEMI, 20, 4, 8);
-        register("m1014", "12g", Tier.MID, TaczApi.FireMode.SEMI, 24, 4, 8);
+        register("ak47", "762x39", Tier.MID, TaczApi.FireMode.AUTO, 10, 18);
+        register("m4a1", "556x45", Tier.MID, TaczApi.FireMode.AUTO, 10, 18);
+        register("hk416d", "556x45", Tier.MID, TaczApi.FireMode.AUTO, 10, 18);
+        register("g36k", "556x45", Tier.MID, TaczApi.FireMode.AUTO, 10, 18);
+        register("qbz_95", "58x42", Tier.MID, TaczApi.FireMode.AUTO, 10, 18);
+        register("ump45", "45acp", Tier.MID, TaczApi.FireMode.AUTO, 9, 15);
+        register("m870", "12g", Tier.MID, TaczApi.FireMode.SEMI, 4, 8);
+        register("m1014", "12g", Tier.MID, TaczApi.FireMode.SEMI, 4, 8);
 
         /* 高阶: 精确射手步枪与轻机枪, 稀有但足以迫使玩家撤退 */
-        register("mk14", "308", Tier.HIGH, TaczApi.FireMode.SEMI, 30, 6, 12);
-        register("hk_g3", "308", Tier.HIGH, TaczApi.FireMode.AUTO, 40, 8, 14);
-        register("fn_fal", "308", Tier.HIGH, TaczApi.FireMode.AUTO, 40, 8, 14);
-        register("m249", "556x45", Tier.HIGH, TaczApi.FireMode.AUTO, 200, 14, 24);
-        register("m107", "50bmg", Tier.HIGH, TaczApi.FireMode.SEMI, 20, 4, 8);
-        register("ai_awp", "338", Tier.HIGH, TaczApi.FireMode.SEMI, 15, 4, 8);
+        register("mk14", "308", Tier.HIGH, TaczApi.FireMode.SEMI, 6, 12);
+        register("hk_g3", "308", Tier.HIGH, TaczApi.FireMode.AUTO, 8, 14);
+        register("fn_fal", "308", Tier.HIGH, TaczApi.FireMode.AUTO, 8, 14);
+        register("m249", "556x45", Tier.HIGH, TaczApi.FireMode.AUTO, 14, 24);
+        register("m107", "50bmg", Tier.HIGH, TaczApi.FireMode.SEMI, 4, 8);
+        register("ai_awp", "338", Tier.HIGH, TaczApi.FireMode.SEMI, 4, 8);
     }
 
     static {
@@ -100,13 +112,12 @@ public final class GunnerArsenal {
     }
 
     private static void register(String gunPath, String ammoPath, Tier tier, TaczApi.FireMode fireMode,
-                                 int ammoPool, int ammoDropMin, int ammoDropMax) {
+                                 int ammoDropMin, int ammoDropMax) {
         GunProfile profile = new GunProfile(
                 Objects.requireNonNull(ResourceLocation.tryParse("tacz:" + gunPath)),
                 Objects.requireNonNull(ResourceLocation.tryParse("tacz:" + ammoPath)),
                 tier,
                 fireMode,
-                ammoPool,
                 ammoDropMin,
                 ammoDropMax
         );
@@ -129,19 +140,23 @@ public final class GunnerArsenal {
     }
 
     /**
-     * 按浮动百分比生成随机备弹量。
-     * 结果始终至少为 1, 因此枪手的弹药依旧有限。
+     * 由基本弹药量生成随机的备弹量。
+     * 结果落在基本值的 0.5 到 2 倍之间, 且始终至少为 1, 因此弹药依旧有限。
      */
-    public static int randomAmmo(int baseAmmo, RandomSource random, int variationPercent) {
+    public static int randomAmmo(int baseAmmo, RandomSource random) {
         int base = Math.max(1, baseAmmo);
-        int variation = Math.max(0, Math.min(100, variationPercent));
-        if (variation == 0) {
-            return base;
-        }
-        int delta = (int) Math.round(base * variation / 100.0D);
-        int low = Math.max(1, base - delta);
-        int high = Math.max(low, base + delta);
+        int low = Math.max(1, (int) Math.round(base * AMMO_MIN_FACTOR));
+        int high = Math.max(low, (int) Math.round(base * AMMO_MAX_FACTOR));
         return low >= high ? low : low + random.nextInt(high - low + 1);
+    }
+
+    /* 随机抽取一种高级弹药口径, 池为空时返回 null */
+    @Nullable
+    public static ResourceLocation pickHighTierAmmo(RandomSource random) {
+        if (HIGH_TIER_AMMO.isEmpty()) {
+            return null;
+        }
+        return HIGH_TIER_AMMO.get(random.nextInt(HIGH_TIER_AMMO.size()));
     }
 
     public static Durability durability(Tier tier) {

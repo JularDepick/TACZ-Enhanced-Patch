@@ -36,7 +36,7 @@ public final class GunnerArming {
         if (profile == null) {
             return null;
         }
-        int ammo = GunnerArsenal.randomAmmo(profile.ammoPool(), random, ServerConfig.gunnerAmmoVariation());
+        int ammo = GunnerArsenal.randomAmmo(ServerConfig.gunnerBaseAmmo(), random);
         return new Arming(profile, ammo);
     }
 
@@ -45,11 +45,32 @@ public final class GunnerArming {
         if (gun.isEmpty()) {
             return false;
         }
+        /* 记录被覆盖的原版武器, 弹尽后还原; 记下发出去的枪, 弹尽收起后仍可用于战利品结算 */
+        ItemStack current = mob.getMainHandItem();
+        if (!current.isEmpty() && !TaczApi.isGun(current)) {
+            GunnerMarker.setReplacedWeapon(mob, current);
+        }
+        GunnerMarker.setStoredGun(mob, gun);
         mob.setItemSlot(EquipmentSlot.MAINHAND, gun);
         if (ServerConfig.debugEvents()) {
             TACZEnhancedPatch.LOGGER.info("[gunner] armed {} with {} ({} rounds)", mob.getType(), gunId, ammoPool);
         }
         return true;
+    }
+
+    /* 弹尽后收起枪械, 主手还原为被覆盖的原版武器, 没有原版武器则清空主手 */
+    public static void disarm(Mob mob) {
+        ItemStack held = mob.getMainHandItem();
+        if (!TaczApi.isGun(held)) {
+            return;
+        }
+        /* 记下收起时的实际状态, 战利品按这份枪械结算剩余备弹 */
+        GunnerMarker.setStoredGun(mob, held);
+        ItemStack replaced = GunnerMarker.replacedWeapon(mob);
+        mob.setItemSlot(EquipmentSlot.MAINHAND, replaced.isEmpty() ? ItemStack.EMPTY : replaced.copy());
+        if (ServerConfig.debugEvents()) {
+            TACZEnhancedPatch.LOGGER.info("[gunner] {} put away the gun when out of ammo", mob.getType());
+        }
     }
 
     private static ItemStack createGun(ResourceLocation gunId, TaczApi.FireMode fireMode, int ammoPool, RandomSource random) {

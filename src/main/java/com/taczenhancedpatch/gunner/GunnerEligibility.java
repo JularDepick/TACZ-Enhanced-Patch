@@ -24,32 +24,36 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 枪手候选判定。
- * 候选不写死生物清单, 而是对游戏实际注册的每个实体类型逐个判定:
- * 属于敌对生物且能正常持握物品即纳入, 因此其他模组新增的敌对生物会自动参与判定。
- * 判定结果按实体类型缓存, 黑名单按实体逐个检查, 便于运行时改配置。
+ * 候选不写死生物清单, 而是对游戏实际注册的每个敌对实体类型逐个判定。
+ * 默认连没有手部挂载部位的生物也纳入, 只是枪械不会显示在模型上;
+ * 首领单位始终不参与, 避免改变首领战的形态。
  */
 public final class GunnerEligibility {
-    private static final Map<EntityType<?>, Boolean> CACHE = new ConcurrentHashMap<>();
+    private static final Map<EntityType<?>, Boolean> HANDLESS_CACHE = new ConcurrentHashMap<>();
 
     private GunnerEligibility() {
     }
 
     public static boolean canCarryGun(Mob mob) {
-        if (isBlacklisted(mob)) {
+        if (isBlacklisted(mob) || !isHostile(mob)) {
             return false;
         }
-        return CACHE.computeIfAbsent(mob.getType(), key -> isStructuralCandidate(mob));
+        if (mob instanceof WitherBoss) {
+            return false;
+        }
+        if (ServerConfig.gunnerAllowNonHumanoid()) {
+            return true;
+        }
+        return !HANDLESS_CACHE.computeIfAbsent(mob.getType(), key -> isHandless(mob));
     }
 
-    private static boolean isStructuralCandidate(Mob mob) {
-        return mob instanceof Monster
-                && mob.getType().getCategory() == MobCategory.MONSTER
-                && !isHandless(mob);
+    private static boolean isHostile(Mob mob) {
+        return mob instanceof Monster && mob.getType().getCategory() == MobCategory.MONSTER;
     }
 
     /**
      * 没有可挂载物品部位的生物族。
-     * 这些类型装备枪械只会得到一把看不见的枪, 因此按类型特征排除, 而不是列出一份允许清单。
+     * 这些类型装备枪械后枪械不可见, 只在关闭非人形持械时用于排除。
      */
     private static boolean isHandless(Mob mob) {
         return mob instanceof Slime
@@ -61,8 +65,7 @@ public final class GunnerEligibility {
                 || mob instanceof Endermite
                 || mob instanceof Blaze
                 || mob instanceof Shulker
-                || mob instanceof Guardian
-                || mob instanceof WitherBoss;
+                || mob instanceof Guardian;
     }
 
     private static boolean isBlacklisted(Mob mob) {

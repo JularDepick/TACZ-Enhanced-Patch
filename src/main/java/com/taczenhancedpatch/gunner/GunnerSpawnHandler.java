@@ -56,6 +56,11 @@ public final class GunnerSpawnHandler {
             GunnerDurability.apply(mob, loadout.tier());
             GunnerMarker.setBuffed(mob, true);
         }
+        if (GunnerMarker.isDry(mob)) {
+            /* 已经弹尽的枪手保持原版武器, 不再重新发枪 */
+            GunnerArming.disarm(mob);
+            return;
+        }
         if (TaczApi.isGun(mob.getMainHandItem())) {
             return;
         }

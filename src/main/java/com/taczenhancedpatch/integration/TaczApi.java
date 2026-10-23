@@ -171,6 +171,14 @@ public final class TaczApi {
         return gun == null ? 0 : gun.getDummyAmmoAmount(gunStack);
     }
 
+    /* 清空虚拟备弹, 用于把剩余弹药单独作为战利品掉落, 避免与枪械重复 */
+    public static void clearDummyAmmo(@Nullable ItemStack gunStack) {
+        IGun gun = getGun(gunStack);
+        if (gun != null) {
+            gun.setDummyAmmoAmount(gunStack, 0);
+        }
+    }
+
     /**
      * 初始化实体的射击状态, 必须在使用任何射击 API 前调用一次。
      * 未初始化时 TACZ 内部的配件属性缓存为空, 射击会被静默跳过。

@@ -5,6 +5,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
 
 import javax.annotation.Nullable;
 
@@ -24,6 +25,10 @@ public final class GunnerMarker {
     private static final String DRY = "dry";
     private static final String BUFFED = "buffed";
     private static final String IMPROVISED = "improvised";
+    /* 被枪械覆盖掉的原版武器, 弹尽后还原 */
+    private static final String REPLACED_WEAPON = "replacedWeapon";
+    /* 发给该枪手的那把枪, 弹尽收起后由战利品结算使用 */
+    private static final String GUN_STACK = "gunStack";
     /* 是否已经做过临场武装判定, 记录在实体持久化数据的顶层 */
     private static final String RETALIATION_CHECKED = "tacz_enhanced_patch_retaliation_checked";
     /* 是否已经做过枪手判定, 记录在实体持久化数据的顶层, 不随身份标记一起清除 */
@@ -111,6 +116,55 @@ public final class GunnerMarker {
             return;
         }
         root.getCompound(ROOT).putBoolean(BUFFED, buffed);
+    }
+
+    public static void setReplacedWeapon(LivingEntity entity, ItemStack weapon) {
+        CompoundTag data = data(entity);
+        if (data == null) {
+            return;
+        }
+        if (weapon.isEmpty()) {
+            data.remove(REPLACED_WEAPON);
+            return;
+        }
+        data.put(REPLACED_WEAPON, weapon.save(new CompoundTag()));
+    }
+
+    public static ItemStack replacedWeapon(LivingEntity entity) {
+        CompoundTag data = data(entity);
+        if (data == null || !data.contains(REPLACED_WEAPON, Tag.TAG_COMPOUND)) {
+            return ItemStack.EMPTY;
+        }
+        return ItemStack.of(data.getCompound(REPLACED_WEAPON));
+    }
+
+    public static void setStoredGun(LivingEntity entity, ItemStack gun) {
+        CompoundTag data = data(entity);
+        if (data == null) {
+            return;
+        }
+        if (gun.isEmpty()) {
+            data.remove(GUN_STACK);
+            return;
+        }
+        data.put(GUN_STACK, gun.copy().save(new CompoundTag()));
+    }
+
+    public static ItemStack storedGun(LivingEntity entity) {
+        CompoundTag data = data(entity);
+        if (data == null || !data.contains(GUN_STACK, Tag.TAG_COMPOUND)) {
+            return ItemStack.EMPTY;
+        }
+        return ItemStack.of(data.getCompound(GUN_STACK));
+    }
+
+    @Nullable
+    private static CompoundTag data(LivingEntity entity) {
+        CompoundTag root = entity.getPersistentData();
+        if (!root.contains(ROOT, Tag.TAG_COMPOUND)) {
+            return null;
+        }
+        return root.getCompound(ROOT);
     }
 
     public static boolean isSpawnEvaluated(LivingEntity entity) {

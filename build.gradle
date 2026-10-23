@@ -98,6 +98,8 @@ dependencies {
 }
 
 jar {
+    /* 产物命名: TACZEnhancedPatch-v<版本>-mc-<Minecraft 版本>-forge.jar, v 前缀只用于文件名, 模组内版本保持纯数字 */
+    archiveFileName = "TACZEnhancedPatch-v${project.version}-mc-${mcVersion}-forge.jar"
     manifest {
         attributes([
             "Specification-Title"     : "TACZ Enhanced Patch",

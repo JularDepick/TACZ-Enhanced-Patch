@@ -9,7 +9,7 @@
 | `gradlew.bat runServer` | 启动开发服务端 |
 | `gradlew.bat clean` | 清理构建产物 |
 
-构建产物输出到 Gradle 默认的 `build/libs/` 目录
+构建产物输出到 Gradle 默认的 `build/libs/` 目录, 文件名为 `TACZEnhancedPatch-v<版本>-mc-1.20.1-forge.jar`
 
 开发运行已配置 Mixin 引用表重映射, 以支持上游模组 TACZ 的混入; 服务端冒烟测试可使用 `gradlew.bat runServer`
 

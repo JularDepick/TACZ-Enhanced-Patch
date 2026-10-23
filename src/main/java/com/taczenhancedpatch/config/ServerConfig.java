@@ -42,9 +42,11 @@ public final class ServerConfig {
     private static final ForgeConfigSpec.IntValue GUNNER_ARMOR_BONUS;
     private static final ForgeConfigSpec.DoubleValue GUNNER_ARMOR_DROP_CHANCE;
     private static final ForgeConfigSpec.DoubleValue GUNNER_RETALIATION_CHANCE;
-    private static final ForgeConfigSpec.IntValue GUNNER_AMMO_VARIATION;
+    private static final ForgeConfigSpec.IntValue GUNNER_BASE_AMMO;
     private static final ForgeConfigSpec.IntValue GUNNER_RANDOM_ATTACHMENT_SLOTS;
-    private static final ForgeConfigSpec.DoubleValue GUNNER_AMMO_DROP_CHANCE;
+    private static final ForgeConfigSpec.BooleanValue GUNNER_ALLOW_NON_HUMANOID;
+    private static final ForgeConfigSpec.BooleanValue GUNNER_FORCED_RETALIATION;
+    private static final ForgeConfigSpec.DoubleValue GUNNER_HIGH_TIER_AMMO_CHANCE;
     private static final ForgeConfigSpec.DoubleValue GUNNER_AMMO_DROP_MULTIPLIER;
     private static final ForgeConfigSpec.DoubleValue GUNNER_GUN_DROP_CHANCE;
     private static final ForgeConfigSpec.DoubleValue GUNNER_ATTACHMENT_DROP_CHANCE;
@@ -128,18 +130,27 @@ public final class ServerConfig {
                 .comment("和平生物, 中立生物与友军生物受击后生命降到一半时临场获得枪械的概率",
                         "每只生物只判定一次, 取 0 表示关闭临场武装")
                 .defineInRange("retaliationChance", 0.35D, 0.0D, 1.0D);
-        GUNNER_AMMO_VARIATION = BUILDER
-                .comment("枪手备弹量相对基准值的随机浮动百分比, 取值 0 到 100")
-                .defineInRange("ammoVariation", 40, 0, 100);
+        GUNNER_BASE_AMMO = BUILDER
+                .comment("枪手的基本弹药量, 实际获得的备弹量在基本值的 0.5 到 2 倍之间随机")
+                .defineInRange("baseAmmo", 60, 1, 1000);
         GUNNER_RANDOM_ATTACHMENT_SLOTS = BUILDER
                 .comment("每把枪最多随机安装的配件数量, 每个槽位还有单独的概率判定")
                 .defineInRange("randomAttachmentSlots", 2, 0, 4);
-        GUNNER_AMMO_DROP_CHANCE = BUILDER
-                .comment("枪手死亡时掉落弹药的概率")
-                .defineInRange("ammoDropChance", 1.0D, 0.0D, 1.0D);
+        GUNNER_ALLOW_NON_HUMANOID = BUILDER
+                .comment("是否允许没有手部挂载部位的生物持械, 例如苦力怕, 蜘蛛, 史莱姆与恶魂",
+                        "这类生物持械后能开火, 但枪械不会显示在模型上; 关闭后只让能正常持握物品的类型持械")
+                .define("allowNonHumanoid", true);
+        GUNNER_FORCED_RETALIATION = BUILDER
+                .comment("是否强制反击伤害来源",
+                        "开启时无论伤害来源是谁都会立刻还击; 关闭时先判断敌对关系, 同族与盟友之间不还击")
+                .define("forcedRetaliation", true);
         GUNNER_AMMO_DROP_MULTIPLIER = BUILDER
-                .comment("枪手弹药掉落数量的倍率")
+                .comment("枪手掉落弹药数量的倍率, 同时作用于剩余备弹与随机数量")
                 .defineInRange("ammoDropMultiplier", 1.0D, 0.0D, 5.0D);
+        GUNNER_HIGH_TIER_AMMO_CHANCE = BUILDER
+                .comment("枪手死亡时额外掉落一份高级弹药的概率",
+                        "高级弹药指 308, 338 与 50bmg 这类高阶口径")
+                .defineInRange("highTierAmmoChance", 0.12D, 0.0D, 1.0D);
         GUNNER_GUN_DROP_CHANCE = BUILDER
                 .comment("枪手死亡时掉落所用枪械的概率")
                 .defineInRange("gunDropChance", 0.08D, 0.0D, 1.0D);
@@ -244,20 +255,28 @@ public final class ServerConfig {
         return value(GUNNER_ARMOR_DROP_CHANCE, 0.05D);
     }
 
+    public static boolean gunnerAllowNonHumanoid() {
+        return value(GUNNER_ALLOW_NON_HUMANOID, true);
+    }
+
+    public static boolean gunnerForcedRetaliation() {
+        return value(GUNNER_FORCED_RETALIATION, true);
+    }
+
     public static double gunnerRetaliationChance() {
         return value(GUNNER_RETALIATION_CHANCE, 0.35D);
     }
 
-    public static int gunnerAmmoVariation() {
-        return value(GUNNER_AMMO_VARIATION, 40);
+    public static int gunnerBaseAmmo() {
+        return value(GUNNER_BASE_AMMO, 60);
     }
 
     public static int gunnerRandomAttachmentSlots() {
         return value(GUNNER_RANDOM_ATTACHMENT_SLOTS, 2);
     }
 
-    public static double gunnerAmmoDropChance() {
-        return value(GUNNER_AMMO_DROP_CHANCE, 1.0D);
+    public static double gunnerHighTierAmmoChance() {
+        return value(GUNNER_HIGH_TIER_AMMO_CHANCE, 0.12D);
     }
 
     public static double gunnerAmmoDropMultiplier() {
@@ -293,10 +312,12 @@ public final class ServerConfig {
                 new ConfigOption.IntOption("额外护甲", GUNNER_ARMOR_BONUS, 0, 30),
                 new ConfigOption.DoubleOption("护甲掉落概率", GUNNER_ARMOR_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
                 new ConfigOption.DoubleOption("临场武装概率", GUNNER_RETALIATION_CHANCE, 0.0D, 1.0D, 0.01D),
-                new ConfigOption.IntOption("备弹浮动百分比", GUNNER_AMMO_VARIATION, 0, 100),
+                new ConfigOption.IntOption("基本弹药量", GUNNER_BASE_AMMO, 1, 1000),
                 new ConfigOption.IntOption("随机配件数量", GUNNER_RANDOM_ATTACHMENT_SLOTS, 0, 4),
-                new ConfigOption.DoubleOption("弹药掉落概率", GUNNER_AMMO_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
+                new ConfigOption.ToggleOption("非人形持械", GUNNER_ALLOW_NON_HUMANOID),
+                new ConfigOption.ToggleOption("强制反击", GUNNER_FORCED_RETALIATION),
                 new ConfigOption.DoubleOption("弹药数量倍率", GUNNER_AMMO_DROP_MULTIPLIER, 0.0D, 5.0D, 0.1D),
+                new ConfigOption.DoubleOption("高级弹药概率", GUNNER_HIGH_TIER_AMMO_CHANCE, 0.0D, 1.0D, 0.01D),
                 new ConfigOption.DoubleOption("枪械掉落概率", GUNNER_GUN_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
                 new ConfigOption.DoubleOption("配件掉落概率", GUNNER_ATTACHMENT_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
                 new ConfigOption.ToggleOption("启用遗迹生成", RUINS_ENABLED),

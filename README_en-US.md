@@ -30,12 +30,12 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 
 | Mechanic | Description |
 |:---:|:---|
-| Armed spawning | Hostile mobs may carry TACZ guns based on difficulty, with no new entity types and the vanilla targeting and loot skeleton reused |
-| Return fire | Any armed mob that gets hit immediately locks onto the attacker, unless the attacker is outside its targeting range |
+| Armed spawning | Hostile mobs may carry TACZ guns based on difficulty, non-humanoid ones such as creepers included, with no new entity types |
+| Return fire | Any armed mob that gets hit locks onto the attacker, and can be limited to hostile targets so allies do not fight each other |
 | Improvised arming | Passive, neutral and friendly mobs may grab a random gun below half health and turn on whatever hurt them |
-| Ammo and attachments | Every gun rolls its own attachments and limited ammo, then falls back to melee once dry to give players a window |
+| Ammo and attachments | Every gun rolls its own attachments and limited ammo, then falls back to its vanilla weapon once dry to give players a window |
 | Toughness | Regular gunners gain tiered health and leather-to-iron armor, improvised mobs only get the gun |
-| Loot | Kills drop matching ammunition, and rarely the exact gun the mob was using along with its attachments |
+| Loot | Kills always drop matching ammunition scaled by the reserve left, plus a chance at the exact gun, a random attachment and high tier ammo |
 
 ### Ruins
 
@@ -49,7 +49,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Item | Description |
 |:---:|:---|
 | Client configuration | Local preferences such as automatic reload, stored per player |
-| Server configuration | 27 parameters covering gunners, toughness, loot and ruins, synced from the server |
+| Server configuration | 29 parameters covering gunners, toughness, loot and ruins, synced from the server |
 | Configuration screen | The client section is editable by everyone; the server section only appears for the world owner |
 
 ## Gameplay highlights
