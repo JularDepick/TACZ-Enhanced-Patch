@@ -147,7 +147,7 @@ public final class GunnerCombat {
 
     @Nullable
     private static LivingEntity findTarget(Mob mob) {
-        double range = CommonConfig.gunnerFireRange();
+        double range = CommonConfig.gunnerTargetRange();
         double rangeSqr = range * range;
         Player best = null;
         double bestDistance = Double.MAX_VALUE;
@@ -193,7 +193,7 @@ public final class GunnerCombat {
         } else {
             direction = direction.scale(1.0D / length);
         }
-        double errorDegrees = CommonConfig.gunnerAimErrorDegrees();
+        double errorDegrees = (1.0D - CommonConfig.gunnerAccuracy()) * GunnerArsenal.MAX_AIM_ERROR_DEGREES;
         double yaw = Math.toDegrees(Math.atan2(-direction.x, direction.z))
                 + mob.getRandom().nextGaussian() * errorDegrees;
         double pitch = Math.toDegrees(-Math.asin(Mth.clamp(direction.y, -1.0D, 1.0D)))

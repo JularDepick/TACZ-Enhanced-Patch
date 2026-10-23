@@ -18,6 +18,9 @@ import java.util.Objects;
  * 全部集中在本类, 调整平衡时只需要改这里。
  */
 public final class GunnerArsenal {
+    /* 准度为 0 时的瞄准误差标准差, 单位角度 */
+    public static final double MAX_AIM_ERROR_DEGREES = 16.0D;
+
     public enum Tier {
         LOW,
         MID,

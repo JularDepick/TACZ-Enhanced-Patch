@@ -1,6 +1,7 @@
 package com.taczenhancedpatch.config;
 
 import net.minecraftforge.common.ForgeConfigSpec;
+import net.minecraftforge.fml.config.ModConfig;
 
 import java.util.List;
 
@@ -37,6 +38,7 @@ public final class CommonConfig {
     private static final ForgeConfigSpec.IntValue GUNNER_TIER_WEIGHT_LOW;
     private static final ForgeConfigSpec.IntValue GUNNER_TIER_WEIGHT_MID;
     private static final ForgeConfigSpec.IntValue GUNNER_TIER_WEIGHT_HIGH;
+    private static final ForgeConfigSpec.DoubleValue GUNNER_TARGET_RANGE;
     private static final ForgeConfigSpec.DoubleValue GUNNER_FIRE_RANGE;
     private static final ForgeConfigSpec.IntValue GUNNER_REACTION_TICKS_MIN;
     private static final ForgeConfigSpec.IntValue GUNNER_REACTION_TICKS_MAX;
@@ -44,7 +46,7 @@ public final class CommonConfig {
     private static final ForgeConfigSpec.IntValue GUNNER_BURST_MAX;
     private static final ForgeConfigSpec.IntValue GUNNER_BURST_PAUSE_MIN;
     private static final ForgeConfigSpec.IntValue GUNNER_BURST_PAUSE_MAX;
-    private static final ForgeConfigSpec.DoubleValue GUNNER_AIM_ERROR_DEGREES;
+    private static final ForgeConfigSpec.DoubleValue GUNNER_ACCURACY;
     private static final ForgeConfigSpec.DoubleValue GUNNER_DAMAGE_MULTIPLIER;
     private static final ForgeConfigSpec.DoubleValue GUNNER_AMMO_DROP_CHANCE;
     private static final ForgeConfigSpec.DoubleValue GUNNER_AMMO_DROP_MULTIPLIER;
@@ -83,8 +85,11 @@ public final class CommonConfig {
         GUNNER_TIER_WEIGHT_HIGH = BUILDER
                 .comment("高阶枪械的抽取权重")
                 .defineInRange("tierWeightHigh", 10, 0, 10000);
+        GUNNER_TARGET_RANGE = BUILDER
+                .comment("枪手的锁定范围, 单位方块, 超过该距离不会索敌")
+                .defineInRange("targetRange", 32.0D, 4.0D, 64.0D);
         GUNNER_FIRE_RANGE = BUILDER
-                .comment("枪手的开火距离, 单位方块")
+                .comment("枪手的开火距离, 单位方块, 目标超出该距离时只跟踪不开火")
                 .defineInRange("fireRange", 28.0D, 4.0D, 64.0D);
         GUNNER_REACTION_TICKS_MIN = BUILDER
                 .comment("枪手发现目标后的最短反应时间, 单位 tick")
@@ -104,9 +109,9 @@ public final class CommonConfig {
         GUNNER_BURST_PAUSE_MAX = BUILDER
                 .comment("两次点射之间的最长停火时间, 单位 tick")
                 .defineInRange("burstPauseMax", 24, 0, 200);
-        GUNNER_AIM_ERROR_DEGREES = BUILDER
-                .comment("枪手瞄准误差的标准差, 单位角度")
-                .defineInRange("aimErrorDegrees", 4.0D, 0.0D, 20.0D);
+        GUNNER_ACCURACY = BUILDER
+                .comment("枪手命中准度, 0 为最不准, 1 为最准")
+                .defineInRange("accuracy", 0.75D, 0.0D, 1.0D);
         GUNNER_DAMAGE_MULTIPLIER = BUILDER
                 .comment("枪手子弹对目标的伤害倍率, 用于压制 TACZ 原始伤害对玩家的压制力")
                 .defineInRange("damageMultiplier", 0.6D, 0.1D, 3.0D);
@@ -176,8 +181,16 @@ public final class CommonConfig {
         };
     }
 
+    public static double gunnerTargetRange() {
+        return value(GUNNER_TARGET_RANGE, 32.0D);
+    }
+
     public static double gunnerFireRange() {
         return value(GUNNER_FIRE_RANGE, 28.0D);
+    }
+
+    public static double gunnerAccuracy() {
+        return value(GUNNER_ACCURACY, 0.75D);
     }
 
     public static int[] gunnerReactionTicks() {
@@ -190,10 +203,6 @@ public final class CommonConfig {
 
     public static int[] gunnerBurstPause() {
         return range(GUNNER_BURST_PAUSE_MIN, GUNNER_BURST_PAUSE_MAX, 8, 24);
-    }
-
-    public static double gunnerAimErrorDegrees() {
-        return value(GUNNER_AIM_ERROR_DEGREES, 4.0D);
     }
 
     public static double gunnerDamageMultiplier() {
@@ -214,6 +223,51 @@ public final class CommonConfig {
 
     public static double gunnerAttachmentDropChance() {
         return value(GUNNER_ATTACHMENT_DROP_CHANCE, 0.08D);
+    }
+
+    public sealed interface Option permits ToggleOption, DoubleOption, IntOption {
+        String label();
+    }
+
+    public record ToggleOption(String label, ForgeConfigSpec.BooleanValue value) implements Option {
+    }
+
+    public record DoubleOption(String label, ForgeConfigSpec.DoubleValue value, double min, double max, double step) implements Option {
+    }
+
+    public record IntOption(String label, ForgeConfigSpec.IntValue value, int min, int max) implements Option {
+    }
+
+    public static List<Option> options() {
+        return List.of(
+                new ToggleOption("启用枪手系统", GUNNER_ENABLED),
+                new DoubleOption("枪手生成概率", GUNNER_SPAWN_CHANCE, 0.0D, 1.0D, 0.01D),
+                new DoubleOption("刷怪笼守卫武装率", GUNNER_SPAWNER_CHANCE, 0.0D, 1.0D, 0.01D),
+                new ToggleOption("按难度缩放", GUNNER_DIFFICULTY_SCALING),
+                new DoubleOption("锁定范围", GUNNER_TARGET_RANGE, 4.0D, 64.0D, 1.0D),
+                new DoubleOption("开火距离", GUNNER_FIRE_RANGE, 4.0D, 64.0D, 1.0D),
+                new DoubleOption("命中准度", GUNNER_ACCURACY, 0.0D, 1.0D, 0.01D),
+                new IntOption("反应时间下限", GUNNER_REACTION_TICKS_MIN, 0, 400),
+                new IntOption("反应时间上限", GUNNER_REACTION_TICKS_MAX, 0, 400),
+                new IntOption("点射发数下限", GUNNER_BURST_MIN, 1, 100),
+                new IntOption("点射发数上限", GUNNER_BURST_MAX, 1, 100),
+                new IntOption("停火时间下限", GUNNER_BURST_PAUSE_MIN, 0, 200),
+                new IntOption("停火时间上限", GUNNER_BURST_PAUSE_MAX, 0, 200),
+                new DoubleOption("伤害倍率", GUNNER_DAMAGE_MULTIPLIER, 0.1D, 3.0D, 0.05D),
+                new DoubleOption("弹药掉落概率", GUNNER_AMMO_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
+                new DoubleOption("弹药数量倍率", GUNNER_AMMO_DROP_MULTIPLIER, 0.0D, 5.0D, 0.1D),
+                new DoubleOption("枪械掉落概率", GUNNER_GUN_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
+                new DoubleOption("配件掉落概率", GUNNER_ATTACHMENT_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
+                new ToggleOption("启用遗迹生成", RUINS_ENABLED),
+                new ToggleOption("调试日志", DEBUG_EVENTS)
+        );
+    }
+
+    public static void save() {
+        ModConfig config = ConfigEvents.commonConfig();
+        if (config != null) {
+            config.save();
+        }
     }
 
     private static List<String> stringList(ForgeConfigSpec.ConfigValue<List<? extends String>> configValue, List<String> fallback) {
