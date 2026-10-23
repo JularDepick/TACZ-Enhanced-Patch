@@ -43,6 +43,7 @@ tmp/
 v*-*.md
 
 # other
+version.index.md
 release/
 releases/
 .env

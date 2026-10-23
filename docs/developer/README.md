@@ -1,0 +1,18 @@
+# 开发者文档
+
+## 运行与构建
+
+| 命令 | 说明 |
+|:---:|:---:|
+| `gradlew.bat build` | 构建模组产物 |
+| `gradlew.bat runClient` | 启动开发客户端 |
+| `gradlew.bat runServer` | 启动开发服务端 |
+| `gradlew.bat clean` | 清理构建产物 |
+
+构建产物输出到项目根目录的 `release/` 目录
+
+## 开发者文档清单
+
+| 文档 | 用途 |
+|:---:|:---:|
+| [TACZ接入规范.md](./TACZ接入规范.md) | 与 TACZ 交互时必须遵守的边界, 允许的 API 面, 事件订阅方式与版本适配位置 |

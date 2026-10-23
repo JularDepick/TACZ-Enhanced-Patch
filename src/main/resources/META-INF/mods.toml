@@ -1,0 +1,36 @@
+modLoader="javafml"
+loaderVersion="[${forgeMajor},)"
+license="Apache-2.0"
+issueTrackerURL="https://github.com/JularDepick/TACZ-Enhanced-Patch/issues"
+
+[[mods]]
+modId="tacz_enhanced_patch"
+version="${version}"
+displayName="TACZ Enhanced Patch"
+authors="JularDepick"
+credits="JularDepick"
+description='''
+An enhancement patch for Timeless and Classics Zero, delivered as a standalone addon mod.
+It interacts with TACZ only through its public API and events, and never modifies TACZ source code.
+'''
+
+[[dependencies.tacz_enhanced_patch]]
+    modId="forge"
+    mandatory=true
+    versionRange="[${forgeMajor},)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.tacz_enhanced_patch]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[${mcVersion},1.21)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.tacz_enhanced_patch]]
+    modId="tacz"
+    mandatory=true
+    versionRange="[${taczMinVersion},)"
+    ordering="AFTER"
+    side="BOTH"
