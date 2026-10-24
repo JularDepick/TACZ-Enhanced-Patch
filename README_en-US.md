@@ -56,7 +56,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Item | Description |
 |:---:|:---|
 | Client configuration | Local preferences such as automatic reload, the incoming fire indicator and the heading ruler, stored per player |
-| Server configuration | 28 parameters grouped into basics, candidates, spawning, targeting, ammo, toughness, loot, ruins and debug, with switches listed before numeric values inside each group and synced from the server |
+| Server configuration | 28 parameters grouped into basics, retaliation, spawning, targeting, ammo, toughness, loot, ruins and debug, with switches listed before numeric values inside each group and synced from the server |
 | Configuration screen | Opening it first offers a client or a server entry, and the server entry only appears for the world owner |
 | Shortcut | C opens the mod config entry screen by default; it is a standard key binding, so it can be rebound or cleared in the vanilla controls |
 | Armed mob list | The server page scans every mob into one switchable list and lets group toggles flip those switches in bulk, deciding only which mobs may carry guns |

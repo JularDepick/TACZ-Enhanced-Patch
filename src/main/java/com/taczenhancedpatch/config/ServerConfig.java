@@ -59,13 +59,14 @@ public final class ServerConfig {
                 .comment("是否让原版敌对生物在生成时装备枪械, 关闭后所有枪手相关行为停止")
                 .define("enabled", true);
         GUNNER_SPAWN_CHANCE = BUILDER
-                .comment("单个敌对生物成为枪手的基础概率, 取值 0 到 1")
+                .comment("单个敌对生物成为枪手的基础概率, 取值 0 到 1",
+                        "同一数值也决定护甲每个部位的穿戴概率, 空部位概率为 1 减去该值")
                 .defineInRange("spawnChance", 0.2D, 0.0D, 1.0D);
         GUNNER_SPAWNER_CHANCE = BUILDER
                 .comment("刷怪笼生成敌对生物时成为枪手的最低概率, 用于保证遗迹守卫的武装率")
                 .defineInRange("spawnerGunnerChance", 0.6D, 0.0D, 1.0D);
         GUNNER_DIFFICULTY_SCALING = BUILDER
-                .comment("是否按游戏难度缩放枪手生成概率")
+                .comment("是否按游戏难度缩放枪手生成概率与分档权重")
                 .define("difficultyScaling", true);
         GUNNER_MOB_BLACKLIST = BUILDER
                 .comment("额外排除的生物实体 ID 列表",
@@ -291,7 +292,7 @@ public final class ServerConfig {
                 new ConfigOptionGroup("group.basic", List.of(
                         new ConfigOption.ToggleOption("opt.enabled", GUNNER_ENABLED),
                         new ConfigOption.ToggleOption("opt.difficulty", GUNNER_DIFFICULTY_SCALING))),
-                new ConfigOptionGroup("group.candidates", List.of(
+                new ConfigOptionGroup("group.retaliation", List.of(
                         new ConfigOption.ToggleOption("opt.forced_retaliation", GUNNER_FORCED_RETALIATION))),
                 new ConfigOptionGroup("group.spawn", List.of(
                         new ConfigOption.DoubleOption("opt.spawn_chance", GUNNER_SPAWN_CHANCE, 0.0D, 1.0D, 0.01D),
