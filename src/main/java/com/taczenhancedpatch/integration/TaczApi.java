@@ -214,6 +214,22 @@ public final class TaczApi {
         return attachment == null ? ItemStack.EMPTY : attachment;
     }
 
+    /* 枪械自带的扩容弹匣(内置配件), 部分枪械没有可拆卸弹匣槽 */
+    public static ItemStack getBuiltinExtendedMag(@Nullable ItemStack gunStack) {
+        IGun gun = getGun(gunStack);
+        if (gun == null) {
+            return ItemStack.EMPTY;
+        }
+        ItemStack attachment = gun.getBuiltinAttachment(gunStack, AttachmentType.EXTENDED_MAG);
+        return attachment == null ? ItemStack.EMPTY : attachment;
+    }
+
+    /* 无限弹匣的判定: 可拆卸弹匣与内置弹匣都检查一遍 */
+    public static boolean hasInfiniteMag(ItemStack gunStack) {
+        return com.taczenhancedpatch.item.InfiniteMag.isInfinite(getExtendedMag(gunStack))
+                || com.taczenhancedpatch.item.InfiniteMag.isInfinite(getBuiltinExtendedMag(gunStack));
+    }
+
     /**
      * 上游全部扩容弹匣条目, 按上游排序值升序。
      * 等级优先从名称翻译键里的 level_N 读取, 读不到时退回配件 ID 的数字后缀。

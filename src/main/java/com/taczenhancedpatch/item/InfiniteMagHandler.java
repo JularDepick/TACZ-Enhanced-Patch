@@ -32,7 +32,7 @@ public final class InfiniteMagHandler {
         if (!TaczApi.isGun(gun)) {
             return;
         }
-        if (!InfiniteMag.isInfinite(TaczApi.getExtendedMag(gun))) {
+        if (!TaczApi.hasInfiniteMag(gun)) {
             return;
         }
         int capacity = TaczApi.maxMagazineAmmo(gun);

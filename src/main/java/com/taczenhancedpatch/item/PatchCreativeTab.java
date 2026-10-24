@@ -26,9 +26,11 @@ public final class PatchCreativeTab {
                     .withTabsBefore(new ResourceLocation(TACZEnhancedPatch.MOD_ID + ":fast_extended_mag"))
                     .icon(PatchCreativeTab::iconStack)
                     .displayItems((parameters, output) -> {
-                        ItemStack infinite = InfiniteMag.create();
-                        if (!infinite.isEmpty()) {
-                            output.accept(infinite);
+                        for (InfiniteMag.Family family : InfiniteMag.FAMILIES) {
+                            ItemStack infinite = InfiniteMag.create(family);
+                            if (!infinite.isEmpty()) {
+                                output.accept(infinite);
+                            }
                         }
                         output.accept(GruntRegistry.SPAWN_EGG.get());
                         output.accept(TankRegistry.SPAWN_EGG.get());
