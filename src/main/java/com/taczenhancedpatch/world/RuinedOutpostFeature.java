@@ -2,6 +2,7 @@ package com.taczenhancedpatch.world;
 
 import com.mojang.serialization.Codec;
 import com.taczenhancedpatch.config.ServerConfig;
+import com.taczenhancedpatch.faction.RuinSites;
 import com.taczenhancedpatch.world.ruin.RuinLayout;
 import com.taczenhancedpatch.world.ruin.RuinLayouts;
 import net.minecraft.core.BlockPos;
@@ -58,6 +59,8 @@ public class RuinedOutpostFeature extends Feature<NoneFeatureConfiguration> {
         placeLayers(level, origin, random, layout, halfWidth, halfDepth);
         placeMarkers(level, origin, random, layout);
         scatterDebris(level, origin, random, layout);
+        /* 登记遗迹站点, 由服务端 tick 在玩家靠近时补齐守军 */
+        RuinSites.queue(origin);
         return true;
     }
 

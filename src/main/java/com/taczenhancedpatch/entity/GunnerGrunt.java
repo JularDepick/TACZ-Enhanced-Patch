@@ -2,6 +2,7 @@ package com.taczenhancedpatch.entity;
 
 import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.gunner.GunnerArming;
+import com.taczenhancedpatch.faction.FactionData;
 import com.taczenhancedpatch.gunner.GunnerArsenal;
 import com.taczenhancedpatch.integration.TaczApi;
 import net.minecraft.nbt.CompoundTag;
@@ -20,6 +21,7 @@ import net.minecraft.world.entity.SpawnGroupData;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
+import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.PanicGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
@@ -67,6 +69,20 @@ public class GunnerGrunt extends Animal {
         SpawnGroupData data = super.finalizeSpawn(level, difficulty, spawnType, spawnGroupData, tag);
         if (!level.getLevel().isClientSide()) {
             arm(this, difficulty.getDifficulty());
+            var maxHealth = this.getAttribute(Attributes.MAX_HEALTH);
+            if (maxHealth != null) {
+                maxHealth.setBaseValue(CombatPreset.gruntHealth(difficulty.getDifficulty()));
+                this.setHealth(this.getMaxHealth());
+            }
+            var armor = this.getAttribute(Attributes.ARMOR);
+            if (armor != null) {
+                armor.setBaseValue(CombatPreset.gruntArmor(difficulty.getDifficulty()));
+            }
+            /* 有阵营的守军不再逃跑, 改为近身还击; 无阵营个体保持原版动物反应 */
+            if (!FactionData.factionOf(this).isEmpty()) {
+                this.goalSelector.removeAllGoals(goal -> goal instanceof PanicGoal);
+                this.goalSelector.addGoal(2, new MeleeAttackGoal(this, 1.1D, true));
+            }
         }
         return data;
     }

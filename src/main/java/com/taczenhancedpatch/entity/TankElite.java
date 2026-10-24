@@ -1,8 +1,10 @@
 package com.taczenhancedpatch.entity;
 
 import com.taczenhancedpatch.config.ServerConfig;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -13,13 +15,16 @@ import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
-import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.LargeFireball;
+import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.entity.SpawnGroupData;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.phys.Vec3;
 
+import javax.annotation.Nullable;
 import java.util.EnumSet;
 
 /**
@@ -43,8 +48,8 @@ public class TankElite extends Monster {
 
     public static AttributeSupplier.Builder createAttributes() {
         return Monster.createMonsterAttributes()
-                .add(Attributes.MAX_HEALTH, 200.0D)
-                .add(Attributes.ARMOR, 12.0D)
+                .add(Attributes.MAX_HEALTH, CombatPreset.tankHealth(net.minecraft.world.Difficulty.NORMAL))
+                .add(Attributes.ARMOR, CombatPreset.tankArmor(net.minecraft.world.Difficulty.NORMAL))
                 .add(Attributes.ARMOR_TOUGHNESS, 8.0D)
                 .add(Attributes.MOVEMENT_SPEED, 0.2D)
                 .add(Attributes.FOLLOW_RANGE, 64.0D)
@@ -57,7 +62,27 @@ public class TankElite extends Monster {
         this.goalSelector.addGoal(3, new TankCannonGoal(this));
         this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 0.6D));
         this.goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 24.0F));
-        this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, Player.class, true));
+    }
+
+    /* 属性按难度预设, 不读取模组配置 */
+    @Override
+    @Nullable
+    public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty,
+                                        MobSpawnType spawnType, @Nullable SpawnGroupData spawnGroupData,
+                                        @Nullable CompoundTag tag) {
+        SpawnGroupData data = super.finalizeSpawn(level, difficulty, spawnType, spawnGroupData, tag);
+        if (!level.getLevel().isClientSide()) {
+            var maxHealth = this.getAttribute(Attributes.MAX_HEALTH);
+            if (maxHealth != null) {
+                maxHealth.setBaseValue(CombatPreset.tankHealth(difficulty.getDifficulty()));
+                this.setHealth(this.getMaxHealth());
+            }
+            var armor = this.getAttribute(Attributes.ARMOR);
+            if (armor != null) {
+                armor.setBaseValue(CombatPreset.tankArmor(difficulty.getDifficulty()));
+            }
+        }
+        return data;
     }
 
     @Override
@@ -76,7 +101,7 @@ public class TankElite extends Monster {
         Vec3 muzzle = position().add(0.0D, 2.1D, 0.0D).add(getLookAngle().scale(2.2D));
         Vec3 direction = target.getEyePosition().subtract(muzzle).normalize().scale(SHELL_SPEED);
         LargeFireball shell = new LargeFireball(level(), this, direction.x, direction.y, direction.z,
-                ServerConfig.tankExplosionPower());
+                CombatPreset.tankExplosionPower(level().getDifficulty()));
         shell.setPos(muzzle.x, muzzle.y, muzzle.z);
         level().addFreshEntity(shell);
         playSound(SoundEvents.GHAST_SHOOT, 4.0F, 0.5F);
