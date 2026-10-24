@@ -13,13 +13,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 无限弹夹的物品提示。
+ * 无限弹匣的物品提示。
  * 只在客户端为带标记的物品追加容量与行为说明, 并移除上游按扩容等级生成的说明行,
- * 因为无限弹夹的容量已经不是有限档位, 保留会与正无穷的说明矛盾。
+ * 因为无限弹匣的容量已经不是有限档位, 保留会与正无穷的说明矛盾。
  */
 @Mod.EventBusSubscriber(modid = TACZEnhancedPatch.MOD_ID, value = Dist.CLIENT)
 public final class InfiniteMagTooltipHandler {
-    /* 上游扩容弹夹自带的说明行, 无限弹夹需要把它们换成容量正无穷 */
+    /* 上游扩容弹匣自带的说明行, 无限弹匣需要把它们换成容量正无穷 */
     private static final String[] UPSTREAM_KEYS = {
             "tooltip.tacz.attachment.extended_mag",
             "tooltip.tacz.attachment.extended_mag_level_1",

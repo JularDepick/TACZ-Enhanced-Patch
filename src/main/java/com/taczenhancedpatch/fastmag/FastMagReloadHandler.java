@@ -8,22 +8,24 @@ import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.WeakHashMap;
 
 /**
- * 快速扩容弹夹的换弹加速。
- * 服务端在换弹期间按配件等级把换弹开始时间戳前移, 使换弹进度推进得更快,
- * 因此换弹总时长按比例缩短, 装填与收尾两个阶段一起生效。
- * 时间差按两次 tick 的实际间隔计算, 不依赖固定的 50 毫秒, 掉刻时也不会加速跑偏。
+ * 快速扩容弹匣的换弹加速。
+ * 换弹期间按目标比例把换弹开始时间戳持续前移, 使上游的换弹状态机按更短的总时长推进,
+ * 装填与收尾两个阶段同时生效, 客户端动画与服务端计时一起加速。
+ * 目标比例 = 缺失弹药占弹匣容量的比例 × 容量档位比例, 每 tick 按实际经过的时间换算。
  */
 @Mod.EventBusSubscriber(modid = TACZEnhancedPatch.MOD_ID)
 public final class FastMagReloadHandler {
     /* 两次调整之间的最大时间差, 避免实体长时间未 tick 后一次性跳过整个换弹 */
     private static final long MAX_DELTA_MILLIS = 250L;
 
-    /* 记录每只实体上一次计算加速的时间点 */
-    private static final Map<LivingEntity, Long> LAST_TICK = new WeakHashMap<>();
+    /* 记录每只实体上一次计算加速的时间点, 客户端与服务端共用一张线程安全的弱表 */
+    private static final Map<LivingEntity, Long> LAST_TICK =
+            Collections.synchronizedMap(new WeakHashMap<>());
 
     private FastMagReloadHandler() {
     }
@@ -31,9 +33,6 @@ public final class FastMagReloadHandler {
     @SubscribeEvent
     public static void onLivingTick(LivingEvent.LivingTickEvent event) {
         LivingEntity entity = event.getEntity();
-        if (entity.level().isClientSide()) {
-            return;
-        }
         ItemStack gun = entity.getMainHandItem();
         if (!TaczApi.isGun(gun)) {
             LAST_TICK.remove(entity);
@@ -50,7 +49,10 @@ public final class FastMagReloadHandler {
             return;
         }
         long now = System.currentTimeMillis();
-        Long last = LAST_TICK.put(entity, now);
+        Long last;
+        synchronized (LAST_TICK) {
+            last = LAST_TICK.put(entity, now);
+        }
         if (last == null) {
             return;
         }
@@ -58,8 +60,12 @@ public final class FastMagReloadHandler {
         if (delta <= 0L) {
             return;
         }
-        /* 目标倍率 r 下, 每经过 delta 需要额外推进 delta * (1/r - 1) */
-        double extra = 1.0D / FastMag.reloadRatio(level) - 1.0D;
+        double scale = FastMag.reloadScale(gun, level);
+        if (scale >= 1.0D) {
+            return;
+        }
+        /* 目标比例 scale 下, 每经过 delta 需要额外推进 delta * (1/scale - 1) */
+        double extra = 1.0D / scale - 1.0D;
         TaczApi.advanceReloadStart(entity, Math.round(delta * extra));
     }
 }

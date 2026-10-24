@@ -10,6 +10,8 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
@@ -23,23 +25,29 @@ import java.util.Map;
 import java.util.function.DoubleConsumer;
 
 /**
- * 单页配置列表。
- * 客户端页对所有玩家可见并可改; 服务端页只在存档创建者一侧打开, 普通客户端看不到入口。
- * 服务端页在界面与调试组之后追加持械生物列表入口; 打开本页的按键由原版按键设置管理。
+ * 模组配置页。
+ * 存档创建者打开时顶部出现客户端与服务端两个页签, 一步就能切到目标参数;
+ * 其余玩家只看到客户端页, 并在标题下方提示服务端设置由创建者维护。
+ * 服务端页把纯按钮与调试类条目排在参数组之前, 生物持械配置的入口固定在第一行。
  */
 public final class PatchConfigScreen extends Screen {
     private static final int LIST_WIDTH = 380;
     private static final int ROW_HEIGHT = 24;
     private static final int WIDGET_WIDTH = 190;
-    private static final int LIST_TOP = 42;
     private static final int LIST_BOTTOM_MARGIN = 46;
+    private static final int TAB_WIDTH = 96;
+    private static final int TAB_HEIGHT = 18;
+    private static final int TAB_GAP = 6;
 
     private final Screen parent;
-    private final boolean serverSection;
-    private final List<ConfigOptionGroup> groups;
+    private final boolean owner;
+    private final List<ConfigOptionGroup> clientGroups;
+    private final List<ConfigOptionGroup> serverGroups;
     private final Map<ConfigOption, Object> originals = new IdentityHashMap<>();
     private final List<Row> rows = new ArrayList<>();
+    private final List<EditBox> textFields = new ArrayList<>();
     private final ScrollBar scrollbar = new ScrollBar(value -> scroll = value);
+    private boolean serverSection;
     private double scroll;
     private int listLeft;
     private int listRight;
@@ -48,30 +56,100 @@ public final class PatchConfigScreen extends Screen {
     private boolean saved;
     @Nullable
     private AbstractWidget dragging;
+    @Nullable
+    private Button clientTab;
+    @Nullable
+    private Button serverTab;
 
     public PatchConfigScreen(@Nullable Screen parent, boolean serverSection) {
-        super(UiText.of(serverSection && ConfigAccess.isWorldOwner() ? "screen.server.title" : "screen.client.title"));
+        super(UiText.of("screen.config.title"));
         this.parent = parent;
-        /* 服务端页只在创建者一侧生效, 越权构造时退化为客户端页 */
-        this.serverSection = serverSection && ConfigAccess.isWorldOwner();
-        this.groups = this.serverSection ? ServerConfig.groups() : ClientConfig.groups();
-        for (ConfigOptionGroup group : groups) {
+        /* 只有存档创建者可以编辑服务端参数, 其余玩家一律落在客户端页 */
+        this.owner = ConfigAccess.isWorldOwner();
+        this.serverSection = serverSection && this.owner;
+        this.clientGroups = ClientConfig.groups();
+        this.serverGroups = owner ? ServerConfig.groups() : List.of();
+        for (ConfigOptionGroup group : allGroups()) {
             for (ConfigOption option : group.options()) {
                 originals.put(option, read(option));
             }
         }
     }
 
+    private List<ConfigOptionGroup> allGroups() {
+        if (!owner) {
+            return clientGroups;
+        }
+        List<ConfigOptionGroup> all = new ArrayList<>(clientGroups);
+        all.addAll(serverGroups);
+        return all;
+    }
+
+    private List<ConfigOptionGroup> currentGroups() {
+        return serverSection ? serverGroups : clientGroups;
+    }
+
     @Override
     protected void init() {
-        rows.clear();
         listLeft = (width - LIST_WIDTH) / 2;
         listRight = listLeft + LIST_WIDTH;
-        listTop = LIST_TOP;
+        listTop = owner ? 48 : 42;
         listBottom = height - LIST_BOTTOM_MARGIN;
-        for (ConfigOptionGroup group : groups) {
+        if (owner) {
+            int left = width / 2 - TAB_WIDTH - TAB_GAP / 2;
+            clientTab = addRenderableWidget(Button.builder(UiText.of("screen.tab.client"), b -> switchSection(false))
+                    .bounds(left, 20, TAB_WIDTH, TAB_HEIGHT)
+                    .build());
+            serverTab = addRenderableWidget(Button.builder(UiText.of("screen.tab.server"), b -> switchSection(true))
+                    .bounds(left + TAB_WIDTH + TAB_GAP, 20, TAB_WIDTH, TAB_HEIGHT)
+                    .build());
+            updateTabs();
+        }
+        addRenderableWidget(Button.builder(UiText.of("screen.save"), button -> finish(true))
+                .bounds(width / 2 - 155, height - 34, 150, 20)
+                .build());
+        addRenderableWidget(Button.builder(UiText.of("screen.cancel"), button -> finish(false))
+                .bounds(width / 2 + 5, height - 34, 150, 20)
+                .build());
+        rebuildRows();
+    }
+
+    /* 切换页签时重建条目, 已改动但未保存的数值留在配置对象里, 取消时统一回滚 */
+    private void switchSection(boolean server) {
+        if (server == serverSection) {
+            return;
+        }
+        serverSection = server;
+        scroll = 0.0D;
+        rebuildRows();
+        updateTabs();
+    }
+
+    /* 当前页签置灰, 一眼看出停在哪一页 */
+    private void updateTabs() {
+        if (clientTab != null) {
+            clientTab.active = serverSection;
+        }
+        if (serverTab != null) {
+            serverTab.active = !serverSection;
+        }
+    }
+
+    private void rebuildRows() {
+        rows.clear();
+        textFields.clear();
+        if (serverSection) {
+            /* 纯按钮入口排在最前, 不必滚到界面与调试组 */
+            Button mobListButton = Button.builder(UiText.of("screen.open"), button -> {
+                if (minecraft != null) {
+                    minecraft.setScreen(new MobListScreen(this));
+                }
+            }).bounds(0, 0, WIDGET_WIDTH, 20).build();
+            rows.add(new Row("screen.mob_list", mobListButton, false));
+        }
+        for (ConfigOptionGroup group : currentGroups()) {
             rows.add(new Row(group.label(), null, true));
-            /* 组内先排开关项, 再排数值项, 开关最显眼 */
+            /* 组内先排开关项, 再排数值与文本项, 开关最显眼 */
             for (ConfigOption option : group.options()) {
                 if (option instanceof ConfigOption.ToggleOption) {
                     rows.add(new Row(option.label(), createWidget(option), false));
@@ -82,32 +160,27 @@ public final class PatchConfigScreen extends Screen {
                     rows.add(new Row(option.label(), createWidget(option), false));
                 }
             }
-            if (serverSection && ServerConfig.GROUP_UI.equals(group.label())) {
-                addServerEntries();
-            }
         }
-        addRenderableWidget(Button.builder(UiText.of("screen.save"), button -> finish(true))
-                .bounds(width / 2 - 155, height - 34, 150, 20)
-                .build());
-        addRenderableWidget(Button.builder(UiText.of("screen.cancel"), button -> finish(false))
-                .bounds(width / 2 + 5, height - 34, 150, 20)
-                .build());
+        setFocused(null);
     }
 
-    /* 服务端页在界面与调试组之后追加持械生物列表入口 */
-    private void addServerEntries() {
-        Button mobListButton = Button.builder(UiText.of("screen.open"), button -> {
-            if (minecraft != null) {
-                minecraft.setScreen(new MobListScreen(this));
-            }
-        }).bounds(0, 0, WIDGET_WIDTH, 20).build();
-        rows.add(new Row("screen.mob_list", mobListButton, false));
+    @Override
+    public void tick() {
+        for (EditBox box : textFields) {
+            box.tick();
+        }
     }
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         renderBackground(graphics);
-        graphics.drawCenteredString(font, title, width / 2, 18, 0xFFFFFF);
+        if (owner) {
+            graphics.drawCenteredString(font, UiText.of(serverSection ? "screen.server.title" : "screen.client.title"),
+                    width / 2, 6, 0xFFFFFF);
+        } else {
+            graphics.drawCenteredString(font, title, width / 2, 16, 0xFFFFFF);
+            graphics.drawCenteredString(font, UiText.of("screen.hint.client_only"), width / 2, 28, 0x9E9E9E);
+        }
         graphics.fill(listLeft - 4, listTop - 4, listRight + 20, listBottom + 4, 0x66000000);
         scroll = Mth.clamp(scroll, 0.0D, maxScroll());
         graphics.enableScissor(listLeft, listTop, listRight, listBottom);
@@ -158,10 +231,13 @@ public final class PatchConfigScreen extends Screen {
                 AbstractWidget widget = row.widget();
                 if (widget != null && widget.visible && widget.mouseClicked(mouseX, mouseY, button)) {
                     dragging = widget;
+                    /* 文本框需要由本页转交键盘事件 */
+                    setFocused(widget instanceof EditBox ? widget : null);
                     return true;
                 }
             }
         }
+        setFocused(null);
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
@@ -173,6 +249,17 @@ public final class PatchConfigScreen extends Screen {
             dragging = null;
         }
         return super.mouseReleased(mouseX, mouseY, button);
+    }
+
+    @Override
+    public void setFocused(@Nullable GuiEventListener listener) {
+        if (getFocused() instanceof EditBox previous && previous != listener) {
+            previous.setFocused(false);
+        }
+        if (listener instanceof AbstractWidget widget) {
+            widget.setFocused(true);
+        }
+        super.setFocused(listener);
     }
 
     @Override
@@ -210,7 +297,7 @@ public final class PatchConfigScreen extends Screen {
     private void finish(boolean saveNow) {
         if (saveNow) {
             ClientConfig.save();
-            if (serverSection) {
+            if (owner) {
                 ServerConfig.save();
             }
             saved = true;
@@ -259,7 +346,28 @@ public final class PatchConfigScreen extends Screen {
                     1.0D, true, fraction,
                     value -> intOption.value().set((int) Math.round(Mth.clamp(value, intOption.min(), intOption.max()))));
         }
+        if (option instanceof ConfigOption.TextOption textOption) {
+            EditBox box = new EditBox(font, 0, 0, WIDGET_WIDTH, 20, UiText.of(textOption.label()));
+            box.setMaxLength(16);
+            box.setValue(readText(textOption));
+            box.setResponder(value -> {
+                try {
+                    textOption.value().set(value);
+                } catch (IllegalStateException ignored) {
+                }
+            });
+            textFields.add(box);
+            return box;
+        }
         throw new IllegalStateException("unsupported option " + option.label());
+    }
+
+    private static String readText(ConfigOption.TextOption option) {
+        try {
+            return option.value().get();
+        } catch (IllegalStateException ignored) {
+            return "";
+        }
     }
 
     private static Component toggleText(ConfigOption.ToggleOption option) {
@@ -276,6 +384,9 @@ public final class PatchConfigScreen extends Screen {
         if (option instanceof ConfigOption.IntOption intOption) {
             return intOption.value().get();
         }
+        if (option instanceof ConfigOption.TextOption textOption) {
+            return readText(textOption);
+        }
         return null;
     }
 
@@ -289,6 +400,8 @@ public final class PatchConfigScreen extends Screen {
             doubleOption.value().set(((Number) value).doubleValue());
         } else if (option instanceof ConfigOption.IntOption intOption) {
             intOption.value().set(((Number) value).intValue());
+        } else if (option instanceof ConfigOption.TextOption textOption) {
+            textOption.value().set(String.valueOf(value));
         }
     }
 

@@ -47,7 +47,7 @@ public final class TaczApi {
         }
     }
 
-    /** 一条上游扩容弹夹条目: 配件 ID, 名称翻译键与按名称键推断的等级(1 到 3) */
+    /** 一条上游扩容弹匣条目: 配件 ID, 名称翻译键与按名称键推断的等级(1 到 3) */
     public record ExtendedMagEntry(ResourceLocation id, String nameKey, int level) {
     }
 
@@ -170,7 +170,7 @@ public final class TaczApi {
         return stack == null ? ItemStack.EMPTY : stack;
     }
 
-    /* 枪械的弹匣容量, 已计入当前装配的扩容弹夹带来的加成 */
+    /* 枪械的弹匣容量, 已计入当前装配的扩容弹匣带来的加成 */
     public static int maxMagazineAmmo(@Nullable ItemStack gunStack) {
         IGun gun = getGun(gunStack);
         if (gun == null) {
@@ -204,7 +204,7 @@ public final class TaczApi {
         }
     }
 
-    /* 枪械当前装配的扩容弹夹, 未装配时返回空物品 */
+    /* 枪械当前装配的扩容弹匣, 未装配时返回空物品 */
     public static ItemStack getExtendedMag(@Nullable ItemStack gunStack) {
         IGun gun = getGun(gunStack);
         if (gun == null) {
@@ -215,7 +215,7 @@ public final class TaczApi {
     }
 
     /**
-     * 上游全部扩容弹夹条目, 按上游排序值升序。
+     * 上游全部扩容弹匣条目, 按上游排序值升序。
      * 等级优先从名称翻译键里的 level_N 读取, 读不到时退回配件 ID 的数字后缀。
      */
     public static List<ExtendedMagEntry> extendedMags() {

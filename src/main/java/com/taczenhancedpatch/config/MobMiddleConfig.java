@@ -8,7 +8,7 @@ import java.util.function.Consumer;
 
 /**
  * 持械生物中间层配置。
- * 只记录七个分组开关的开关状态, 作为批量改写持械生物列表的依据;
+ * 只记录七个分组开关的开关状态, 作为批量改写生物持械配置的依据;
  * 具体哪些生物可以持械由 {@link MobListConfig} 记录, 分组开关只是它的批量编辑器。
  */
 public final class MobMiddleConfig {

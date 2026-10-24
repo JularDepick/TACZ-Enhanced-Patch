@@ -11,8 +11,8 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.RegistryObject;
 
 /**
- * 快速扩容弹夹物品页。
- * 物品页里列出的仍然是上游的扩容弹夹物品, 每一条都在物品栈上打了等级标记并改写显示名,
+ * 快速扩容弹匣物品页。
+ * 物品页里列出的仍然是上游的扩容弹匣物品, 每一条都在物品栈上打了等级标记并在原名称后追加后缀,
  * 不新建物品对象, 也不占用新的物品 ID。
  */
 public final class FastMagCreativeTab {

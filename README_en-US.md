@@ -44,6 +44,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Neutral spawning | Spawns on open ground at roughly sheep frequency, never attacks on its own and only flees when hit |
 | Always armed | Carries a random gun from the moment it spawns, ignoring the gunner master switch and the mob list |
 | Supply drops | Kills always drop matching ammo, with a chance at the gun and an attachment, plus random food and scrap in random amounts |
+| Appearance | A zombie villager body with a hand-drawn camouflage texture, complete with a head and limbs, holding a visible gun |
 ### Ruins
 
 | Mechanic | Description |
@@ -56,37 +57,38 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Mechanic | Description |
 |:---:|:---|
 | Elite shelling | A rarely spawning tank-shaped monster that locks onto players and fires periodic shells with far larger explosions than a ghast fireball |
-| Imposing bulk | A 3.4 x 2.4 hitbox with a custom tracked hull and rotating turret, immune to fire and fully knockback resistant |
+| Imposing bulk | A 3.4 x 2.4 hitbox with a custom model whose tracks sit on the ground and whose hull and turret stack upwards, immune to fire and fully knockback resistant |
 | Loot | Drops iron, copper and gunpowder; cooldown, explosion power and cannon range are configurable |
 ### Fast extended magazines
 
 | Mechanic | Description |
 |:---:|:---|
-| Item tab | A dedicated creative tab lists fast variants of the upstream extended mags, reusing the same items without registering new item IDs |
-| Reload speed | An equipped fast mag cuts reload time to 30%, 40% or 50% of normal for ammo capacity I to III |
+| Item tab | A dedicated creative tab lists fast variants of the upstream extended mags, reusing the same items without registering new item IDs and appending a fast magazine suffix to the original name |
+| Reload speed | Reload time = base time × missing ammo ratio × 50%, 40% or 30% for ammo capacity III to I, with the animation sped up as well |
 
 ### Patch item tab and infinite magazine
 
 | Mechanic | Description |
 |:---:|:---|
 | Patch item tab | A TACZ Enhanced Patch creative tab collecting loose items and spawn eggs |
-| Infinite magazine | A universal extended mag whose wielder consumes no ammo from the magazine or inventory, with capacity labelled as the infinity symbol |
+| Infinite magazine | Built on the upstream level III extended mag, inheriting its icon and attributes, consuming no ammo from the magazine or inventory, with capacity labelled as the infinity symbol |
 ### Client features
 
 | Feature | Description |
 |:---:|:---|
 | Incoming fire indicator | When hit by a gun, a soft-edged arc on screen points to the source, up to three directions at once, off by default |
 | Heading ruler | A horizontal compass tape flush with the top edge, nine tenths of the screen wide, showing cardinal directions and a bare bearing number, off by default |
+| Ruler color | The accent color is plain red by default and can be set to any 8-digit hexadecimal ARGB value in the client config |
 
 ### Configuration and permissions
 
 | Item | Description |
 |:---:|:---|
-| Client configuration | Local preferences such as automatic reload, the incoming fire indicator and the heading ruler, stored per player |
-| Server configuration | 40 parameters grouped into basics, retaliation, spawning, targeting, ammo, toughness, loot, armed grunt, tank elite, ruins and debug, with switches listed before numeric values inside each group and synced from the server |
-| Configuration screen | Opening it first offers a client or a server entry, and the server entry only appears for the world owner |
-| Shortcut | C opens the mod config entry screen by default; it is a standard key binding, so it can be rebound or cleared in the vanilla controls |
-| Armed mob list | The server page scans every mob into one switchable list and lets group toggles flip those switches in bulk, deciding only which mobs may carry guns |
+| Client configuration | Local preferences such as automatic reload, the incoming fire indicator, the heading ruler and its color, stored per player |
+| Server configuration | 40 parameters grouped into debug, ruins, basics, retaliation, spawning, targeting, ammo, toughness, loot, armed grunt and tank elite, with pure-button and switch groups listed before numeric ones and synced from the server |
+| Configuration screen | Opens the config screen directly, with tabs at the top to switch between client and server; the server tab only appears for the world owner |
+| Shortcut | C opens the config screen directly by default; it is a standard key binding, so it can be rebound or cleared in the vanilla controls |
+| Mob arming config | The first row of the server page scans every mob into one switchable list, shows each mob's name and entity ID, and lets group toggles flip those switches in bulk |
 
 ## Gameplay highlights
 

@@ -33,22 +33,26 @@ public class TankModel extends EntityModel<TankElite> {
         this.barrel = this.turret.getChild("barrel");
     }
 
+    /*
+     * 模型坐标系的 Y 轴向下, 0 为车顶高度: 履带贴地, 车体压在履带上, 炮塔再叠在车体顶部。
+     * 各立方体的尺寸与 UV 偏移保持不变, 只调整纵向位置, 贴图无需改动。
+     */
     public static LayerDefinition createBodyLayer() {
         MeshDefinition mesh = new MeshDefinition();
         PartDefinition root = mesh.getRoot();
         root.addOrReplaceChild("tracks", CubeListBuilder.create()
                 .texOffs(0, 148)
-                .addBox(-27.0F, 0.0F, -26.0F, 10.0F, 10.0F, 52.0F)
-                .addBox(17.0F, 0.0F, -26.0F, 10.0F, 10.0F, 52.0F), PartPose.ZERO);
+                .addBox(-27.0F, 14.0F, -26.0F, 10.0F, 10.0F, 52.0F)
+                .addBox(17.0F, 14.0F, -26.0F, 10.0F, 10.0F, 52.0F), PartPose.ZERO);
         root.addOrReplaceChild("hull", CubeListBuilder.create()
                 .texOffs(0, 0)
-                .addBox(-22.0F, 10.0F, -24.0F, 44.0F, 14.0F, 48.0F), PartPose.ZERO);
+                .addBox(-22.0F, 0.0F, -24.0F, 44.0F, 14.0F, 48.0F), PartPose.ZERO);
         PartDefinition turret = root.addOrReplaceChild("turret", CubeListBuilder.create()
                 .texOffs(0, 64)
-                .addBox(-12.0F, 0.0F, -12.0F, 24.0F, 10.0F, 24.0F), PartPose.offset(0.0F, 24.0F, 0.0F));
+                .addBox(-12.0F, -10.0F, -12.0F, 24.0F, 10.0F, 24.0F), PartPose.offset(0.0F, 0.0F, 0.0F));
         turret.addOrReplaceChild("barrel", CubeListBuilder.create()
                 .texOffs(0, 100)
-                .addBox(-3.0F, 2.0F, -52.0F, 6.0F, 6.0F, 40.0F), PartPose.ZERO);
+                .addBox(-3.0F, -8.0F, -52.0F, 6.0F, 6.0F, 40.0F), PartPose.ZERO);
         return LayerDefinition.create(mesh, 256, 256);
     }
 

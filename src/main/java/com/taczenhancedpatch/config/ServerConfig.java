@@ -378,11 +378,20 @@ public final class ServerConfig {
         return value(GUNNER_ATTACHMENT_DROP_CHANCE, 0.08D);
     }
 
-    /* 分组标题: 界面与调试, 供配置界面判断把自定义入口条目插在哪一组之后 */
+    /* 分组标题: 界面与调试, 该组固定排在最前 */
     public static final String GROUP_UI = "group.ui";
 
+    /*
+     * 分组顺序即界面顺序。
+     * 纯按钮与开关类条目优先: 界面与调试组提供生物持械配置入口与调试开关, 遗迹组是最常用的开关,
+     * 两者排在所有数值组之前, 打开页面即可见, 不需要滚动查找。
+     */
     public static List<ConfigOptionGroup> groups() {
         return List.of(
+                new ConfigOptionGroup(GROUP_UI, List.of(
+                        new ConfigOption.ToggleOption("opt.debug", DEBUG_EVENTS))),
+                new ConfigOptionGroup("group.ruins", List.of(
+                        new ConfigOption.ToggleOption("opt.ruins", RUINS_ENABLED))),
                 new ConfigOptionGroup("group.basic", List.of(
                         new ConfigOption.ToggleOption("opt.enabled", GUNNER_ENABLED),
                         new ConfigOption.ToggleOption("opt.difficulty", GUNNER_DIFFICULTY_SCALING))),
@@ -429,11 +438,7 @@ public final class ServerConfig {
                 new ConfigOptionGroup("group.tank", List.of(
                         new ConfigOption.IntOption("opt.tank_cooldown", TANK_CANNON_COOLDOWN, 20, 1200),
                         new ConfigOption.IntOption("opt.tank_explosion", TANK_EXPLOSION_POWER, 1, 8),
-                        new ConfigOption.DoubleOption("opt.tank_range", TANK_CANNON_RANGE, 8.0D, 96.0D, 1.0D))),
-                new ConfigOptionGroup("group.ruins", List.of(
-                        new ConfigOption.ToggleOption("opt.ruins", RUINS_ENABLED))),
-                new ConfigOptionGroup(GROUP_UI, List.of(
-                        new ConfigOption.ToggleOption("opt.debug", DEBUG_EVENTS)))
+                        new ConfigOption.DoubleOption("opt.tank_range", TANK_CANNON_RANGE, 8.0D, 96.0D, 1.0D)))
         );
     }
 

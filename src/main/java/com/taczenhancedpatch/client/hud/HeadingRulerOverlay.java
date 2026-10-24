@@ -29,11 +29,11 @@ public final class HeadingRulerOverlay {
     /* 刻度与数字标签的角度间隔 */
     private static final int TICK_STEP = 5;
     private static final int LABEL_STEP = 15;
-    /* 刻度与文字配色 */
+    /* 背景与刻度配色, 强调色由客户端配置提供, 默认纯红 */
     private static final int BACKGROUND = 0x66000000;
     private static final int TICK_COLOR = 0xCCFFFFFF;
     private static final int TEXT_COLOR = 0xFFFFFFFF;
-    private static final int ACCENT_COLOR = 0xFFFFB300;
+
     /* 方位换算: 游戏朝向加半圈得到罗盘航向, 北为 0 度 */
     private static final float COMPASS_OFFSET = 180.0F;
 
@@ -59,6 +59,7 @@ public final class HeadingRulerOverlay {
         float heading = Mth.positiveModulo(
                 minecraft.gameRenderer.getMainCamera().getYRot() + COMPASS_OFFSET, 360.0F);
 
+        int accentColor = ClientConfig.headingRulerColor();
         GuiGraphics graphics = event.getGuiGraphics();
         graphics.fill(left, top, right, bottom, BACKGROUND);
         graphics.enableScissor(left, top, right, bottom);
@@ -77,23 +78,23 @@ public final class HeadingRulerOverlay {
                 String text = cardinal ? cardinalName(degree) : String.valueOf(degree);
                 int textWidth = minecraft.font.width(text);
                 graphics.drawString(minecraft.font, text, x - textWidth / 2, top + 3,
-                        cardinal ? ACCENT_COLOR : TEXT_COLOR, false);
+                        cardinal ? accentColor : TEXT_COLOR, false);
             }
         }
         graphics.disableScissor();
         /* 中心指示: 一条竖线加一个向下的三角, 表示当前正对方向 */
-        graphics.fill(centerX, top, centerX + 1, bottom, ACCENT_COLOR);
+        graphics.fill(centerX, top, centerX + 1, bottom, accentColor);
         for (int row = 0; row < 4; row++) {
             int halfWidth = 3 - row;
             if (halfWidth <= 0) {
                 continue;
             }
-            graphics.fill(centerX - halfWidth, bottom + row, centerX + halfWidth + 1, bottom + row + 1, ACCENT_COLOR);
+            graphics.fill(centerX - halfWidth, bottom + row, centerX + halfWidth + 1, bottom + row + 1, accentColor);
         }
         /* 读数只显示数值, 不带角度单位 */
         String readout = String.valueOf(Math.round(heading) % 360);
         int readoutWidth = minecraft.font.width(readout);
-        graphics.drawString(minecraft.font, readout, centerX - readoutWidth / 2, bottom + 6, ACCENT_COLOR, false);
+        graphics.drawString(minecraft.font, readout, centerX - readoutWidth / 2, bottom + 6, accentColor, false);
     }
 
     /* 航向角与基本方向的对应关系, 北为 0 度, 顺时针递增 */

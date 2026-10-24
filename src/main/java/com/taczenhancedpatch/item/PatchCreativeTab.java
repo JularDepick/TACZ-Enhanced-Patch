@@ -13,8 +13,8 @@ import net.minecraftforge.registries.RegistryObject;
 
 /**
  * 补丁物品页。
- * 集中存放本模组那些零散的, 不值得单独成页的物品, 目前是无限弹夹与两个生物的刷怪蛋;
- * 快速扩容弹夹有独立物品页, 不在此列。
+ * 集中存放本模组那些零散的, 不值得单独成页的物品, 目前是无限弹匣与两个生物的刷怪蛋;
+ * 快速扩容弹匣有独立物品页, 不在此列。
  */
 public final class PatchCreativeTab {
     public static final DeferredRegister<CreativeModeTab> TABS =

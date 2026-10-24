@@ -6,7 +6,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 /**
- * 世界加载时刷新持械生物列表。
+ * 世界加载时刷新生物持械配置。
  * 中间层只在世界开始时扫描一次注册表, 之后由配置界面的修改触发重扫。
  */
 @Mod.EventBusSubscriber(modid = TACZEnhancedPatch.MOD_ID)

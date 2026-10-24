@@ -17,13 +17,12 @@ src/main/
 │   │   ├── AutoReloadHandler.java        # 自动换弹
 │   │   ├── ConfigAccess.java             # 存档创建者判定
 │   │   ├── ConfigShortcutHandler.java    # 配置入口快捷键(原版按键)
-│   │   ├── InfiniteMagTooltipHandler.java # 无限弹夹提示
+│   │   ├── InfiniteMagTooltipHandler.java # 无限弹匣提示
 │   │   ├── TACZEnhancedPatchClient.java  # 客户端入口
 │   │   ├── config/
-│   │   │   ├── ConfigHubScreen.java      # 配置入口页
-│   │   │   ├── MobListScreen.java        # 持械生物列表页
+│   │   │   ├── MobListScreen.java        # 生物持械配置页
 │   │   │   ├── ModConfigScreen.java      # 配置界面注册
-│   │   │   ├── PatchConfigScreen.java    # 参数列表页
+│   │   │   ├── PatchConfigScreen.java    # 配置页(客户端与服务端双页签)
 │   │   │   └── ScrollBar.java            # 可拖动滚动条
 │   │   ├── hud/
 │   │   │   └── HeadingRulerOverlay.java  # 方向标尺绘制
@@ -34,9 +33,9 @@ src/main/
 │   ├── config/
 │   │   ├── ClientConfig.java             # 客户端配置
 │   │   ├── ConfigEvents.java             # 配置生命周期与保存
-│   │   ├── ConfigOption.java             # 配置项描述
+│   │   ├── ConfigOption.java             # 配置项描述(开关, 数值与文本)
 │   │   ├── ConfigOptionGroup.java        # 配置分组与界面顺序
-│   │   ├── MobListConfig.java            # 持械生物列表与逐项开关
+│   │   ├── MobListConfig.java            # 生物持械配置与运行期缓存
 │   │   ├── MobMiddleConfig.java          # 七个持械分组开关
 │   │   └── ServerConfig.java             # 服务端配置与配置项列表
 │   ├── debug/
@@ -49,8 +48,8 @@ src/main/
 │   │   ├── TankRegistration.java         # 属性, 生成规则与刷怪蛋
 │   │   └── TankRegistry.java             # 实体与物品注册
 │   ├── fastmag/
-│   │   ├── FastMag.java                  # 快速扩容弹夹标记与倍率
-│   │   ├── FastMagCreativeTab.java       # 快速扩容弹夹物品页
+│   │   ├── FastMag.java                  # 快速扩容弹匣标记, 名称后缀与换弹比例
+│   │   ├── FastMagCreativeTab.java       # 快速扩容弹匣物品页
 │   │   ├── FastMagReloadHandler.java     # 换弹加速
 │   │   └── FastMagTooltipHandler.java    # 物品提示
 │   ├── gunner/
@@ -73,7 +72,7 @@ src/main/
 │   │   ├── TaczApi.java                  # TACZ 公开 API 统一入口
 │   │   └── TaczAutoReload.java           # 上游自动换弹开关桥接
 │   ├── item/
-│   │   ├── InfiniteMag.java              # 无限弹夹标记与名称
+│   │   ├── InfiniteMag.java              # 无限弹匣标记与名称
 │   │   ├── InfiniteMagHandler.java       # 弹匣与虚拟备弹维持
 │   │   └── PatchCreativeTab.java         # 补丁物品页
 │   ├── loot/
@@ -93,7 +92,10 @@ src/main/
 └── resources/
     ├── META-INF/mods.toml                # 模组元信息
     ├── pack.mcmeta                       # 资源包元信息
-    ├── assets/tacz_enhanced_patch/lang/  # 界面语言文件
+    ├── assets/tacz_enhanced_patch/
+    │   ├── lang/                         # 界面语言文件
+    │   ├── models/item/                  # 刷怪蛋等物品模型
+    │   └── textures/entity/              # 生物贴图
     └── data/tacz_enhanced_patch/         # 世界生成与战利品数据
         ├── forge/biome_modifier/         # 群系注入
         ├── loot_tables/chests/           # 宝箱战利品

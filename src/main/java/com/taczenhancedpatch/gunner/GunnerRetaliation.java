@@ -66,7 +66,7 @@ public final class GunnerRetaliation {
         GunnerCombat.retaliate(mob, attacker);
     }
 
-    /* 非敌对生物与中立生物才有临场武装的机会, 敌对生物走生成路径; 持械生物列表里的开关同样约束本路径 */
+    /* 非敌对生物与中立生物才有临场武装的机会, 敌对生物走生成路径; 生物持械配置里的开关同样约束本路径 */
     private static boolean isCandidate(Mob mob) {
         if (mob instanceof com.taczenhancedpatch.entity.GunnerGrunt
                 || mob instanceof com.taczenhancedpatch.entity.TankElite) {

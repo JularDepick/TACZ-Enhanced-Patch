@@ -20,10 +20,9 @@ src/main/
 │   │   ├── InfiniteMagTooltipHandler.java # Infinite magazine tooltip
 │   │   ├── TACZEnhancedPatchClient.java  # Client entry point
 │   │   ├── config/
-│   │   │   ├── ConfigHubScreen.java      # Configuration entry screen
-│   │   │   ├── MobListScreen.java        # Armed mob list screen
+│   │   │   ├── MobListScreen.java        # Mob arming config screen
 │   │   │   ├── ModConfigScreen.java      # Configuration screen registration
-│   │   │   ├── PatchConfigScreen.java    # Parameter list screen
+│   │   │   ├── PatchConfigScreen.java    # Config screen (client and server tabs)
 │   │   │   └── ScrollBar.java            # Draggable scroll bar
 │   │   ├── hud/
 │   │   │   └── HeadingRulerOverlay.java  # Heading ruler rendering
@@ -34,9 +33,9 @@ src/main/
 │   ├── config/
 │   │   ├── ClientConfig.java             # Client configuration
 │   │   ├── ConfigEvents.java             # Configuration lifecycle and saving
-│   │   ├── ConfigOption.java             # Configuration option descriptor
+│   │   ├── ConfigOption.java             # Option descriptor (switch, number, text)
 │   │   ├── ConfigOptionGroup.java        # Configuration groups and UI order
-│   │   ├── MobListConfig.java            # Armed mob list with per-entry switches
+│   │   ├── MobListConfig.java            # Mob arming config with runtime cache
 │   │   ├── MobMiddleConfig.java          # Seven armed group switches
 │   │   └── ServerConfig.java             # Server configuration and option list
 │   ├── debug/
@@ -49,7 +48,7 @@ src/main/
 │   │   ├── TankRegistration.java         # Attributes, spawn rules and spawn egg
 │   │   └── TankRegistry.java             # Entity and item registration
 │   ├── fastmag/
-│   │   ├── FastMag.java                  # Fast mag marker and reload ratios
+│   │   ├── FastMag.java                  # Fast mag marker, name suffix and reload ratios
 │   │   ├── FastMagCreativeTab.java       # Fast mag creative tab
 │   │   ├── FastMagReloadHandler.java     # Reload acceleration
 │   │   └── FastMagTooltipHandler.java    # Item tooltip
@@ -93,7 +92,10 @@ src/main/
 └── resources/
     ├── META-INF/mods.toml                # Mod metadata
     ├── pack.mcmeta                       # Resource pack metadata
-    ├── assets/tacz_enhanced_patch/lang/  # UI language files
+    ├── assets/tacz_enhanced_patch/
+    │   ├── lang/                         # UI language files
+    │   ├── models/item/                  # Item models such as spawn eggs
+    │   └── textures/entity/              # Entity textures
     └── data/tacz_enhanced_patch/         # World generation and loot data
         ├── forge/biome_modifier/         # Biome injection
         ├── loot_tables/chests/           # Chest loot

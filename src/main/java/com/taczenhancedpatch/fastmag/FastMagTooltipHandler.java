@@ -8,7 +8,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 /**
- * 快速扩容弹夹的物品提示。
+ * 快速扩容弹匣的物品提示。
  * 只在客户端为带标记的物品追加一行换弹时长说明, 不改变上游原有的配件提示。
  */
 @Mod.EventBusSubscriber(modid = TACZEnhancedPatch.MOD_ID, value = Dist.CLIENT)

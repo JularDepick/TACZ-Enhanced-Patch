@@ -2,7 +2,7 @@ package com.taczenhancedpatch.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import com.taczenhancedpatch.TACZEnhancedPatch;
-import com.taczenhancedpatch.client.config.ConfigHubScreen;
+import com.taczenhancedpatch.client.config.PatchConfigScreen;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.api.distmarker.Dist;
@@ -15,7 +15,7 @@ import org.lwjgl.glfw.GLFW;
 /**
  * 模组配置快捷键。
  * 绑定注册为原版按键项, 默认 C 键, 玩家可以在原版按键设置里改绑或解绑;
- * 触发后在游戏内打开配置入口页, 服务端入口只在存档创建者一侧出现, 因此非创建者只会看到客户端入口。
+ * 触发后在游戏内直接打开配置页, 服务端页签只在存档创建者一侧出现, 因此非创建者只会看到客户端页。
  */
 @Mod.EventBusSubscriber(modid = TACZEnhancedPatch.MOD_ID, value = Dist.CLIENT)
 public final class ConfigShortcutHandler {
@@ -49,6 +49,6 @@ public final class ConfigShortcutHandler {
         if (minecraft.screen != null || minecraft.player == null) {
             return;
         }
-        minecraft.setScreen(new ConfigHubScreen(null));
+        minecraft.setScreen(new PatchConfigScreen(null, false));
     }
 }

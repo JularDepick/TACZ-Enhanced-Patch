@@ -7,16 +7,16 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * 无限弹夹。
- * 属于扩容弹夹, 复用上游的通用扩容弹夹物品与配件 ID, 只在物品栈上写一个标记;
- * 带标记的弹夹在物品页里单独展示, 显示名与提示行改为无限弹夹与容量正无穷。
- * 装配后由换弹与开火逻辑维持满弹匣, 并把背包弹药消耗切换到虚拟备弹。
+ * 无限弹匣。
+ * 属于扩容弹匣, 直接复用上游 III 级扩容弹匣的配件, 因此图标与容量属性都继承 III 级弹匣,
+ * 再在物品栈上写一个标记并改名为无限弹匣。装配后由换弹与开火逻辑维持满弹匣,
+ * 并把背包弹药消耗切换到虚拟备弹。
  */
 public final class InfiniteMag {
-    /* 物品栈上的标记, 也是判定是否无限弹夹的唯一依据 */
+    /* 物品栈上的标记, 也是判定是否无限弹匣的唯一依据 */
     public static final String TAG = "InfiniteMag";
-    /* 复用的上游通用扩容弹夹配件 ID */
-    public static final ResourceLocation BASE_ATTACHMENT = new ResourceLocation("tacz:extended_mag_1");
+    /* 复用的上游扩容弹匣配件 ID: III 级, 图标与属性随之继承 */
+    public static final ResourceLocation BASE_ATTACHMENT = new ResourceLocation("tacz:extended_mag_3");
     public static final String NAME_KEY = "item.tacz_enhanced_patch.infinite_mag";
     public static final String CAPACITY_KEY = "tooltip.tacz_enhanced_patch.infinite_mag.capacity";
     public static final String BEHAVIOR_KEY = "tooltip.tacz_enhanced_patch.infinite_mag.behavior";
@@ -24,7 +24,7 @@ public final class InfiniteMag {
     private InfiniteMag() {
     }
 
-    /* 生成一件带标记的无限弹夹 */
+    /* 生成一件带标记的无限弹匣 */
     public static ItemStack create() {
         ItemStack stack = TaczApi.createAttachment(BASE_ATTACHMENT);
         if (stack.isEmpty()) {

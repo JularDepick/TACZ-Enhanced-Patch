@@ -9,7 +9,10 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.EntityType;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -19,15 +22,15 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * 持械生物列表。
- * 顶部七个分组开关用于批量改写列表里的开关状态, 下方是扫描得到的全部生物与逐项开关。
- * 新的扫描会直接登记全部生物并把开关置为关闭, 只有开关为开的生物才能成为枪手。
- * 本页不提供任何按生物调整的数值, 数值参数统一在服务端配置页里改。
+ * 生物持械配置。
+ * 顶部七个分组开关用于批量改写列表里的开关状态, 下方逐条列出扫描到的全部生物与开关。
+ * 首次打开时列表为空会自动扫描一次; 重新扫描会登记全部生物并把新条目置为关闭。
+ * 每行显示生物的本地化名称与实体 ID, 便于在同类生物之间区分。
  */
 public final class MobListScreen extends Screen {
-    private static final int TOGGLE_WIDTH = 64;
+    private static final int TOGGLE_WIDTH = 56;
     private static final int ROW_HEIGHT = 20;
-    private static final int LIST_WIDTH = 420;
+    private static final int LIST_WIDTH = 460;
     private static final int SEARCH_HEIGHT = 20;
 
     private final Screen parent;
@@ -54,6 +57,9 @@ public final class MobListScreen extends Screen {
 
     @Override
     protected void init() {
+        if (MobListConfig.states().isEmpty()) {
+            GunnerMobRegistry.refresh();
+        }
         listLeft = (width - LIST_WIDTH) / 2;
         listRight = listLeft + LIST_WIDTH;
         int searchY = 34;
@@ -90,7 +96,7 @@ public final class MobListScreen extends Screen {
             Button button = Button.builder(groupText(group), b -> toggleGroup(group, b))
                     .bounds(0, 0, TOGGLE_WIDTH, 18)
                     .build();
-            rows.add(new Row(group.label(), button, true));
+            rows.add(new Row(group.label(), "", button, true));
         }
         Map<String, Boolean> states = MobListConfig.states();
         totalMobs = states.size();
@@ -102,15 +108,29 @@ public final class MobListScreen extends Screen {
             if (Boolean.TRUE.equals(states.get(id))) {
                 enabledMobs++;
             }
-            if (!query.isEmpty() && !id.contains(query)) {
+            String name = displayName(id);
+            if (!query.isEmpty() && !id.toLowerCase(Locale.ROOT).contains(query)
+                    && !name.toLowerCase(Locale.ROOT).contains(query)) {
                 continue;
             }
             Button button = Button.builder(stateText(states.get(id)), b -> toggleMob(id, b))
                     .bounds(0, 0, TOGGLE_WIDTH, 18)
                     .build();
-            rows.add(new Row(id, button, false));
+            rows.add(new Row(name, id, button, false));
         }
         scroll = Mth.clamp(scroll, 0.0D, maxScroll());
+    }
+
+    /* 实体 ID 对应的本地化名称, 注册表里查不到时退回实体 ID 本身 */
+    private static String displayName(String id) {
+        try {
+            EntityType<?> type = ForgeRegistries.ENTITY_TYPES.getValue(new ResourceLocation(id));
+            if (type != null) {
+                return type.getDescription().getString();
+            }
+        } catch (RuntimeException ignored) {
+        }
+        return id;
     }
 
     private void toggleGroup(MobMiddleConfig.GroupSwitch group, Button button) {
@@ -142,7 +162,7 @@ public final class MobListScreen extends Screen {
             if (row.group() || row.label().isEmpty()) {
                 continue;
             }
-            row.button().setMessage(stateText(states.get(row.label())));
+            row.button().setMessage(stateText(states.get(row.id())));
         }
     }
 
@@ -157,6 +177,13 @@ public final class MobListScreen extends Screen {
     private void setHint(String text, int color) {
         hint = text;
         hintColor = color;
+    }
+
+    @Override
+    public void tick() {
+        if (searchBox != null) {
+            searchBox.tick();
+        }
     }
 
     @Override
@@ -181,8 +208,13 @@ public final class MobListScreen extends Screen {
             }
             button.setX(listRight - TOGGLE_WIDTH - 6);
             button.setY(rowY + 1);
-            graphics.drawString(font, UiText.plain(row.label()), listLeft + 8, rowY + 6,
+            graphics.drawString(font, row.label(), listLeft + 8, rowY + 6,
                     row.group() ? 0xFFD080 : 0xE0E0E0, false);
+            /* 名称右侧补实体 ID, 名称与 ID 相同时不重复绘制 */
+            if (!row.group() && !row.id().isEmpty() && !row.id().equals(row.label())) {
+                int nameWidth = font.width(row.label());
+                graphics.drawString(font, row.id(), listLeft + 16 + nameWidth, rowY + 6, 0x808080, false);
+            }
             button.render(graphics, mouseX, mouseY, partialTick);
         }
         if (rows.size() == groups.size()) {
@@ -252,6 +284,6 @@ public final class MobListScreen extends Screen {
         return false;
     }
 
-    private record Row(String label, Button button, boolean group) {
+    private record Row(String label, String id, Button button, boolean group) {
     }
 }
