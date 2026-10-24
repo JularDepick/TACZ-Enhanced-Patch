@@ -348,6 +348,11 @@ public final class TaczApi {
         IGunOperator.fromLivingEntity(entity).reload();
     }
 
+    /* 实体当前是否处于换弹过程中 */
+    public static boolean isReloading(LivingEntity entity) {
+        return IGunOperator.fromLivingEntity(entity).getSynReloadState().getStateType().isReloading();
+    }
+
     /* 取消当前换弹, 用于拦截上游"弹匣已满仍然换弹"的行为 */
     public static void cancelReload(LivingEntity entity) {
         IGunOperator.fromLivingEntity(entity).cancelReload();
