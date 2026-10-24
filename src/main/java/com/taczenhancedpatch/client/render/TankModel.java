@@ -34,25 +34,68 @@ public class TankModel extends EntityModel<TankElite> {
     }
 
     /*
-     * 模型坐标系的 Y 轴向下, 0 为车顶高度: 履带贴地, 车体压在履带上, 炮塔再叠在车体顶部。
-     * 各立方体的尺寸与 UV 偏移保持不变, 只调整纵向位置, 贴图无需改动。
+     * 模型坐标系的 Y 轴向下, 0 为车顶高度: 履带贴地, 车体在上, 炮塔再上。
+     * 车体与炮塔都用多层小方块叠出斜面与倒角, 并补上侧裙板, 挡泥板, 负重轮,
+     * 炮口制退器与抽烟装置, 避免只有几个大方块时的棱角感。
      */
     public static LayerDefinition createBodyLayer() {
         MeshDefinition mesh = new MeshDefinition();
         PartDefinition root = mesh.getRoot();
+
+        /* 履带与负重轮 */
         root.addOrReplaceChild("tracks", CubeListBuilder.create()
                 .texOffs(0, 148)
                 .addBox(-27.0F, 14.0F, -26.0F, 10.0F, 10.0F, 52.0F)
-                .addBox(17.0F, 14.0F, -26.0F, 10.0F, 10.0F, 52.0F), PartPose.ZERO);
+                .addBox(17.0F, 14.0F, -26.0F, 10.0F, 10.0F, 52.0F)
+                .texOffs(0, 148)
+                .addBox(-26.0F, 16.0F, -21.0F, 8.0F, 6.0F, 6.0F)
+                .addBox(-26.0F, 16.0F, -9.0F, 8.0F, 6.0F, 6.0F)
+                .addBox(-26.0F, 16.0F, 3.0F, 8.0F, 6.0F, 6.0F)
+                .addBox(-26.0F, 16.0F, 15.0F, 8.0F, 6.0F, 6.0F)
+                .addBox(18.0F, 16.0F, -21.0F, 8.0F, 6.0F, 6.0F)
+                .addBox(18.0F, 16.0F, -9.0F, 8.0F, 6.0F, 6.0F)
+                .addBox(18.0F, 16.0F, 3.0F, 8.0F, 6.0F, 6.0F)
+                .addBox(18.0F, 16.0F, 15.0F, 8.0F, 6.0F, 6.0F), PartPose.ZERO);
+
+        /* 车体: 主装甲 + 前部斜面 + 侧裙板 + 挡泥板 + 发动机舱 */
         root.addOrReplaceChild("hull", CubeListBuilder.create()
                 .texOffs(0, 0)
-                .addBox(-22.0F, 0.0F, -24.0F, 44.0F, 14.0F, 48.0F), PartPose.ZERO);
+                .addBox(-22.0F, 0.0F, -24.0F, 44.0F, 14.0F, 48.0F)
+                .texOffs(0, 0)
+                .addBox(-20.0F, 2.0F, -30.0F, 40.0F, 3.0F, 6.0F)
+                .addBox(-18.0F, 5.0F, -28.0F, 36.0F, 3.0F, 4.0F)
+                .addBox(-16.0F, 8.0F, -26.0F, 32.0F, 3.0F, 3.0F)
+                .texOffs(0, 0)
+                .addBox(-24.0F, 8.0F, -26.0F, 2.0F, 3.0F, 52.0F)
+                .addBox(22.0F, 8.0F, -26.0F, 2.0F, 3.0F, 52.0F)
+                .addBox(-24.0F, 11.0F, -20.0F, 1.0F, 5.0F, 40.0F)
+                .addBox(23.0F, 11.0F, -20.0F, 1.0F, 5.0F, 40.0F)
+                .texOffs(0, 0)
+                .addBox(-18.0F, -3.0F, 12.0F, 36.0F, 4.0F, 10.0F)
+                .addBox(-12.0F, -5.0F, 16.0F, 24.0F, 3.0F, 6.0F), PartPose.ZERO);
+
+        /* 炮塔: 主体 + 前部切角 + 尾舱 + 舱盖 + 炮盾 */
         PartDefinition turret = root.addOrReplaceChild("turret", CubeListBuilder.create()
                 .texOffs(0, 64)
-                .addBox(-12.0F, -10.0F, -12.0F, 24.0F, 10.0F, 24.0F), PartPose.offset(0.0F, 0.0F, 0.0F));
+                .addBox(-12.0F, -10.0F, -12.0F, 24.0F, 10.0F, 24.0F)
+                .texOffs(0, 64)
+                .addBox(-10.0F, -12.0F, -10.0F, 20.0F, 2.0F, 20.0F)
+                .addBox(-8.0F, -14.0F, -8.0F, 16.0F, 2.0F, 16.0F)
+                .texOffs(0, 64)
+                .addBox(-10.0F, -8.0F, 12.0F, 20.0F, 6.0F, 8.0F)
+                .addBox(-6.0F, -11.0F, 14.0F, 12.0F, 3.0F, 4.0F)
+                .texOffs(0, 64)
+                .addBox(-4.0F, -13.0F, -2.0F, 8.0F, 1.0F, 6.0F)
+                .addBox(-6.0F, -9.0F, -15.0F, 12.0F, 8.0F, 3.0F), PartPose.offset(0.0F, 0.0F, 0.0F));
+
+        /* 炮管: 身管 + 抽烟装置 + 炮口制退器 */
         turret.addOrReplaceChild("barrel", CubeListBuilder.create()
                 .texOffs(0, 100)
-                .addBox(-3.0F, -8.0F, -52.0F, 6.0F, 6.0F, 40.0F), PartPose.ZERO);
+                .addBox(-3.0F, -8.0F, -52.0F, 6.0F, 6.0F, 40.0F)
+                .texOffs(0, 100)
+                .addBox(-4.0F, -9.0F, -34.0F, 8.0F, 8.0F, 6.0F)
+                .addBox(-4.0F, -9.0F, -56.0F, 8.0F, 8.0F, 6.0F), PartPose.ZERO);
+
         return LayerDefinition.create(mesh, 256, 256);
     }
 
