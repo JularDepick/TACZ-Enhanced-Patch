@@ -7,6 +7,7 @@ import com.taczenhancedpatch.config.MobListConfig;
 import com.taczenhancedpatch.config.MobMiddleConfig;
 import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.entity.GruntRegistry;
+import com.taczenhancedpatch.entity.TankRegistry;
 import com.taczenhancedpatch.fastmag.FastMagCreativeTab;
 import com.taczenhancedpatch.network.PatchNetwork;
 import com.taczenhancedpatch.world.ModFeatures;
@@ -36,6 +37,7 @@ public final class TACZEnhancedPatch {
         ModFeatures.FEATURES.register(context.getModEventBus());
         FastMagCreativeTab.TABS.register(context.getModEventBus());
         GruntRegistry.register(context.getModEventBus());
+        TankRegistry.register(context.getModEventBus());
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ModConfigScreen.register(context));
         LOGGER.info("{} initialized", MOD_NAME);
     }

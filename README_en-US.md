@@ -51,6 +51,13 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Ruined outpost | An 11 by 11 collapsed outpost generates in the wild, with a chest of ammunition and attachments and a spawner that produces guards |
 | Terrain fitting | The site requires an even surface, fills low spots, shaves high ones, and never generates at or below sea level |
 
+### Tank elite
+
+| Mechanic | Description |
+|:---:|:---|
+| Elite shelling | A rarely spawning tank-shaped monster that locks onto players and fires periodic shells with far larger explosions than a ghast fireball |
+| Imposing bulk | A 3.4 x 2.4 hitbox with a custom tracked hull and rotating turret, immune to fire and fully knockback resistant |
+| Loot | Drops iron, copper and gunpowder; cooldown, explosion power and cannon range are configurable |
 ### Fast extended magazines
 
 | Mechanic | Description |

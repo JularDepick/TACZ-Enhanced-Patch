@@ -2,7 +2,10 @@ package com.taczenhancedpatch.client;
 
 import com.taczenhancedpatch.TACZEnhancedPatch;
 import com.taczenhancedpatch.client.render.GruntRenderer;
+import com.taczenhancedpatch.client.render.TankModel;
+import com.taczenhancedpatch.client.render.TankRenderer;
 import com.taczenhancedpatch.entity.GruntRegistry;
+import com.taczenhancedpatch.entity.TankRegistry;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
@@ -30,9 +33,16 @@ public final class TACZEnhancedPatchClient {
         event.register(ConfigShortcutHandler.OPEN_CONFIG);
     }
 
-    /* 持枪小兵的渲染器 */
+    /* 持枪小兵与坦克精英怪的渲染器 */
     @SubscribeEvent
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(GruntRegistry.GUNNER_GRUNT.get(), GruntRenderer::new);
+        event.registerEntityRenderer(TankRegistry.TANK_ELITE.get(), TankRenderer::new);
+    }
+
+    /* 坦克精英怪的模型层 */
+    @SubscribeEvent
+    public static void onRegisterLayerDefinitions(EntityRenderersEvent.RegisterLayerDefinitions event) {
+        event.registerLayerDefinition(TankModel.LAYER, TankModel::createBodyLayer);
     }
 }

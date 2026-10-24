@@ -59,6 +59,9 @@ public final class ServerConfig {
     private static final ForgeConfigSpec.IntValue GRUNT_FOOD_COUNT_MIN;
     private static final ForgeConfigSpec.IntValue GRUNT_FOOD_COUNT_MAX;
     private static final ForgeConfigSpec.DoubleValue GRUNT_RESOURCE_CHANCE;
+    private static final ForgeConfigSpec.IntValue TANK_CANNON_COOLDOWN;
+    private static final ForgeConfigSpec.IntValue TANK_EXPLOSION_POWER;
+    private static final ForgeConfigSpec.DoubleValue TANK_CANNON_RANGE;
 
     public static final ForgeConfigSpec SPEC;
 
@@ -194,6 +197,18 @@ public final class ServerConfig {
                 .defineInRange("resourceChance", 0.6D, 0.0D, 1.0D);
         BUILDER.pop();
 
+        BUILDER.comment("坦克精英怪").push("tank");
+        TANK_CANNON_COOLDOWN = BUILDER
+                .comment("坦克精英怪两次开炮之间的间隔, 单位 tick, 数值越大节奏越慢")
+                .defineInRange("cannonCooldown", 200, 20, 1200);
+        TANK_EXPLOSION_POWER = BUILDER
+                .comment("炮弹爆炸威力, 数值越大破坏范围与伤害越高, 恶魂火球为 1")
+                .defineInRange("explosionPower", 4, 1, 8);
+        TANK_CANNON_RANGE = BUILDER
+                .comment("坦克精英怪的开炮距离, 单位方块, 目标超出该距离只追击不开炮")
+                .defineInRange("cannonRange", 48.0D, 8.0D, 96.0D);
+        BUILDER.pop();
+
         BUILDER.comment("世界生成").push("worldgen");
         RUINS_ENABLED = BUILDER
                 .comment("是否生成废弃前哨遗迹, 关闭后不再新增遗迹但已生成的保留")
@@ -248,6 +263,18 @@ public final class ServerConfig {
 
     public static double gruntResourceChance() {
         return value(GRUNT_RESOURCE_CHANCE, 0.6D);
+    }
+
+    public static int tankCannonCooldown() {
+        return value(TANK_CANNON_COOLDOWN, 200);
+    }
+
+    public static int tankExplosionPower() {
+        return value(TANK_EXPLOSION_POWER, 4);
+    }
+
+    public static double tankCannonRange() {
+        return value(TANK_CANNON_RANGE, 48.0D);
     }
 
     public static boolean ruinsEnabled() {
@@ -399,6 +426,10 @@ public final class ServerConfig {
                         new ConfigOption.IntOption("opt.grunt_food_count_min", GRUNT_FOOD_COUNT_MIN, 1, 16),
                         new ConfigOption.IntOption("opt.grunt_food_count_max", GRUNT_FOOD_COUNT_MAX, 1, 16),
                         new ConfigOption.DoubleOption("opt.grunt_resource_chance", GRUNT_RESOURCE_CHANCE, 0.0D, 1.0D, 0.01D))),
+                new ConfigOptionGroup("group.tank", List.of(
+                        new ConfigOption.IntOption("opt.tank_cooldown", TANK_CANNON_COOLDOWN, 20, 1200),
+                        new ConfigOption.IntOption("opt.tank_explosion", TANK_EXPLOSION_POWER, 1, 8),
+                        new ConfigOption.DoubleOption("opt.tank_range", TANK_CANNON_RANGE, 8.0D, 96.0D, 1.0D))),
                 new ConfigOptionGroup("group.ruins", List.of(
                         new ConfigOption.ToggleOption("opt.ruins", RUINS_ENABLED))),
                 new ConfigOptionGroup(GROUP_UI, List.of(

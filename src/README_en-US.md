@@ -23,8 +23,12 @@ src/main/
 │   │   │   ├── ModConfigScreen.java      # Configuration screen registration
 │   │   │   ├── PatchConfigScreen.java    # Parameter list screen
 │   │   │   └── ScrollBar.java            # Draggable scroll bar
-│   │   └── hud/
-│   │       └── HeadingRulerOverlay.java  # Heading ruler rendering
+│   │   ├── hud/
+│   │   │   └── HeadingRulerOverlay.java  # Heading ruler rendering
+│   │   └── render/
+│   │       ├── GruntRenderer.java        # Armed grunt renderer
+│   │       ├── TankModel.java            # Tank model
+│   │       └── TankRenderer.java         # Tank elite renderer
 │   ├── config/
 │   │   ├── ClientConfig.java             # Client configuration
 │   │   ├── ConfigEvents.java             # Configuration lifecycle and saving
@@ -38,7 +42,10 @@ src/main/
 │   ├── entity/
 │   │   ├── GunnerGrunt.java              # Armed grunt entity and arming
 │   │   ├── GruntRegistration.java        # Attributes, spawn rules and spawn egg
-│   │   └── GruntRegistry.java            # Entity and item registration
+│   │   ├── GruntRegistry.java            # Entity and item registration
+│   │   ├── TankElite.java                # Tank elite entity and shelling
+│   │   ├── TankRegistration.java         # Attributes, spawn rules and spawn egg
+│   │   └── TankRegistry.java             # Entity and item registration
 │   ├── fastmag/
 │   │   ├── FastMag.java                  # Fast mag marker and reload ratios
 │   │   ├── FastMagCreativeTab.java       # Fast mag creative tab
@@ -64,7 +71,8 @@ src/main/
 │   │   ├── TaczApi.java                  # Single access point for the TACZ public API
 │   │   └── TaczAutoReload.java           # Upstream automatic reload bridge
 │   ├── loot/
-│   │   └── BattleLootHandler.java        # Gunner loot drops
+│   │   ├── BattleLootHandler.java        # Gunner loot drops
+│   │   └── GruntLootHandler.java         # Armed grunt loot
 │   ├── network/
 │   │   ├── HitDirectionMessage.java      # Hit direction sync packet
 │   │   └── PatchNetwork.java             # Network channel registration
@@ -80,6 +88,7 @@ src/main/
     └── data/tacz_enhanced_patch/         # World generation and loot data
         ├── forge/biome_modifier/         # Biome injection
         ├── loot_tables/chests/           # Chest loot
+        ├── loot_tables/entities/         # Entity loot
         └── worldgen/                     # Features and placement rules
 ```
 

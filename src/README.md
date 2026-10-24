@@ -23,8 +23,12 @@ src/main/
 │   │   │   ├── ModConfigScreen.java      # 配置界面注册
 │   │   │   ├── PatchConfigScreen.java    # 参数列表页
 │   │   │   └── ScrollBar.java            # 可拖动滚动条
-│   │   └── hud/
-│   │       └── HeadingRulerOverlay.java  # 方向标尺绘制
+│   │   ├── hud/
+│   │   │   └── HeadingRulerOverlay.java  # 方向标尺绘制
+│   │   └── render/
+│   │       ├── GruntRenderer.java        # 持枪小兵渲染
+│   │       ├── TankModel.java            # 坦克模型
+│   │       └── TankRenderer.java         # 坦克精英怪渲染
 │   ├── config/
 │   │   ├── ClientConfig.java             # 客户端配置
 │   │   ├── ConfigEvents.java             # 配置生命周期与保存
@@ -38,7 +42,10 @@ src/main/
 │   ├── entity/
 │   │   ├── GunnerGrunt.java              # 持枪小兵实体与装配
 │   │   ├── GruntRegistration.java        # 属性, 生成规则与刷怪蛋
-│   │   └── GruntRegistry.java            # 实体与物品注册
+│   │   ├── GruntRegistry.java            # 实体与物品注册
+│   │   ├── TankElite.java                # 坦克精英怪实体与炮击
+│   │   ├── TankRegistration.java         # 属性, 生成规则与刷怪蛋
+│   │   └── TankRegistry.java             # 实体与物品注册
 │   ├── fastmag/
 │   │   ├── FastMag.java                  # 快速扩容弹夹标记与倍率
 │   │   ├── FastMagCreativeTab.java       # 快速扩容弹夹物品页
@@ -64,7 +71,8 @@ src/main/
 │   │   ├── TaczApi.java                  # TACZ 公开 API 统一入口
 │   │   └── TaczAutoReload.java           # 上游自动换弹开关桥接
 │   ├── loot/
-│   │   └── BattleLootHandler.java        # 枪手战利品掉落
+│   │   ├── BattleLootHandler.java        # 枪手战利品掉落
+│   │   └── GruntLootHandler.java         # 持枪小兵战利品
 │   ├── network/
 │   │   ├── HitDirectionMessage.java      # 受击方向同步包
 │   │   └── PatchNetwork.java             # 网络通道注册
@@ -80,6 +88,7 @@ src/main/
     └── data/tacz_enhanced_patch/         # 世界生成与战利品数据
         ├── forge/biome_modifier/         # 群系注入
         ├── loot_tables/chests/           # 宝箱战利品
+        ├── loot_tables/entities/         # 生物战利品
         └── worldgen/                     # 特性与放置规则
 ```
 

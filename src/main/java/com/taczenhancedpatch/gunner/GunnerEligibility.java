@@ -22,8 +22,9 @@ public final class GunnerEligibility {
         if (isBlacklisted(mob) || mob instanceof WitherBoss) {
             return false;
         }
-        /* 持枪小兵自带枪械, 不进入枪手系统 */
-        if (mob instanceof com.taczenhancedpatch.entity.GunnerGrunt) {
+        /* 持枪小兵自带枪械, 坦克精英怪不属于持枪类生物, 都不进入枪手系统 */
+        if (mob instanceof com.taczenhancedpatch.entity.GunnerGrunt
+                || mob instanceof com.taczenhancedpatch.entity.TankElite) {
             return false;
         }
         if (!GunnerMobRegistry.isEmpty()) {
