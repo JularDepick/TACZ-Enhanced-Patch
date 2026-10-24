@@ -5,24 +5,8 @@ import com.taczenhancedpatch.config.MobListConfig;
 import com.taczenhancedpatch.config.MobMiddleConfig;
 import com.taczenhancedpatch.config.ServerConfig;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.monster.Blaze;
-import net.minecraft.world.entity.monster.Creeper;
-import net.minecraft.world.entity.monster.Endermite;
-import net.minecraft.world.entity.monster.Ghast;
-import net.minecraft.world.entity.monster.Guardian;
-import net.minecraft.world.entity.monster.Phantom;
-import net.minecraft.world.entity.monster.Shulker;
-import net.minecraft.world.entity.monster.Silverfish;
-import net.minecraft.world.entity.monster.Slime;
-import net.minecraft.world.entity.monster.Spider;
-import net.minecraft.world.entity.monster.Zoglin;
-import net.minecraft.world.entity.monster.Zombie;
-import net.minecraft.world.entity.monster.hoglin.Hoglin;
-import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
-import net.minecraft.world.entity.raid.Raider;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import javax.annotation.Nullable;
@@ -104,16 +88,7 @@ public final class GunnerMobRegistry {
 
     /* 某个分组是否命中该类生物, 同一生物可以同时属于多个分组 */
     public static boolean matchesGroup(String key, EntityType<?> type) {
-        Class<? extends Entity> cls = type.getBaseClass();
-        return switch (key) {
-            case "undead" -> isUndead(cls);
-            case "illager" -> Raider.class.isAssignableFrom(cls);
-            case "arthropod" -> isArthropod(cls);
-            case "creeper" -> Creeper.class.isAssignableFrom(cls);
-            case "nether" -> isNether(cls);
-            case "humanoid" -> !isHandless(cls);
-            default -> isHandless(cls);
-        };
+        return MobGroups.matches(key, type);
     }
 
     /* 当前分组开关命中的生物是否在列表里开启 */
@@ -126,9 +101,9 @@ public final class GunnerMobRegistry {
         return false;
     }
 
-    /* 只扫描能成为枪手的生物, 即继承自 Mob 的实体类型 */
+    /* 只扫描能成为枪手的生物, 即分类不是 MISC 的实体类型 */
     private static boolean isMob(EntityType<?> type) {
-        return Mob.class.isAssignableFrom(type.getBaseClass());
+        return MobGroups.isMob(type);
     }
 
     private static Set<String> enabledIds() {
@@ -163,39 +138,4 @@ public final class GunnerMobRegistry {
         return id == null ? null : id.toString();
     }
 
-    private static boolean isUndead(Class<? extends Entity> cls) {
-        return Zombie.class.isAssignableFrom(cls)
-                || net.minecraft.world.entity.monster.AbstractSkeleton.class.isAssignableFrom(cls)
-                || Phantom.class.isAssignableFrom(cls)
-                || Zoglin.class.isAssignableFrom(cls);
-    }
-
-    private static boolean isArthropod(Class<? extends Entity> cls) {
-        return Spider.class.isAssignableFrom(cls)
-                || Silverfish.class.isAssignableFrom(cls)
-                || Endermite.class.isAssignableFrom(cls);
-    }
-
-    private static boolean isNether(Class<? extends Entity> cls) {
-        return Blaze.class.isAssignableFrom(cls)
-                || Ghast.class.isAssignableFrom(cls)
-                || net.minecraft.world.entity.monster.MagmaCube.class.isAssignableFrom(cls)
-                || AbstractPiglin.class.isAssignableFrom(cls)
-                || Hoglin.class.isAssignableFrom(cls)
-                || Zoglin.class.isAssignableFrom(cls);
-    }
-
-    /* 没有手部挂载部位的生物族 */
-    private static boolean isHandless(Class<? extends Entity> cls) {
-        return Slime.class.isAssignableFrom(cls)
-                || Ghast.class.isAssignableFrom(cls)
-                || Phantom.class.isAssignableFrom(cls)
-                || Creeper.class.isAssignableFrom(cls)
-                || Spider.class.isAssignableFrom(cls)
-                || Silverfish.class.isAssignableFrom(cls)
-                || Endermite.class.isAssignableFrom(cls)
-                || Blaze.class.isAssignableFrom(cls)
-                || Shulker.class.isAssignableFrom(cls)
-                || Guardian.class.isAssignableFrom(cls);
-    }
 }

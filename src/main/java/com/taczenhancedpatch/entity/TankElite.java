@@ -49,6 +49,8 @@ public class TankElite extends Monster {
     public TankElite(EntityType<? extends TankElite> type, Level level) {
         super(type, level);
         this.xpReward = 60;
+        /* 履带车体需要跨过一格高差, 否则会被地面凹陷与台阶卡住 */
+        this.setMaxUpStep(1.6F);
     }
 
     public static AttributeSupplier.Builder createAttributes() {
@@ -161,9 +163,12 @@ public class TankElite extends Monster {
     @Override
     protected InteractionResult mobInteract(Player player, InteractionHand hand) {
         if (FactionData.factionOf(this).isEmpty() && this.getPassengers().isEmpty()
-                && !player.isShiftKeyDown() && !this.level().isClientSide()) {
-            player.startRiding(this);
-            return InteractionResult.SUCCESS;
+                && !player.isShiftKeyDown()) {
+            if (!this.level().isClientSide()) {
+                player.startRiding(this);
+            }
+            /* 两端返回一致的结果, 客户端也要走成功分支, 避免手持物品的右键被吃掉 */
+            return InteractionResult.sidedSuccess(this.level().isClientSide());
         }
         return super.mobInteract(player, hand);
     }

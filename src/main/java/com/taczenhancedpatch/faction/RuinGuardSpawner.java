@@ -3,6 +3,8 @@ package com.taczenhancedpatch.faction;
 import com.taczenhancedpatch.TACZEnhancedPatch;
 import com.taczenhancedpatch.entity.GruntRegistry;
 import com.taczenhancedpatch.entity.TankRegistry;
+import com.taczenhancedpatch.entity.GunnerGrunt;
+import com.taczenhancedpatch.entity.TankElite;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
@@ -11,6 +13,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.phys.AABB;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -23,7 +26,9 @@ import net.minecraftforge.fml.common.Mod;
 @Mod.EventBusSubscriber(modid = TACZEnhancedPatch.MOD_ID)
 public final class RuinGuardSpawner {
     private static final int CHECK_INTERVAL = 20;
-    private static final int ACTIVATION_DISTANCE = 96;
+    private static final int ACTIVATION_DISTANCE = 48;
+    /* 每个遗迹只补一次守军, 周围已有守军时直接跳过, 避免重复叠加成灾 */
+    private static final double GUARD_RADIUS = 48.0D;
     private static int tick;
 
     private RuinGuardSpawner() {
@@ -56,8 +61,16 @@ public final class RuinGuardSpawner {
             if (!near) {
                 continue;
             }
-            spawnSquad(level, site);
+            /* 先标记再生成, 生成过程即使抛异常也不会在下一个检查周期重复补兵 */
             data.markSeeded(site);
+            if (hasGuards(level, site)) {
+                continue;
+            }
+            try {
+                spawnSquad(level, site);
+            } catch (RuntimeException exception) {
+                TACZEnhancedPatch.LOGGER.error("[ruin] failed to spawn guards at {}", site.origin(), exception);
+            }
         }
     }
 
@@ -83,8 +96,14 @@ public final class RuinGuardSpawner {
         FactionData.setHome(mob, site.origin());
         FactionData.setReviveDepth(mob, 0);
         mob.finalizeSpawn(level, difficulty, MobSpawnType.STRUCTURE, null, null);
-        mob.setPersistenceRequired();
+        /* 不强制持久化, 玩家走远后按原版规则自然清理, 避免全世界累积实体 */
         level.addFreshEntity(mob);
+    }
+
+    private static boolean hasGuards(ServerLevel level, RuinSites.Site site) {
+        AABB area = new AABB(site.origin()).inflate(GUARD_RADIUS);
+        return !level.getEntitiesOfClass(Mob.class, area,
+                mob -> mob instanceof GunnerGrunt || mob instanceof TankElite).isEmpty();
     }
 
     private static BlockPos surfaceNear(ServerLevel level, RuinSites.Site site, RandomSource random) {

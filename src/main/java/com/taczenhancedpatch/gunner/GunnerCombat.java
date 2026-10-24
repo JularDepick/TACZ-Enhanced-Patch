@@ -253,6 +253,8 @@ public final class GunnerCombat {
                 }
             }
             case INVALID -> {
+                /* 枪械不可用时先把被摘掉的原版索敌装回去, 否则这只生物的索敌 AI 会永久失效 */
+                restoreTargeting(mob, state);
                 GunnerMarker.clear(mob);
                 STATES.remove(mob);
             }

@@ -2,6 +2,7 @@ package com.taczenhancedpatch.entity;
 
 import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.gunner.GunnerArming;
+import com.taczenhancedpatch.TACZEnhancedPatch;
 import com.taczenhancedpatch.faction.FactionData;
 import com.taczenhancedpatch.gunner.GunnerArsenal;
 import com.taczenhancedpatch.integration.TaczApi;
@@ -69,7 +70,12 @@ public class GunnerGrunt extends Animal {
                                         @Nullable CompoundTag tag) {
         SpawnGroupData data = super.finalizeSpawn(level, difficulty, spawnType, spawnGroupData, tag);
         if (!level.getLevel().isClientSide()) {
-            arm(this, difficulty.getDifficulty());
+            /* 上游枪械数据异常时只放弃武装, 不让生成失败 */
+            try {
+                arm(this, difficulty.getDifficulty());
+            } catch (RuntimeException exception) {
+                TACZEnhancedPatch.LOGGER.error("[grunt] failed to arm {}", this.getUUID(), exception);
+            }
             var maxHealth = this.getAttribute(Attributes.MAX_HEALTH);
             if (maxHealth != null) {
                 maxHealth.setBaseValue(CombatPreset.gruntHealth(difficulty.getDifficulty()));

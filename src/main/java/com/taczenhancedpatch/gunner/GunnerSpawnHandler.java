@@ -31,7 +31,12 @@ public final class GunnerSpawnHandler {
         }
         /* 原生生成路径已在此判定, 实体进入世界时不再重复掷概率 */
         GunnerMarker.markSpawnEvaluated(mob);
-        tryArm(mob, event.getDifficulty().getDifficulty(), event.getSpawnType() == MobSpawnType.SPAWNER);
+        try {
+            tryArm(mob, event.getDifficulty().getDifficulty(), event.getSpawnType() == MobSpawnType.SPAWNER);
+        } catch (RuntimeException exception) {
+            /* 枪械数据异常不能连带打断原版生成路径, 否则刷怪蛋会表现为消耗后无生成 */
+            TACZEnhancedPatch.LOGGER.error("[gunner] failed to arm during spawn", exception);
+        }
     }
 
     @SubscribeEvent
