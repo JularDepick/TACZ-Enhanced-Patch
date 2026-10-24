@@ -1,0 +1,160 @@
+{
+  "id": "ruined_outpost",
+  "size": {
+    "width": 11,
+    "height": 5,
+    "depth": 11
+  },
+  "clearHeight": 5,
+  "floor": {
+    "y": -1,
+    "symbol": "="
+  },
+  "palette": {
+    ".": [],
+    "=": [
+      {
+        "block": "minecraft:stone_bricks",
+        "weight": 50
+      },
+      {
+        "block": "minecraft:cracked_stone_bricks",
+        "weight": 20
+      },
+      {
+        "block": "minecraft:mossy_stone_bricks",
+        "weight": 15
+      },
+      {
+        "block": "minecraft:cobblestone",
+        "weight": 15
+      }
+    ],
+    "#": [
+      {
+        "block": "minecraft:stone_bricks",
+        "weight": 45
+      },
+      {
+        "block": "minecraft:mossy_stone_bricks",
+        "weight": 20
+      },
+      {
+        "block": "minecraft:cracked_stone_bricks",
+        "weight": 15
+      },
+      {
+        "block": "minecraft:cobblestone",
+        "weight": 20
+      }
+    ],
+    "X": [
+      {
+        "block": "minecraft:stone_bricks",
+        "weight": 45
+      },
+      {
+        "block": "minecraft:mossy_stone_bricks",
+        "weight": 20
+      },
+      {
+        "block": "minecraft:cracked_stone_bricks",
+        "weight": 15
+      },
+      {
+        "block": "minecraft:cobblestone",
+        "weight": 20
+      }
+    ]
+  },
+  "gapChance": {
+    "#": 0.16
+  },
+  "layers": [
+    [
+      "...........",
+      "...........",
+      "...........",
+      "...........",
+      "...........",
+      "...........",
+      "...........",
+      "...........",
+      "...........",
+      "...........",
+      "..........."
+    ],
+    [
+      "X###...###X",
+      "#.........#",
+      "#.........#",
+      "#.........#",
+      "#.........#",
+      "#.........#",
+      "#.........#",
+      "#.........#",
+      "#.........#",
+      "#.........#",
+      "X###...###X"
+    ],
+    [
+      "X###...###X",
+      "#.........#",
+      "#.........#",
+      "#.........#",
+      "#.........#",
+      "#.........#",
+      "#.........#",
+      "#.........#",
+      "#.........#",
+      "#.........#",
+      "X###...###X"
+    ],
+    [
+      "X#########X",
+      "#.........#",
+      "#.........#",
+      "#.........#",
+      "#.........#",
+      "#.........#",
+      "#.........#",
+      "#.........#",
+      "#.........#",
+      "#.........#",
+      "X#########X"
+    ],
+    [
+      "X.........X",
+      "...........",
+      "...........",
+      "...........",
+      "...........",
+      "...........",
+      "...........",
+      "...........",
+      "...........",
+      "...........",
+      "X.........X"
+    ]
+  ],
+  "chest": {
+    "x": 5,
+    "y": 0,
+    "z": 7,
+    "facing": "south"
+  },
+  "spawner": {
+    "x": 5,
+    "y": 0,
+    "z": 3,
+    "entity": "minecraft:zombie"
+  },
+  "debris": {
+    "min": 4,
+    "max": 7,
+    "symbol": "#",
+    "maxOffset": 3,
+    "innerHalfX": 1,
+    "innerHalfZ": 2
+  }
+}

@@ -7,6 +7,7 @@
 
 ```
 src/main/
+├── ruins/ruined_outpost.json             # 遗迹布局(构建期生成数据类)
 ├── java/com/taczenhancedpatch/
 │   ├── TACZEnhancedPatch.java            # 模组主入口
 │   ├── balance/
@@ -85,7 +86,10 @@ src/main/
 │   │   └── UiText.java                   # 界面文本包装
 │   └── world/
 │       ├── ModFeatures.java              # 世界生成特性注册
-│       └── RuinedOutpostFeature.java     # 废弃前哨遗迹生成
+│       ├── RuinedOutpostFeature.java     # 废弃前哨遗迹生成
+│       └── ruin/
+│           ├── RuinLayout.java           # 遗迹布局数据形态
+│           └── RuinLayouts.java          # 布局装配与缓存
 └── resources/
     ├── META-INF/mods.toml                # 模组元信息
     ├── pack.mcmeta                       # 资源包元信息

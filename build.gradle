@@ -30,6 +30,9 @@ processResources {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
+/* 遗迹布局: 构建期把 src/main/ruins 下的 JSON 编译成 Java 数据类 */
+apply from: 'gradle/ruin_layout.gradle'
+
 repositories {
     maven {
         url 'https://maven.aliyun.com/repository/public'
