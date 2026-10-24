@@ -54,6 +54,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Ruined outpost | An 11 by 11 collapsed outpost generates in the wild, with a chest of ammunition and attachments and a spawner that produces guards |
 | Terrain fitting | The site requires an even surface, fills low spots, shaves high ones, and never generates at or below sea level |
 | Guards and factions | Each ruin is its own faction; guards are filled in when a player comes close, intruders in the territory are attacked, and different ruins may ally or turn hostile |
+| Ruin compass | Crafted from an emerald next to a compass; right-click records the nearest ruin and the needle keeps pointing at it with the distance shown |
 
 ### Tank elite
 

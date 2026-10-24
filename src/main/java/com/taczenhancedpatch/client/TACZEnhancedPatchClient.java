@@ -24,6 +24,7 @@ public final class TACZEnhancedPatchClient {
 
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
+        event.enqueueWork(RuinCompassAngle::register);
         TACZEnhancedPatch.LOGGER.debug("{} client setup finished", TACZEnhancedPatch.MOD_NAME);
     }
 

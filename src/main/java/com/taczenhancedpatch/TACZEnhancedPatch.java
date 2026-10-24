@@ -8,6 +8,7 @@ import com.taczenhancedpatch.entity.GruntRegistry;
 import com.taczenhancedpatch.entity.TankRegistry;
 import com.taczenhancedpatch.fastmag.FastMagCreativeTab;
 import com.taczenhancedpatch.item.PatchCreativeTab;
+import com.taczenhancedpatch.item.PatchItems;
 import com.taczenhancedpatch.network.PatchNetwork;
 import com.taczenhancedpatch.world.ModFeatures;
 import net.minecraftforge.api.distmarker.Dist;
@@ -35,6 +36,7 @@ public final class TACZEnhancedPatch {
         FastMagCreativeTab.TABS.register(context.getModEventBus());
         GruntRegistry.register(context.getModEventBus());
         TankRegistry.register(context.getModEventBus());
+        PatchItems.register(context.getModEventBus());
         PatchCreativeTab.TABS.register(context.getModEventBus());
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ModConfigScreen.register(context));
         LOGGER.info("{} initialized", MOD_NAME);

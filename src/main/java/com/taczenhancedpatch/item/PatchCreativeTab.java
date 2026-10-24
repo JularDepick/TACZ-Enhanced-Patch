@@ -13,7 +13,7 @@ import net.minecraftforge.registries.RegistryObject;
 
 /**
  * 补丁物品页。
- * 集中存放本模组那些零散的, 不值得单独成页的物品, 目前是无限弹匣与两个生物的刷怪蛋;
+ * 集中存放本模组那些零散的, 不值得单独成页的物品, 目前是无限弹匣, 遗迹指南针与两个生物的刷怪蛋;
  * 快速扩容弹匣有独立物品页, 不在此列。
  */
 public final class PatchCreativeTab {
@@ -32,6 +32,7 @@ public final class PatchCreativeTab {
                                 output.accept(infinite);
                             }
                         }
+                        output.accept(PatchItems.RUIN_COMPASS.get());
                         output.accept(GruntRegistry.SPAWN_EGG.get());
                         output.accept(TankRegistry.SPAWN_EGG.get());
                     })
