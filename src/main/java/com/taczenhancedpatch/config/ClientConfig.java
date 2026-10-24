@@ -27,12 +27,6 @@ public final class ClientConfig {
                     "只影响本客户端显示, 不改变任何玩法判定")
             .define("headingRuler", false);
 
-    /* 默认值 67 对应 GLFW 的 C 键, 这里用字面量避免在服务端加载客户端输入库 */
-    private static final ForgeConfigSpec.IntValue SERVER_CONFIG_KEY = BUILDER
-            .comment("打开服务端配置页的快捷键主键, 取值是 GLFW 键码, 默认 67 即 C 键",
-                    "实际触发需要同时按住 Shift, 该快捷键只在存档创建者一侧生效")
-            .defineInRange("serverConfigKey", 67, 32, 348);
-
     public static final ForgeConfigSpec SPEC = BUILDER.build();
 
     private ClientConfig() {
@@ -60,23 +54,6 @@ public final class ClientConfig {
         } catch (IllegalStateException ignored) {
             return false;
         }
-    }
-
-    public static int serverConfigKey() {
-        try {
-            return SERVER_CONFIG_KEY.get();
-        } catch (IllegalStateException ignored) {
-            return 67;
-        }
-    }
-
-    public static void setServerConfigKey(int keyCode) {
-        try {
-            SERVER_CONFIG_KEY.set(keyCode);
-        } catch (IllegalStateException ignored) {
-            return;
-        }
-        save();
     }
 
     public static List<ConfigOptionGroup> groups() {

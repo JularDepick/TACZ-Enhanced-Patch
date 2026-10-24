@@ -7,15 +7,12 @@ import com.taczenhancedpatch.config.ServerConfig;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.MobCategory;
-import net.minecraft.world.entity.boss.wither.WitherBoss;
-import net.minecraft.world.entity.monster.AbstractSkeleton;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.monster.Blaze;
 import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.monster.Endermite;
 import net.minecraft.world.entity.monster.Ghast;
 import net.minecraft.world.entity.monster.Guardian;
-import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.monster.Phantom;
 import net.minecraft.world.entity.monster.Shulker;
 import net.minecraft.world.entity.monster.Silverfish;
@@ -29,81 +26,146 @@ import net.minecraft.world.entity.raid.Raider;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import javax.annotation.Nullable;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * 持械生物中间层。
- * 按中间层配置里的分组与额外指定, 扫描游戏实际注册的实体类型, 展开成具体的生物 ID 列表,
- * 写入独立的列表配置文件。候选判定只读列表, 不直接读分组规则, 因此列表可以被当作唯一事实来源。
+ * 扫描游戏实际注册的全部生物, 逐条写入持械生物列表, 每条带一个开关状态;
+ * 新条目默认关闭, 分组开关只负责批量改写列表里的开关状态。
+ * 候选判定只读列表, 因此列表就是唯一事实来源。
  */
 public final class GunnerMobRegistry {
+    /* 列表为空表示中间层尚未扫描, 此时候选判定退回默认规则 */
+    private static Set<String> enabledCache;
+
     private GunnerMobRegistry() {
     }
 
-    /* 按分组规则重新展开并写回列表配置 */
+    /* 扫描全部生物并写入列表: 已有条目保持原开关, 新条目按当前分组开关判定 */
     public static void refresh() {
-        boolean hasRules = MobMiddleConfig.hasRules();
-        Set<String> resolved = new LinkedHashSet<>();
+        Map<String, Boolean> existing = MobListConfig.states();
+        Map<String, Boolean> resolved = new LinkedHashMap<>();
         for (EntityType<?> type : ForgeRegistries.ENTITY_TYPES) {
-            ResourceLocation id = ForgeRegistries.ENTITY_TYPES.getKey(type);
+            if (!isMob(type)) {
+                continue;
+            }
+            String id = idOf(type);
             if (id == null) {
                 continue;
             }
-            if (hasRules) {
-                if (groupMatches(type) || MobMiddleConfig.extraIds().contains(id.toString())) {
-                    resolved.add(id.toString());
-                }
-            } else if (defaultMatches(type)) {
-                resolved.add(id.toString());
+            Boolean known = existing.get(id);
+            resolved.put(id, known != null ? known : groupEnabled(type));
+        }
+        MobListConfig.setStates(resolved);
+        MobListConfig.save();
+        invalidate();
+        if (ServerConfig.debugEvents()) {
+            TACZEnhancedPatch.LOGGER.info("[gunner] mob list refreshed: {} entries, {} enabled",
+                    resolved.size(), enabledIds().size());
+        }
+    }
+
+    /* 分组开关: 先把开关状态写回中间层, 再把该组生物在列表里的状态改成批量结果 */
+    public static int applyGroup(MobMiddleConfig.GroupSwitch group, boolean enabled) {
+        group.setter().accept(enabled);
+        MobMiddleConfig.save();
+        Map<String, Boolean> states = MobListConfig.states();
+        int changed = 0;
+        for (EntityType<?> type : ForgeRegistries.ENTITY_TYPES) {
+            if (!isMob(type) || !matchesGroup(group.key(), type)) {
+                continue;
+            }
+            String id = idOf(type);
+            if (id == null) {
+                continue;
+            }
+            /* 关闭某一组时, 仍被其它已开启分组命中的生物保持开启 */
+            boolean target = groupEnabled(type);
+            if (!Boolean.valueOf(target).equals(states.get(id))) {
+                states.put(id, target);
+                changed++;
             }
         }
-        MobListConfig.setMobs(resolved.stream().sorted().toList());
+        MobListConfig.setStates(states);
         MobListConfig.save();
-        if (ServerConfig.debugEvents()) {
-            TACZEnhancedPatch.LOGGER.info("[gunner] mob list refreshed: {} entries (rules {})",
-                    resolved.size(), hasRules);
-        }
+        invalidate();
+        return changed;
     }
 
-    /* 默认规则: 全部敌对生物, 是否包含没有手部挂载部位的类型由服务端开关决定 */
-    private static boolean defaultMatches(EntityType<?> type) {
-        Class<? extends Entity> cls = type.getBaseClass();
-        if (!Monster.class.isAssignableFrom(cls) || type.getCategory() != MobCategory.MONSTER) {
-            return false;
-        }
-        if (WitherBoss.class.isAssignableFrom(cls)) {
-            return false;
-        }
-        return ServerConfig.gunnerAllowNonHumanoid() || !isHandless(cls);
+    /* 单条状态改写, 供列表页逐项开关使用 */
+    public static void setEnabled(String id, boolean enabled) {
+        MobListConfig.setState(id, enabled);
+        MobListConfig.save();
+        invalidate();
     }
 
-    private static boolean groupMatches(EntityType<?> type) {
+    /* 某个分组是否命中该类生物, 同一生物可以同时属于多个分组 */
+    public static boolean matchesGroup(String key, EntityType<?> type) {
         Class<? extends Entity> cls = type.getBaseClass();
-        if (MobMiddleConfig.groupUndead() && isUndead(cls)) {
-            return true;
+        return switch (key) {
+            case "undead" -> isUndead(cls);
+            case "illager" -> Raider.class.isAssignableFrom(cls);
+            case "arthropod" -> isArthropod(cls);
+            case "creeper" -> Creeper.class.isAssignableFrom(cls);
+            case "nether" -> isNether(cls);
+            case "humanoid" -> !isHandless(cls);
+            default -> isHandless(cls);
+        };
+    }
+
+    /* 当前分组开关命中的生物是否在列表里开启 */
+    private static boolean groupEnabled(EntityType<?> type) {
+        for (MobMiddleConfig.GroupSwitch group : MobMiddleConfig.groups()) {
+            if (group.getter().getAsBoolean() && matchesGroup(group.key(), type)) {
+                return true;
+            }
         }
-        if (MobMiddleConfig.groupIllager() && Raider.class.isAssignableFrom(cls)) {
-            return true;
+        return false;
+    }
+
+    /* 只扫描能成为枪手的生物, 即继承自 Mob 的实体类型 */
+    private static boolean isMob(EntityType<?> type) {
+        return Mob.class.isAssignableFrom(type.getBaseClass());
+    }
+
+    private static Set<String> enabledIds() {
+        if (enabledCache == null) {
+            enabledCache = new TreeSet<>();
+            for (Map.Entry<String, Boolean> entry : MobListConfig.states().entrySet()) {
+                if (Boolean.TRUE.equals(entry.getValue())) {
+                    enabledCache.add(entry.getKey());
+                }
+            }
         }
-        if (MobMiddleConfig.groupArthropod() && isArthropod(cls)) {
-            return true;
-        }
-        if (MobMiddleConfig.groupCreeper() && Creeper.class.isAssignableFrom(cls)) {
-            return true;
-        }
-        if (MobMiddleConfig.groupNether() && isNether(cls)) {
-            return true;
-        }
-        if (MobMiddleConfig.groupHumanoid() && !isHandless(cls)) {
-            return true;
-        }
-        return MobMiddleConfig.groupNonHumanoid() && isHandless(cls);
+        return enabledCache;
+    }
+
+    private static void invalidate() {
+        enabledCache = null;
+    }
+
+    /* 列表是否为空, 空表示中间层尚未展开 */
+    public static boolean isEmpty() {
+        return MobListConfig.states().isEmpty();
+    }
+
+    public static boolean isEnabled(EntityType<?> type) {
+        String id = idOf(type);
+        return id != null && enabledIds().contains(id);
+    }
+
+    @Nullable
+    public static String idOf(EntityType<?> type) {
+        ResourceLocation id = ForgeRegistries.ENTITY_TYPES.getKey(type);
+        return id == null ? null : id.toString();
     }
 
     private static boolean isUndead(Class<? extends Entity> cls) {
         return Zombie.class.isAssignableFrom(cls)
-                || AbstractSkeleton.class.isAssignableFrom(cls)
+                || net.minecraft.world.entity.monster.AbstractSkeleton.class.isAssignableFrom(cls)
                 || Phantom.class.isAssignableFrom(cls)
                 || Zoglin.class.isAssignableFrom(cls);
     }
@@ -135,21 +197,5 @@ public final class GunnerMobRegistry {
                 || Blaze.class.isAssignableFrom(cls)
                 || Shulker.class.isAssignableFrom(cls)
                 || Guardian.class.isAssignableFrom(cls);
-    }
-
-    /* 列表是否为空, 空表示中间层尚未展开 */
-    public static boolean isEmpty() {
-        return MobListConfig.mobs().isEmpty();
-    }
-
-    public static boolean isListed(EntityType<?> type) {
-        ResourceLocation id = ForgeRegistries.ENTITY_TYPES.getKey(type);
-        return id != null && MobListConfig.mobs().contains(id.toString());
-    }
-
-    @Nullable
-    public static String idOf(EntityType<?> type) {
-        ResourceLocation id = ForgeRegistries.ENTITY_TYPES.getKey(type);
-        return id == null ? null : id.toString();
     }
 }

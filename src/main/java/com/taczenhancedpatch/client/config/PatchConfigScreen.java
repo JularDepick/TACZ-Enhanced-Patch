@@ -1,6 +1,5 @@
 package com.taczenhancedpatch.client.config;
 
-import com.mojang.blaze3d.platform.InputConstants;
 import com.taczenhancedpatch.client.ConfigAccess;
 import com.taczenhancedpatch.config.ClientConfig;
 import com.taczenhancedpatch.config.ConfigOption;
@@ -14,7 +13,6 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
-import org.lwjgl.glfw.GLFW;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -27,7 +25,7 @@ import java.util.function.DoubleConsumer;
 /**
  * 单页配置列表。
  * 客户端页对所有玩家可见并可改; 服务端页只在存档创建者一侧打开, 普通客户端看不到入口。
- * 服务端页顶部额外提供打开本页的快捷键设置。
+ * 服务端页在界面与调试组之后追加持械生物列表入口; 打开本页的按键由原版按键设置管理。
  */
 public final class PatchConfigScreen extends Screen {
     private static final int LIST_WIDTH = 380;
@@ -41,15 +39,13 @@ public final class PatchConfigScreen extends Screen {
     private final List<ConfigOptionGroup> groups;
     private final Map<ConfigOption, Object> originals = new IdentityHashMap<>();
     private final List<Row> rows = new ArrayList<>();
+    private final ScrollBar scrollbar = new ScrollBar(value -> scroll = value);
     private double scroll;
     private int listLeft;
     private int listRight;
     private int listTop;
     private int listBottom;
     private boolean saved;
-    private boolean capturingKey;
-    @Nullable
-    private Button shortcutButton;
     @Nullable
     private AbstractWidget dragging;
 
@@ -75,8 +71,16 @@ public final class PatchConfigScreen extends Screen {
         listBottom = height - LIST_BOTTOM_MARGIN;
         for (ConfigOptionGroup group : groups) {
             rows.add(new Row(group.label(), null, true));
+            /* 组内先排开关项, 再排数值项, 开关最显眼 */
             for (ConfigOption option : group.options()) {
-                rows.add(new Row(option.label(), createWidget(option), false));
+                if (option instanceof ConfigOption.ToggleOption) {
+                    rows.add(new Row(option.label(), createWidget(option), false));
+                }
+            }
+            for (ConfigOption option : group.options()) {
+                if (!(option instanceof ConfigOption.ToggleOption)) {
+                    rows.add(new Row(option.label(), createWidget(option), false));
+                }
             }
             if (serverSection && ServerConfig.GROUP_UI.equals(group.label())) {
                 addServerEntries();
@@ -90,12 +94,8 @@ public final class PatchConfigScreen extends Screen {
                 .build());
     }
 
-    /* 服务端页在界面与调试组之后追加两个自定义入口条目 */
+    /* 服务端页在界面与调试组之后追加持械生物列表入口 */
     private void addServerEntries() {
-        shortcutButton = Button.builder(shortcutText(), button -> startCapturingKey())
-                .bounds(0, 0, WIDGET_WIDTH, 20)
-                .build();
-        rows.add(new Row("screen.shortcut", shortcutButton, false));
         Button mobListButton = Button.builder(UiText.of("screen.open"), button -> {
             if (minecraft != null) {
                 minecraft.setScreen(new MobListScreen(this));
@@ -104,41 +104,11 @@ public final class PatchConfigScreen extends Screen {
         rows.add(new Row("screen.mob_list", mobListButton, false));
     }
 
-    private void startCapturingKey() {
-        capturingKey = true;
-        if (shortcutButton != null) {
-            shortcutButton.setMessage(UiText.of("screen.press_key"));
-        }
-    }
-
-    private static Component shortcutText() {
-        InputConstants.Key key = InputConstants.getKey(ClientConfig.serverConfigKey(), 0);
-        return UiText.of("screen.shift_key", key.getDisplayName());
-    }
-
-    @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (capturingKey) {
-            capturingKey = false;
-            /* 只接受主键, 修饰键本身与退出键不作为绑定 */
-            if (keyCode != GLFW.GLFW_KEY_ESCAPE
-                    && keyCode != GLFW.GLFW_KEY_LEFT_SHIFT
-                    && keyCode != GLFW.GLFW_KEY_RIGHT_SHIFT) {
-                ClientConfig.setServerConfigKey(keyCode);
-            }
-            if (shortcutButton != null) {
-                shortcutButton.setMessage(shortcutText());
-            }
-            return true;
-        }
-        return super.keyPressed(keyCode, scanCode, modifiers);
-    }
-
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         renderBackground(graphics);
         graphics.drawCenteredString(font, title, width / 2, 18, 0xFFFFFF);
-        graphics.fill(listLeft - 4, listTop - 4, listRight + 12, listBottom + 4, 0x66000000);
+        graphics.fill(listLeft - 4, listTop - 4, listRight + 20, listBottom + 4, 0x66000000);
         scroll = Mth.clamp(scroll, 0.0D, maxScroll());
         graphics.enableScissor(listLeft, listTop, listRight, listBottom);
         for (int i = 0; i < rows.size(); i++) {
@@ -167,25 +137,22 @@ public final class PatchConfigScreen extends Screen {
             widget.render(graphics, mouseX, mouseY, partialTick);
         }
         graphics.disableScissor();
-        renderScrollbar(graphics);
+        syncScrollbar();
+        scrollbar.render(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);
     }
 
-    private void renderScrollbar(GuiGraphics graphics) {
-        double max = maxScroll();
-        if (max <= 0.0D) {
-            return;
-        }
-        int trackHeight = listBottom - listTop;
-        int thumbHeight = Math.max(20, (int) (trackHeight * trackHeight / (trackHeight + max)));
-        int thumbTop = listTop + (int) ((trackHeight - thumbHeight) * (scroll / max));
-        int x = listRight + 4;
-        graphics.fill(x, listTop, x + 4, listBottom, 0x44000000);
-        graphics.fill(x, thumbTop, x + 4, thumbTop + thumbHeight, 0xFFB0B0B0);
+    /* 让滚动条的轨道位置与当前滚动量保持同步, 点击判定前也要刷新一次 */
+    private void syncScrollbar() {
+        scrollbar.update(listRight + 8, listTop, listBottom, scroll, maxScroll());
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        syncScrollbar();
+        if (scrollbar.mouseClicked(mouseX, mouseY)) {
+            return true;
+        }
         if (insideList(mouseX, mouseY)) {
             for (Row row : rows) {
                 AbstractWidget widget = row.widget();
@@ -200,6 +167,7 @@ public final class PatchConfigScreen extends Screen {
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        scrollbar.mouseReleased();
         if (dragging != null) {
             dragging.mouseReleased(mouseX, mouseY, button);
             dragging = null;
@@ -209,6 +177,10 @@ public final class PatchConfigScreen extends Screen {
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (scrollbar.isDragging()) {
+            scrollbar.mouseDragged(mouseY);
+            return true;
+        }
         if (dragging != null) {
             dragging.mouseDragged(mouseX, mouseY, button, dragX, dragY);
             return true;

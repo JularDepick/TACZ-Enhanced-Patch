@@ -97,7 +97,8 @@ public final class GunnerSpawnHandler {
         return ServerConfig.gunnerDimensionBlacklist().contains(dimension);
     }
 
-    private static double spawnChance(Difficulty difficulty) {
+    /* 生成时的持械概率, 含难度缩放; 护甲抽取复用同一概率 */
+    public static double spawnChance(Difficulty difficulty) {
         double chance = ServerConfig.gunnerSpawnChance();
         if (ServerConfig.gunnerDifficultyScaling()) {
             chance *= switch (difficulty) {

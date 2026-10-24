@@ -13,16 +13,17 @@ import net.minecraftforge.fml.common.Mod;
 
 /**
  * 方向标尺。
- * 屏幕正上方的横向航向带: 随镜头滚动, 标注基本方向与角度数字, 便于报点。
+ * 紧贴屏幕上边界的横向航向带: 随镜头滚动, 标注基本方向与角度数字, 便于报点。
+ * 宽度按屏幕宽度换算, 中心读数只显示角度数值。
  * 只在客户端绘制, 采用原版界面绘制能力, 不依赖上游模组的渲染管线。
  */
 @Mod.EventBusSubscriber(modid = TACZEnhancedPatch.MOD_ID, value = Dist.CLIENT)
 public final class HeadingRulerOverlay {
-    /* 标尺宽度与高度, 单位像素 */
-    private static final int TAPE_WIDTH = 260;
+    /* 标尺宽度占屏幕宽度的比例与固定高度, 单位像素 */
+    private static final float WIDTH_RATIO = 0.9F;
     private static final int TAPE_HEIGHT = 20;
-    /* 标尺距屏幕顶部的距离 */
-    private static final int TAPE_TOP = 6;
+    /* 标尺紧贴屏幕上边界 */
+    private static final int TAPE_TOP = 0;
     /* 每度对应的像素数, 决定可视角度范围 */
     private static final float PIXELS_PER_DEGREE = 2.0F;
     /* 刻度与数字标签的角度间隔 */
@@ -50,8 +51,9 @@ public final class HeadingRulerOverlay {
         }
         int screenWidth = minecraft.getWindow().getGuiScaledWidth();
         int centerX = screenWidth / 2;
-        int left = centerX - TAPE_WIDTH / 2;
-        int right = left + TAPE_WIDTH;
+        int tapeWidth = Math.round(screenWidth * WIDTH_RATIO);
+        int left = centerX - tapeWidth / 2;
+        int right = left + tapeWidth;
         int top = TAPE_TOP;
         int bottom = top + TAPE_HEIGHT;
         float heading = Mth.positiveModulo(
@@ -60,7 +62,7 @@ public final class HeadingRulerOverlay {
         GuiGraphics graphics = event.getGuiGraphics();
         graphics.fill(left, top, right, bottom, BACKGROUND);
         graphics.enableScissor(left, top, right, bottom);
-        float visibleHalfAngle = TAPE_WIDTH / 2.0F / PIXELS_PER_DEGREE + TICK_STEP;
+        float visibleHalfAngle = tapeWidth / 2.0F / PIXELS_PER_DEGREE + TICK_STEP;
         for (int degree = 0; degree < 360; degree += TICK_STEP) {
             float offset = Mth.wrapDegrees(degree - heading);
             if (Math.abs(offset) > visibleHalfAngle) {
@@ -88,7 +90,8 @@ public final class HeadingRulerOverlay {
             }
             graphics.fill(centerX - halfWidth, bottom + row, centerX + halfWidth + 1, bottom + row + 1, ACCENT_COLOR);
         }
-        String readout = UiText.of("hud.heading.readout", String.valueOf(Math.round(heading) % 360)).getString();
+        /* 读数只显示数值, 不带角度单位 */
+        String readout = String.valueOf(Math.round(heading) % 360);
         int readoutWidth = minecraft.font.width(readout);
         graphics.drawString(minecraft.font, readout, centerX - readoutWidth / 2, bottom + 6, ACCENT_COLOR, false);
     }

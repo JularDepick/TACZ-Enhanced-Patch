@@ -2,23 +2,32 @@ package com.taczenhancedpatch.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import com.taczenhancedpatch.TACZEnhancedPatch;
-import com.taczenhancedpatch.client.config.PatchConfigScreen;
-import com.taczenhancedpatch.config.ClientConfig;
+import com.taczenhancedpatch.client.config.ConfigHubScreen;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.settings.KeyConflictContext;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.lwjgl.glfw.GLFW;
 
 /**
- * 服务端配置页快捷键。
- * 默认 Shift + C, 主键可在服务端配置页里改; 只在存档创建者一侧生效,
- * 并且只在没有打开任何界面时触发, 避免与聊天和物品栏冲突。
+ * 模组配置快捷键。
+ * 绑定注册为原版按键项, 默认 C 键, 玩家可以在原版按键设置里改绑或解绑;
+ * 触发后在游戏内打开配置入口页, 服务端入口只在存档创建者一侧出现, 因此非创建者只会看到客户端入口。
  */
 @Mod.EventBusSubscriber(modid = TACZEnhancedPatch.MOD_ID, value = Dist.CLIENT)
 public final class ConfigShortcutHandler {
-    private static boolean lastDown;
+    public static final String KEY_CATEGORY = "key.categories." + TACZEnhancedPatch.MOD_ID;
+
+    /* 原版按键设置里的配置入口按键, 默认 C */
+    public static final KeyMapping OPEN_CONFIG = new KeyMapping(
+            "key." + TACZEnhancedPatch.MOD_ID + ".open_config",
+            KeyConflictContext.IN_GAME,
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_C,
+            KEY_CATEGORY);
 
     private ConfigShortcutHandler() {
     }
@@ -28,23 +37,18 @@ public final class ConfigShortcutHandler {
         if (event.phase != TickEvent.Phase.END) {
             return;
         }
+        boolean open = false;
+        while (OPEN_CONFIG.consumeClick()) {
+            open = true;
+        }
+        if (!open) {
+            return;
+        }
         Minecraft minecraft = Minecraft.getInstance();
-        boolean down = isComboDown(minecraft);
-        boolean pressed = down && !lastDown;
-        lastDown = down;
-        if (!pressed || minecraft.screen != null || minecraft.player == null) {
+        /* 只在没有打开任何界面时触发, 避免与聊天和物品栏冲突 */
+        if (minecraft.screen != null || minecraft.player == null) {
             return;
         }
-        if (!ConfigAccess.isWorldOwner()) {
-            return;
-        }
-        minecraft.setScreen(new PatchConfigScreen(null, true));
-    }
-
-    private static boolean isComboDown(Minecraft minecraft) {
-        long window = minecraft.getWindow().getWindow();
-        boolean shift = InputConstants.isKeyDown(window, GLFW.GLFW_KEY_LEFT_SHIFT)
-                || InputConstants.isKeyDown(window, GLFW.GLFW_KEY_RIGHT_SHIFT);
-        return shift && InputConstants.isKeyDown(window, ClientConfig.serverConfigKey());
+        minecraft.setScreen(new ConfigHubScreen(null));
     }
 }

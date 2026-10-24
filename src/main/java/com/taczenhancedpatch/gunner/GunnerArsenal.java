@@ -46,15 +46,21 @@ public final class GunnerArsenal {
         HIGH
     }
 
-    /* 分档护甲材质, 只决定穿戴的四件护甲, 具体数值由原版物品决定 */
-    public enum ArmorTier {
+    /* 护甲材质, 顺序即从低到高, 抽取概率按等比递减 */
+    public enum ArmorMaterial {
         LEATHER,
-        CHAIN,
-        IRON
+        CHAINMAIL,
+        IRON,
+        GOLD,
+        DIAMOND,
+        NETHERITE
     }
 
-    /* 分档耐久: 护甲材质, 生命倍率系数, 额外护甲韧性 */
-    public record Durability(ArmorTier armorTier, double healthFactor, int extraToughness) {
+    /* 相邻材质的概率公比: 下一档材质是上一档的 0.6 倍, 下界合金最稀有 */
+    public static final double ARMOR_MATERIAL_RATIO = 0.6D;
+
+    /* 分档耐久: 生命倍率系数与额外护甲韧性, 护甲材质单独按部位随机抽取 */
+    public record Durability(double healthFactor, int extraToughness) {
     }
 
     private static final Map<Tier, Durability> BY_TIER_DURABILITY = new EnumMap<>(Tier.class);
@@ -103,9 +109,9 @@ public final class GunnerArsenal {
     }
 
     static {
-        BY_TIER_DURABILITY.put(Tier.LOW, new Durability(ArmorTier.LEATHER, 1.0D, 0));
-        BY_TIER_DURABILITY.put(Tier.MID, new Durability(ArmorTier.CHAIN, 1.15D, 1));
-        BY_TIER_DURABILITY.put(Tier.HIGH, new Durability(ArmorTier.IRON, 1.3D, 2));
+        BY_TIER_DURABILITY.put(Tier.LOW, new Durability(1.0D, 0));
+        BY_TIER_DURABILITY.put(Tier.MID, new Durability(1.15D, 1));
+        BY_TIER_DURABILITY.put(Tier.HIGH, new Durability(1.3D, 2));
     }
 
     private GunnerArsenal() {
@@ -148,6 +154,29 @@ public final class GunnerArsenal {
         int low = Math.max(1, (int) Math.round(base * AMMO_MIN_FACTOR));
         int high = Math.max(low, (int) Math.round(base * AMMO_MAX_FACTOR));
         return low >= high ? low : low + random.nextInt(high - low + 1);
+    }
+
+    /**
+     * 随机抽取一种护甲材质。
+     * 材质从皮革到合金按等比递减, 公比为 {@link #ARMOR_MATERIAL_RATIO},
+     * 因此低阶护甲常见, 下界合金极稀有; 是否穿戴由调用方按持械概率单独判定。
+     */
+    public static ArmorMaterial rollArmorMaterial(RandomSource random) {
+        ArmorMaterial[] materials = ArmorMaterial.values();
+        double[] weights = new double[materials.length];
+        double total = 0.0D;
+        for (int i = 0; i < materials.length; i++) {
+            weights[i] = Math.pow(ARMOR_MATERIAL_RATIO, i);
+            total += weights[i];
+        }
+        double roll = random.nextDouble() * total;
+        for (int i = 0; i < weights.length; i++) {
+            roll -= weights[i];
+            if (roll <= 0.0D) {
+                return materials[i];
+            }
+        }
+        return materials[materials.length - 1];
     }
 
     /* 随机抽取一种高级弹药口径, 池为空时返回 null */

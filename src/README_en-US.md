@@ -8,47 +8,70 @@ This directory holds the functional source code of the mod, while the rest of th
 ```
 src/main/
 ├── java/com/taczenhancedpatch/
-│   ├── TACZEnhancedPatch.java          # Mod entry point
+│   ├── TACZEnhancedPatch.java            # Mod entry point
 │   ├── balance/
-│   │   ├── GunDamageBalanceHandler.java # Damage adjustment for gunner bullets
-│   │   └── GunnerDefenseHandler.java    # Damage adjustment for hits on gunners
+│   │   ├── GunDamageBalanceHandler.java  # Damage adjustment for gunner bullets
+│   │   └── GunnerDefenseHandler.java     # Damage adjustment for hits on gunners
 │   ├── client/
-│   │   ├── AutoReloadHandler.java       # Automatic reload
-│   │   ├── TACZEnhancedPatchClient.java # Client entry point
-│   │   └── config/
-│   │       ├── ModConfigScreen.java     # Configuration screen registration
-│   │       └── PatchConfigScreen.java   # Configuration screen
+│   │   ├── AutoReloadHandler.java        # Automatic reload
+│   │   ├── ConfigAccess.java             # World owner check
+│   │   ├── ConfigShortcutHandler.java    # Config entry key binding (vanilla)
+│   │   ├── TACZEnhancedPatchClient.java  # Client entry point
+│   │   ├── config/
+│   │   │   ├── ConfigHubScreen.java      # Configuration entry screen
+│   │   │   ├── MobListScreen.java        # Armed mob list screen
+│   │   │   ├── ModConfigScreen.java      # Configuration screen registration
+│   │   │   ├── PatchConfigScreen.java    # Parameter list screen
+│   │   │   └── ScrollBar.java            # Draggable scroll bar
+│   │   └── hud/
+│   │       └── HeadingRulerOverlay.java  # Heading ruler rendering
 │   ├── config/
-│   │   ├── ClientConfig.java           # Client configuration
-│   │   ├── ConfigEvents.java           # Configuration lifecycle and saving
-│   │   ├── ConfigOption.java           # Configuration option descriptor
-│   │   └── ServerConfig.java           # Server configuration and option list
+│   │   ├── ClientConfig.java             # Client configuration
+│   │   ├── ConfigEvents.java             # Configuration lifecycle and saving
+│   │   ├── ConfigOption.java             # Configuration option descriptor
+│   │   ├── ConfigOptionGroup.java        # Configuration groups and UI order
+│   │   ├── MobListConfig.java            # Armed mob list with per-entry switches
+│   │   ├── MobMiddleConfig.java          # Seven armed group switches
+│   │   └── ServerConfig.java             # Server configuration and option list
 │   ├── debug/
-│   │   └── TaczEventProbe.java         # TACZ API event probe (disabled by default)
+│   │   └── TaczEventProbe.java           # TACZ API event probe (disabled by default)
 │   ├── gunner/
-│   │   ├── GunnerArming.java          # Gun arming with random attachments and ammo
-│   │   ├── GunnerArsenal.java          # Gunner arsenal and balance constants
-│   │   ├── GunnerCombat.java           # Gunner targeting and firing logic
-│   │   ├── GunnerDurability.java       # Gunner health, armor and armor equipping
-│   │   ├── GunnerEligibility.java      # Gunner candidate scan over registered entity types
-│   │   ├── GunnerMarker.java           # Gunner identity marker
-│   │   ├── GunnerRetaliation.java      # Improvised arming and retaliation for non-hostile mobs
-│   │   ├── GunnerSpawnHandler.java     # Gunner spawn assignment
-│   │   └── GunnerState.java            # Transient gunner state
+│   │   ├── GunnerArming.java             # Gun arming with random attachments and ammo
+│   │   ├── GunnerArsenal.java            # Gunner arsenal and balance constants
+│   │   ├── GunnerCombat.java             # Gunner targeting and firing logic
+│   │   ├── GunnerDurability.java         # Gunner health, armor and armor equipping
+│   │   ├── GunnerEffects.java            # Muzzle flash and tracer particles
+│   │   ├── GunnerEligibility.java        # Gunner eligibility from list switches
+│   │   ├── GunnerMarker.java             # Gunner identity marker
+│   │   ├── GunnerMobRefreshHandler.java  # Mob list refresh on world load
+│   │   ├── GunnerMobRegistry.java        # Full scan and bulk group rewriting
+│   │   ├── GunnerRetaliation.java        # Improvised arming and retaliation for non-hostile mobs
+│   │   ├── GunnerSpawnHandler.java       # Gunner spawn assignment
+│   │   └── GunnerState.java              # Transient gunner state
+│   ├── hitindicator/
+│   │   ├── HitDirectionNotifier.java     # Bullet hit check and source direction delivery
+│   │   └── HitIndicatorOverlay.java      # Incoming fire arc rendering
 │   ├── integration/
-│   │   └── TaczApi.java                # Single access point for the TACZ public API
+│   │   ├── TaczApi.java                  # Single access point for the TACZ public API
+│   │   └── TaczAutoReload.java           # Upstream automatic reload bridge
 │   ├── loot/
-│   │   └── BattleLootHandler.java      # Gunner loot drops
+│   │   └── BattleLootHandler.java        # Gunner loot drops
+│   ├── network/
+│   │   ├── HitDirectionMessage.java      # Hit direction sync packet
+│   │   └── PatchNetwork.java             # Network channel registration
+│   ├── util/
+│   │   └── UiText.java                   # UI text wrapper
 │   └── world/
-│       ├── ModFeatures.java            # World generation feature registration
-│       └── RuinedOutpostFeature.java   # Ruined outpost generation
+│       ├── ModFeatures.java              # World generation feature registration
+│       └── RuinedOutpostFeature.java     # Ruined outpost generation
 └── resources/
-    ├── META-INF/mods.toml              # Mod metadata
-    ├── pack.mcmeta                     # Resource pack metadata
-    └── data/tacz_enhanced_patch/       # World generation and loot data
-        ├── forge/biome_modifier/       # Biome injection
-        ├── loot_tables/chests/         # Chest loot
-        └── worldgen/                   # Features and placement rules
+    ├── META-INF/mods.toml                # Mod metadata
+    ├── pack.mcmeta                       # Resource pack metadata
+    ├── assets/tacz_enhanced_patch/lang/  # UI language files
+    └── data/tacz_enhanced_patch/         # World generation and loot data
+        ├── forge/biome_modifier/         # Biome injection
+        ├── loot_tables/chests/           # Chest loot
+        └── worldgen/                     # Features and placement rules
 ```
 
 ## Conventions

@@ -34,7 +34,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Return fire | Any armed mob that gets hit locks onto the attacker, and can be limited to hostile targets so allies do not fight each other |
 | Improvised arming | Passive, neutral and friendly mobs may grab a random gun below half health and turn on whatever hurt them |
 | Ammo and attachments | Every gun rolls its own attachments and limited ammo, then falls back to its vanilla weapon once dry to give players a window |
-| Toughness | Regular gunners gain tiered health and leather-to-iron armor, improvised mobs only get the gun |
+| Toughness | Regular gunners gain tiered health and roll each of the four armor pieces independently from leather up to netherite, while improvised mobs only get the gun |
 | Loot | Kills always drop matching ammunition scaled by the reserve left, plus a chance at the exact gun, a random attachment and high tier ammo |
 
 ### Ruins
@@ -48,18 +48,18 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 
 | Feature | Description |
 |:---:|:---|
-| Incoming fire indicator | When hit by a gun, an arc on screen points to the source, up to three directions at once, off by default |
-| Heading ruler | A horizontal compass tape at the top of the screen showing cardinal directions and a bearing readout, off by default |
+| Incoming fire indicator | When hit by a gun, a soft-edged arc on screen points to the source, up to three directions at once, off by default |
+| Heading ruler | A horizontal compass tape flush with the top edge, nine tenths of the screen wide, showing cardinal directions and a bare bearing number, off by default |
 
 ### Configuration and permissions
 
 | Item | Description |
 |:---:|:---|
 | Client configuration | Local preferences such as automatic reload, the incoming fire indicator and the heading ruler, stored per player |
-| Server configuration | 29 parameters grouped into basics, spawning, candidates, targeting, ammo, toughness, loot, ruins and debug, synced from the server |
+| Server configuration | 28 parameters grouped into basics, candidates, spawning, targeting, ammo, toughness, loot, ruins and debug, with switches listed before numeric values inside each group and synced from the server |
 | Configuration screen | Opening it first offers a client or a server entry, and the server entry only appears for the world owner |
-| Shortcut | The world owner can press Shift plus the main key to open the server page directly, and the key can be rebound there |
-| Armed mob list | The server page offers group toggles and exact entity IDs, deciding only which mobs may carry guns |
+| Shortcut | C opens the mod config entry screen by default; it is a standard key binding, so it can be rebound or cleared in the vanilla controls |
+| Armed mob list | The server page scans every mob into one switchable list and lets group toggles flip those switches in bulk, deciding only which mobs may carry guns |
 
 ## Gameplay highlights
 
@@ -104,4 +104,6 @@ This repository is licensed under the [Apache-2.0 License](./LICENSE)
 
 ## Links
 
-- [TACZ on CurseForge](https://www.curseforge.com/minecraft/mc-mods/timeless-and-classics-zero)
+- CurseForge mod page: https://www.curseforge.com/minecraft/mc-mods/TACZ-Enhanced-Patch
+- Modrinth mod page: https://modrinth.com/mod/TACZ-Enhanced-Patch
+- TACZ mod: https://www.curseforge.com/minecraft/mc-mods/timeless-and-classics-zero

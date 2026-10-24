@@ -1,6 +1,5 @@
 package com.taczenhancedpatch.client.config;
 
-import com.taczenhancedpatch.config.ConfigOption;
 import com.taczenhancedpatch.config.MobListConfig;
 import com.taczenhancedpatch.config.MobMiddleConfig;
 import com.taczenhancedpatch.gunner.GunnerMobRegistry;
@@ -9,36 +8,34 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * 持械生物列表。
- * 只决定哪些生物可以成为枪手: 可以按分组勾选, 也可以逐个填写实体 ID;
- * 界面只修改中间层规则, 具体名单由中间层展开后写入独立列表文件。
+ * 顶部七个分组开关用于批量改写列表里的开关状态, 下方是扫描得到的全部生物与逐项开关。
+ * 新的扫描会直接登记全部生物并把开关置为关闭, 只有开关为开的生物才能成为枪手。
  * 本页不提供任何按生物调整的数值, 数值参数统一在服务端配置页里改。
  */
 public final class MobListScreen extends Screen {
-    private static final int GROUP_WIDTH = 150;
-    private static final int GROUP_HEIGHT = 20;
-    private static final int GROUP_GAP = 6;
-    private static final int ROW_HEIGHT = 22;
-    private static final int LIST_WIDTH = 320;
-    private static final int REMOVE_WIDTH = 52;
+    private static final int TOGGLE_WIDTH = 64;
+    private static final int ROW_HEIGHT = 20;
+    private static final int LIST_WIDTH = 420;
+    private static final int SEARCH_HEIGHT = 20;
 
     private final Screen parent;
-    private final List<ConfigOption> groups;
-    private final List<String> mobIds = new ArrayList<>();
-    private final List<IdRow> idRows = new ArrayList<>();
+    private final List<MobMiddleConfig.GroupSwitch> groups;
+    private final List<Row> rows = new ArrayList<>();
+    private final ScrollBar scrollbar = new ScrollBar(value -> scroll = value);
     @Nullable
-    private EditBox idBox;
+    private EditBox searchBox;
     private String hint = "";
     private int hintColor = 0x9E9E9E;
     private double scroll;
@@ -46,111 +43,115 @@ public final class MobListScreen extends Screen {
     private int listRight;
     private int listTop;
     private int listBottom;
+    private int totalMobs;
+    private int enabledMobs;
 
     public MobListScreen(@Nullable Screen parent) {
         super(UiText.of("moblist.title"));
         this.parent = parent;
-        this.groups = MobMiddleConfig.groupOptions();
-        this.mobIds.addAll(MobMiddleConfig.extraIds());
+        this.groups = MobMiddleConfig.groups();
     }
 
     @Override
     protected void init() {
-        idRows.clear();
-        int columnLeft = (width - GROUP_WIDTH * 2 - GROUP_GAP) / 2;
-        int groupsTop = 44;
-        for (int i = 0; i < groups.size(); i++) {
-            ConfigOption option = groups.get(i);
-            if (!(option instanceof ConfigOption.ToggleOption toggle)) {
-                continue;
-            }
-            int column = i % 2;
-            int row = i / 2;
-            Button button = Button.builder(groupText(toggle), b -> {
-                toggle.value().set(!Boolean.TRUE.equals(toggle.value().get()));
-                b.setMessage(groupText(toggle));
-                persist();
-            }).bounds(columnLeft + column * (GROUP_WIDTH + GROUP_GAP), groupsTop + row * (GROUP_HEIGHT + 2),
-                    GROUP_WIDTH, GROUP_HEIGHT).build();
-            addRenderableWidget(button);
-        }
-        int controlsY = groupsTop + 4 * (GROUP_HEIGHT + 2) + 8;
         listLeft = (width - LIST_WIDTH) / 2;
         listRight = listLeft + LIST_WIDTH;
-        listTop = controlsY + 28;
-        listBottom = Math.max(listTop + ROW_HEIGHT, height - 44);
-
-        idBox = new EditBox(font, listLeft, controlsY, LIST_WIDTH - 100, 20, UiText.of("moblist.title"));
-        idBox.setHint(UiText.of("moblist.input_hint"));
-        idBox.setMaxLength(96);
-        addRenderableWidget(idBox);
-        addRenderableWidget(Button.builder(UiText.of("moblist.add"), b -> addId())
-                .bounds(listRight - 94, controlsY, 94, 20)
+        int searchY = 34;
+        int searchWidth = LIST_WIDTH - 120;
+        searchBox = new EditBox(font, listLeft, searchY, searchWidth, SEARCH_HEIGHT, UiText.of("moblist.title"));
+        searchBox.setHint(UiText.of("moblist.search_hint"));
+        searchBox.setMaxLength(64);
+        searchBox.setResponder(text -> {
+            scroll = 0.0D;
+            rebuild();
+        });
+        addRenderableWidget(searchBox);
+        addRenderableWidget(Button.builder(UiText.of("moblist.rescan"), b -> rescan())
+                .bounds(listRight - 112, searchY, 112, SEARCH_HEIGHT)
                 .build());
         addRenderableWidget(Button.builder(UiText.of("moblist.done"), b -> onClose())
-                .bounds(width / 2 - 155, height - 34, 150, 20)
+                .bounds(width / 2 - 80, height - 30, 160, 20)
                 .build());
-        addRenderableWidget(Button.builder(UiText.of("moblist.rescan"), b -> rescan())
-                .bounds(width / 2 + 5, height - 34, 150, 20)
-                .build());
-
-        for (int i = 0; i < mobIds.size(); i++) {
-            String id = mobIds.get(i);
-            Button remove = Button.builder(UiText.of("moblist.remove"), b -> removeId(id))
-                    .bounds(0, 0, REMOVE_WIDTH, 18)
-                    .build();
-            idRows.add(new IdRow(id, remove));
-        }
+        listTop = searchY + SEARCH_HEIGHT + 16;
+        listBottom = height - 38;
+        rebuild();
     }
 
-    private static Component groupText(ConfigOption.ToggleOption toggle) {
-        String state = UiText.plain(Boolean.TRUE.equals(toggle.value().get()) ? "screen.on" : "screen.off");
-        return Component.literal(UiText.plain(toggle.label()) + ": " + state);
-    }
-
-    private void addId() {
-        if (idBox == null) {
-            return;
-        }
-        String raw = idBox.getValue().trim().toLowerCase(Locale.ROOT);
-        if (raw.isEmpty()) {
-            setHint(UiText.plain("moblist.need_id"), 0xFF8080);
-            return;
-        }
-        ResourceLocation id = ResourceLocation.tryParse(raw);
-        if (id == null || !BuiltInRegistries.ENTITY_TYPE.containsKey(id)) {
-            setHint(UiText.of("moblist.unknown_id", raw).getString(), 0xFF8080);
-            return;
-        }
-        if (mobIds.contains(raw)) {
-            setHint(UiText.plain("moblist.duplicate"), 0xFF8080);
-            return;
-        }
-        mobIds.add(raw);
-        persist();
-        idBox.setValue("");
-        setHint(UiText.of("moblist.added", raw).getString(), 0x80FF80);
-    }
-
-    private void removeId(String id) {
-        mobIds.remove(id);
-        persist();
-        setHint(UiText.of("moblist.removed", id).getString(), 0x80FF80);
-    }
-
-    /* 手动重扫: 按当前规则重新展开注册表并写回列表文件 */
+    /* 扫全部生物写入列表, 之后按当前搜索条件重建行 */
     private void rescan() {
         GunnerMobRegistry.refresh();
-        setHint(UiText.of("moblist.rescanned", MobListConfig.mobs().size()).getString(), 0x80FF80);
+        rebuild();
+        setHint(UiText.of("moblist.rescanned", totalMobs).getString(), 0x80FF80);
     }
 
-    /* 中间层负责把规则展开成具体列表, 界面只改规则 */
-    private void persist() {
-        MobMiddleConfig.setExtraIds(mobIds);
-        MobMiddleConfig.save();
-        GunnerMobRegistry.refresh();
-        clearWidgets();
-        init();
+    private void rebuild() {
+        rows.clear();
+        for (MobMiddleConfig.GroupSwitch group : groups) {
+            Button button = Button.builder(groupText(group), b -> toggleGroup(group, b))
+                    .bounds(0, 0, TOGGLE_WIDTH, 18)
+                    .build();
+            rows.add(new Row(group.label(), button, true));
+        }
+        Map<String, Boolean> states = MobListConfig.states();
+        totalMobs = states.size();
+        enabledMobs = 0;
+        List<String> ids = new ArrayList<>(states.keySet());
+        ids.sort(Comparator.naturalOrder());
+        String query = searchBox == null ? "" : searchBox.getValue().trim().toLowerCase(Locale.ROOT);
+        for (String id : ids) {
+            if (Boolean.TRUE.equals(states.get(id))) {
+                enabledMobs++;
+            }
+            if (!query.isEmpty() && !id.contains(query)) {
+                continue;
+            }
+            Button button = Button.builder(stateText(states.get(id)), b -> toggleMob(id, b))
+                    .bounds(0, 0, TOGGLE_WIDTH, 18)
+                    .build();
+            rows.add(new Row(id, button, false));
+        }
+        scroll = Mth.clamp(scroll, 0.0D, maxScroll());
+    }
+
+    private void toggleGroup(MobMiddleConfig.GroupSwitch group, Button button) {
+        boolean next = !group.getter().getAsBoolean();
+        int changed = GunnerMobRegistry.applyGroup(group, next);
+        button.setMessage(groupText(group));
+        rebuildRowStates();
+        rebuild();
+        setHint(UiText.of("moblist.group_applied", UiText.plain(group.label()), changed).getString(), 0x80FF80);
+    }
+
+    private void toggleMob(String id, Button button) {
+        boolean next = !MobListConfig.isEnabled(id);
+        GunnerMobRegistry.setEnabled(id, next);
+        button.setMessage(stateText(next));
+        rebuildRowStates();
+        enabledMobs = 0;
+        for (Boolean enabled : MobListConfig.states().values()) {
+            if (Boolean.TRUE.equals(enabled)) {
+                enabledMobs++;
+            }
+        }
+    }
+
+    /* 批量改写后刷新所有开关按钮的显示文字 */
+    private void rebuildRowStates() {
+        Map<String, Boolean> states = MobListConfig.states();
+        for (Row row : rows) {
+            if (row.group() || row.label().isEmpty()) {
+                continue;
+            }
+            row.button().setMessage(stateText(states.get(row.label())));
+        }
+    }
+
+    private static Component stateText(@Nullable Boolean enabled) {
+        return Component.literal(UiText.plain(Boolean.TRUE.equals(enabled) ? "screen.on" : "screen.off"));
+    }
+
+    private static Component groupText(MobMiddleConfig.GroupSwitch group) {
+        return stateText(group.getter().getAsBoolean());
     }
 
     private void setHint(String text, int color) {
@@ -161,50 +162,73 @@ public final class MobListScreen extends Screen {
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         renderBackground(graphics);
-        graphics.drawCenteredString(font, title, width / 2, 18, 0xFFFFFF);
-        graphics.drawCenteredString(font, UiText.of("moblist.hint_default"), width / 2, 30, 0x9E9E9E);
-        graphics.drawCenteredString(font, Component.literal(hint.isEmpty() ? UiText.plain("moblist.hint_idle") : hint),
-                width / 2, listTop - 12, hint.isEmpty() ? 0x9E9E9E : hintColor);
-        graphics.fill(listLeft - 4, listTop - 4, listRight + 4, listBottom + 4, 0x66000000);
+        graphics.drawCenteredString(font, title, width / 2, 12, 0xFFFFFF);
+        graphics.drawCenteredString(font, Component.literal(hint.isEmpty() ? UiText.plain("moblist.hint_default") : hint),
+                width / 2, 24, hint.isEmpty() ? 0x9E9E9E : hintColor);
+        graphics.drawString(font, UiText.of("moblist.count", totalMobs, enabledMobs).getString(),
+                listLeft, listTop - 12, 0x9E9E9E, false);
+        graphics.fill(listLeft - 4, listTop - 4, listRight + 20, listBottom + 4, 0x66000000);
         scroll = Mth.clamp(scroll, 0.0D, maxScroll());
         graphics.enableScissor(listLeft, listTop, listRight, listBottom);
-        for (int i = 0; i < idRows.size(); i++) {
-            IdRow row = idRows.get(i);
+        for (int i = 0; i < rows.size(); i++) {
+            Row row = rows.get(i);
             int rowY = listTop + i * ROW_HEIGHT - (int) scroll;
             boolean visible = rowY + ROW_HEIGHT > listTop && rowY < listBottom;
-            row.button().visible = visible;
+            Button button = row.button();
+            button.visible = visible;
             if (!visible) {
                 continue;
             }
-            row.button().setX(listRight - REMOVE_WIDTH - 4);
-            row.button().setY(rowY + 2);
-            graphics.drawString(font, row.id(), listLeft + 8, rowY + 6, 0xE0E0E0, false);
-            row.button().render(graphics, mouseX, mouseY, partialTick);
+            button.setX(listRight - TOGGLE_WIDTH - 6);
+            button.setY(rowY + 1);
+            graphics.drawString(font, UiText.plain(row.label()), listLeft + 8, rowY + 6,
+                    row.group() ? 0xFFD080 : 0xE0E0E0, false);
+            button.render(graphics, mouseX, mouseY, partialTick);
         }
-        if (idRows.isEmpty()) {
-            graphics.drawString(font, UiText.of("moblist.empty"), listLeft + 8, listTop + 6, 0x808080, false);
+        if (rows.size() == groups.size()) {
+            graphics.drawString(font, UiText.of("moblist.empty").getString(), listLeft + 8, listTop + 6, 0x808080, false);
         }
         graphics.disableScissor();
+        scrollbar.update(listRight + 8, listTop, listBottom, scroll, maxScroll());
+        scrollbar.render(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);
     }
 
     private double maxScroll() {
-        int contentHeight = idRows.size() * ROW_HEIGHT;
+        int contentHeight = rows.size() * ROW_HEIGHT;
         int viewHeight = Math.max(1, listBottom - listTop);
         return Math.max(0.0D, contentHeight - viewHeight);
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (scrollbar.mouseClicked(mouseX, mouseY)) {
+            return true;
+        }
         boolean inside = mouseX >= listLeft && mouseX <= listRight && mouseY >= listTop && mouseY <= listBottom;
         if (inside) {
-            for (IdRow row : idRows) {
+            for (Row row : rows) {
                 if (row.button().visible && row.button().mouseClicked(mouseX, mouseY, button)) {
                     return true;
                 }
             }
         }
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        scrollbar.mouseReleased();
+        return super.mouseReleased(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (scrollbar.isDragging()) {
+            scrollbar.mouseDragged(mouseY);
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
     }
 
     @Override
@@ -228,6 +252,6 @@ public final class MobListScreen extends Screen {
         return false;
     }
 
-    private record IdRow(String id, Button button) {
+    private record Row(String label, Button button, boolean group) {
     }
 }

@@ -44,7 +44,6 @@ public final class ServerConfig {
     private static final ForgeConfigSpec.DoubleValue GUNNER_RETALIATION_CHANCE;
     private static final ForgeConfigSpec.IntValue GUNNER_BASE_AMMO;
     private static final ForgeConfigSpec.IntValue GUNNER_RANDOM_ATTACHMENT_SLOTS;
-    private static final ForgeConfigSpec.BooleanValue GUNNER_ALLOW_NON_HUMANOID;
     private static final ForgeConfigSpec.BooleanValue GUNNER_FORCED_RETALIATION;
     private static final ForgeConfigSpec.DoubleValue GUNNER_HIGH_TIER_AMMO_CHANCE;
     private static final ForgeConfigSpec.DoubleValue GUNNER_AMMO_DROP_MULTIPLIER;
@@ -136,10 +135,6 @@ public final class ServerConfig {
         GUNNER_RANDOM_ATTACHMENT_SLOTS = BUILDER
                 .comment("每把枪最多随机安装的配件数量, 每个槽位还有单独的概率判定")
                 .defineInRange("randomAttachmentSlots", 2, 0, 4);
-        GUNNER_ALLOW_NON_HUMANOID = BUILDER
-                .comment("是否允许没有手部挂载部位的生物持械, 例如苦力怕, 蜘蛛, 史莱姆与恶魂",
-                        "这类生物持械后能开火, 但枪械不会显示在模型上; 关闭后只让能正常持握物品的类型持械")
-                .define("allowNonHumanoid", true);
         GUNNER_FORCED_RETALIATION = BUILDER
                 .comment("是否强制反击伤害来源",
                         "开启时无论伤害来源是谁都会立刻还击; 关闭时先判断敌对关系, 同类与盟友之间不还击")
@@ -255,10 +250,6 @@ public final class ServerConfig {
         return value(GUNNER_ARMOR_DROP_CHANCE, 0.05D);
     }
 
-    public static boolean gunnerAllowNonHumanoid() {
-        return value(GUNNER_ALLOW_NON_HUMANOID, true);
-    }
-
     public static boolean gunnerForcedRetaliation() {
         return value(GUNNER_FORCED_RETALIATION, true);
     }
@@ -300,12 +291,11 @@ public final class ServerConfig {
                 new ConfigOptionGroup("group.basic", List.of(
                         new ConfigOption.ToggleOption("opt.enabled", GUNNER_ENABLED),
                         new ConfigOption.ToggleOption("opt.difficulty", GUNNER_DIFFICULTY_SCALING))),
+                new ConfigOptionGroup("group.candidates", List.of(
+                        new ConfigOption.ToggleOption("opt.forced_retaliation", GUNNER_FORCED_RETALIATION))),
                 new ConfigOptionGroup("group.spawn", List.of(
                         new ConfigOption.DoubleOption("opt.spawn_chance", GUNNER_SPAWN_CHANCE, 0.0D, 1.0D, 0.01D),
                         new ConfigOption.DoubleOption("opt.spawner_chance", GUNNER_SPAWNER_CHANCE, 0.0D, 1.0D, 0.01D))),
-                new ConfigOptionGroup("group.candidates", List.of(
-                        new ConfigOption.ToggleOption("opt.allow_non_humanoid", GUNNER_ALLOW_NON_HUMANOID),
-                        new ConfigOption.ToggleOption("opt.forced_retaliation", GUNNER_FORCED_RETALIATION))),
                 new ConfigOptionGroup("group.targeting", List.of(
                         new ConfigOption.DoubleOption("opt.target_range", GUNNER_TARGET_RANGE, 4.0D, 64.0D, 1.0D),
                         new ConfigOption.DoubleOption("opt.fire_range", GUNNER_FIRE_RANGE, 4.0D, 64.0D, 1.0D),
