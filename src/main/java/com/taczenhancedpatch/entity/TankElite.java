@@ -6,6 +6,10 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.damagesource.DamageSource;
+import com.taczenhancedpatch.faction.FactionData;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.PathfinderMob;
@@ -83,6 +87,97 @@ public class TankElite extends Monster {
             }
         }
         return data;
+    }
+
+    /* 最多四名小兵骑在肩部; 玩家只能驾驶无阵营且空载的坦克, 且此时不再接受小兵 */
+    @Override
+    protected boolean canAddPassenger(Entity passenger) {
+        if (passenger instanceof Player) {
+            return FactionData.factionOf(this).isEmpty() && this.getPassengers().isEmpty();
+        }
+        if (!(passenger instanceof GunnerGrunt)) {
+            return false;
+        }
+        if (this.hasExactlyOnePlayerPassenger()) {
+            return false;
+        }
+        return this.getPassengers().size() < 4;
+    }
+
+    @Override
+    public void positionRider(Entity passenger, Entity.MoveFunction move) {
+        if (!this.hasPassenger(passenger)) {
+            return;
+        }
+        if (passenger instanceof Player) {
+            move.accept(passenger, 0.0D, 2.05D, -0.15D);
+            return;
+        }
+        int index = Math.floorMod(this.getPassengers().indexOf(passenger), 4);
+        double[][] offsets = {
+                {-0.95D, 1.55D, -0.55D},
+                {0.95D, 1.55D, -0.55D},
+                {-0.95D, 1.55D, 0.65D},
+                {0.95D, 1.55D, 0.65D}
+        };
+        double[] offset = offsets[index];
+        double yaw = Math.toRadians(this.getYRot());
+        double x = offset[0] * Math.cos(yaw) - offset[2] * Math.sin(yaw);
+        double z = offset[0] * Math.sin(yaw) + offset[2] * Math.cos(yaw);
+        move.accept(passenger, x, offset[1], z);
+    }
+
+    @Override
+    protected void addPassenger(Entity passenger) {
+        super.addPassenger(passenger);
+        if (!this.level().isClientSide()) {
+            adoptFaction(passenger);
+            TankCrew.refresh(this);
+        }
+    }
+
+    @Override
+    protected void removePassenger(Entity passenger) {
+        super.removePassenger(passenger);
+        if (!this.level().isClientSide()) {
+            TankCrew.refresh(this);
+        }
+    }
+
+    /* 有阵营的小兵骑上无阵营坦克后, 坦克归入该小兵的阵营 */
+    private void adoptFaction(Entity passenger) {
+        if (!(passenger instanceof GunnerGrunt)) {
+            return;
+        }
+        if (!FactionData.factionOf(this).isEmpty() || FactionData.factionOf(passenger).isEmpty()) {
+            return;
+        }
+        FactionData.setFaction(this, FactionData.factionOf(passenger));
+        FactionData.setHome(this, FactionData.homeOf(passenger));
+    }
+
+    /* 无阵营坦克允许玩家骑乘 */
+    @Override
+    protected InteractionResult mobInteract(Player player, InteractionHand hand) {
+        if (FactionData.factionOf(this).isEmpty() && this.getPassengers().isEmpty()
+                && !player.isShiftKeyDown() && !this.level().isClientSide()) {
+            player.startRiding(this);
+            return InteractionResult.SUCCESS;
+        }
+        return super.mobInteract(player, hand);
+    }
+
+    @Override
+    @Nullable
+    public LivingEntity getControllingPassenger() {
+        if (FactionData.factionOf(this).isEmpty()) {
+            for (Entity passenger : this.getPassengers()) {
+                if (passenger instanceof Player player) {
+                    return player;
+                }
+            }
+        }
+        return super.getControllingPassenger();
     }
 
     @Override

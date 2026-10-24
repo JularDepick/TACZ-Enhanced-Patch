@@ -1,12 +1,17 @@
 package com.taczenhancedpatch.faction;
 
 import com.taczenhancedpatch.TACZEnhancedPatch;
+import com.taczenhancedpatch.entity.TankElite;
+import com.taczenhancedpatch.entity.TankRegistry;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -36,6 +41,11 @@ public final class FactionCombat {
         if (!(source instanceof LivingEntity attacker) || attacker == victim) {
             return;
         }
+        /* 同乘一个组合体的成员之间不误伤 */
+        if (victim.isPassengerOfSameVehicle(attacker)) {
+            event.setCanceled(true);
+            return;
+        }
         /* 同阵营与合作阵营之间不误伤 */
         if (Factions.allied(victim, attacker)) {
             event.setCanceled(true);
@@ -61,6 +71,31 @@ public final class FactionCombat {
             ally.setTarget(attacker);
             ally.setLastHurtByMob(attacker);
         }
+    }
+
+    /* 有阵营的坦克被击杀后复活为无阵营坦克, 递归深度上限三次 */
+    @SubscribeEvent
+    public static void onLivingDeath(LivingDeathEvent event) {
+        if (!(event.getEntity() instanceof TankElite tank) || tank.level().isClientSide()) {
+            return;
+        }
+        String faction = FactionData.factionOf(tank);
+        int depth = FactionData.reviveDepth(tank);
+        if (faction.isEmpty() || depth >= 3 || !(tank.level() instanceof ServerLevel level)) {
+            return;
+        }
+        TankElite reborn = TankRegistry.TANK_ELITE.get().create(level);
+        if (reborn == null) {
+            return;
+        }
+        reborn.moveTo(tank.getX(), tank.getY(), tank.getZ(), tank.getYRot(), 0.0F);
+        FactionData.setFaction(reborn, Factions.NONE);
+        FactionData.setHome(reborn, null);
+        FactionData.setReviveDepth(reborn, depth + 1);
+        reborn.finalizeSpawn(level, level.getCurrentDifficultyAt(tank.blockPosition()),
+                MobSpawnType.MOB_SUMMONED, null, null);
+        reborn.setHealth(reborn.getMaxHealth());
+        level.addFreshEntity(reborn);
     }
 
     @SubscribeEvent
