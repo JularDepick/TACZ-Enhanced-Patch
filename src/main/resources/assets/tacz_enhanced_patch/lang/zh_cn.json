@@ -9,6 +9,7 @@
   "tacz_enhanced_patch.screen.cancel": "取消",
   "tacz_enhanced_patch.screen.mob_list": "生物持械配置",
   "tacz_enhanced_patch.screen.open": "打开",
+  "tacz_enhanced_patch.screen.color_hint": "颜色格式为 6 位十六进制, 例如 FF0000; 非法输入不会保存",
   "tacz_enhanced_patch.screen.on": "开",
   "tacz_enhanced_patch.screen.off": "关",
   "tacz_enhanced_patch.moblist.title": "生物持械配置",

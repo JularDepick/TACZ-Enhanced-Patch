@@ -21,4 +21,8 @@ public sealed interface ConfigOption {
 
     record TextOption(String label, ForgeConfigSpec.ConfigValue<String> value) implements ConfigOption {
     }
+
+    /* 六位十六进制颜色项: 界面按颜色格式校验并实时预览 */
+    record ColorOption(String label, ForgeConfigSpec.ConfigValue<String> value) implements ConfigOption {
+    }
 }

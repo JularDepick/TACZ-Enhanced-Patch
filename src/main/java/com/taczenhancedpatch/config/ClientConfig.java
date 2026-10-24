@@ -32,10 +32,10 @@ public final class ClientConfig {
             .define("headingRuler", false);
 
     private static final ForgeConfigSpec.ConfigValue<String> HEADING_RULER_COLOR = BUILDER
-            .comment("方向标尺的强调色, 8 位十六进制 ARGB 颜色, 默认纯红",
-                    "写法示例: FFFF0000 为不透明红, 80FF0000 为半透明红",
-                    "6 位写法按不透明处理, 非法值回退到默认纯红")
-            .define("headingRulerColor", "FFFF0000");
+            .comment("方向标尺的强调色, 6 位十六进制 RGB 颜色, 默认纯红",
+                    "写法示例: FF0000 为纯红, 00FF88 为青绿",
+                    "配置界面会实时预览所选颜色, 非法值回退到默认纯红")
+            .define("headingRulerColor", "FF0000");
 
     public static final ForgeConfigSpec SPEC = BUILDER.build();
 
@@ -69,29 +69,48 @@ public final class ClientConfig {
     /* 方向标尺的强调色, 读取失败或写法非法时回退默认纯红 */
     public static int headingRulerColor() {
         try {
-            return parseArgb(HEADING_RULER_COLOR.get(), DEFAULT_HEADING_COLOR);
+            return parseRgb(HEADING_RULER_COLOR.get(), DEFAULT_HEADING_COLOR);
         } catch (IllegalStateException ignored) {
             return DEFAULT_HEADING_COLOR;
         }
     }
 
-    /* 把 6 位或 8 位十六进制文本解析为 ARGB, 非法时返回兜底色 */
-    public static int parseArgb(@Nullable String raw, int fallback) {
+    /* 是否为合法的 6 位十六进制 RGB 文本, 配置界面的输入校验共用此判定 */
+    public static boolean isValidRgb(@Nullable String raw) {
         if (raw == null) {
+            return false;
+        }
+        String text = normalize(raw);
+        if (text.length() != 6) {
+            return false;
+        }
+        for (int i = 0; i < text.length(); i++) {
+            if (Character.digit(text.charAt(i), 16) < 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /* 把 6 位十六进制文本解析为不透明 ARGB, 非法时返回兜底色 */
+    public static int parseRgb(@Nullable String raw, int fallback) {
+        if (!isValidRgb(raw)) {
             return fallback;
         }
-        String text = raw.trim().replace("#", "");
-        if (text.length() == 6) {
-            text = "FF" + text;
+        int rgb = (int) Long.parseLong(normalize(raw), 16);
+        return 0xFF000000 | (rgb & 0xFFFFFF);
+    }
+
+    /* 去掉首尾空白与井号, 便于界面输入与解析共用 */
+    public static String normalize(@Nullable String raw) {
+        if (raw == null) {
+            return "";
         }
-        if (text.length() != 8) {
-            return fallback;
+        String text = raw.trim();
+        while (text.startsWith("#")) {
+            text = text.substring(1);
         }
-        try {
-            return (int) (Long.parseLong(text, 16) & 0xFFFFFFFFL);
-        } catch (NumberFormatException ignored) {
-            return fallback;
-        }
+        return text;
     }
 
     public static List<ConfigOptionGroup> groups() {
@@ -99,7 +118,7 @@ public final class ClientConfig {
                 new ConfigOption.ToggleOption("opt.auto_reload", AUTO_RELOAD),
                 new ConfigOption.ToggleOption("opt.hit_indicator", HIT_INDICATOR),
                 new ConfigOption.ToggleOption("opt.heading_ruler", HEADING_RULER),
-                new ConfigOption.TextOption("opt.heading_ruler_color", HEADING_RULER_COLOR))));
+                new ConfigOption.ColorOption("opt.heading_ruler_color", HEADING_RULER_COLOR))));
     }
 
     public static void save() {

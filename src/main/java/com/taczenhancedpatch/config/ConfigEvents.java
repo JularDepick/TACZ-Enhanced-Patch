@@ -10,7 +10,8 @@ import javax.annotation.Nullable;
 
 /**
  * 配置生命周期。
- * 分别保存客户端与服务端配置对象, 供配置界面在修改后立即写盘。
+ * 保存客户端与服务端配置对象, 供配置界面在修改后立即写盘;
+ * 生物名单与分组改用独立 JSON 存储后不再需要在这里登记。
  */
 @Mod.EventBusSubscriber(modid = TACZEnhancedPatch.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class ConfigEvents {
@@ -18,10 +19,6 @@ public final class ConfigEvents {
     private static ModConfig clientConfig;
     @Nullable
     private static ModConfig serverConfig;
-    @Nullable
-    private static ModConfig mobMiddleConfig;
-    @Nullable
-    private static ModConfig mobListConfig;
 
     private ConfigEvents() {
     }
@@ -33,10 +30,6 @@ public final class ConfigEvents {
             clientConfig = config;
         } else if (config.getSpec() == ServerConfig.SPEC) {
             serverConfig = config;
-        } else if (config.getSpec() == MobMiddleConfig.SPEC) {
-            mobMiddleConfig = config;
-        } else if (config.getSpec() == MobListConfig.SPEC) {
-            mobListConfig = config;
         }
     }
 
@@ -48,15 +41,5 @@ public final class ConfigEvents {
     @Nullable
     public static ModConfig serverConfig() {
         return serverConfig;
-    }
-
-    @Nullable
-    public static ModConfig mobMiddleConfig() {
-        return mobMiddleConfig;
-    }
-
-    @Nullable
-    public static ModConfig mobListConfig() {
-        return mobListConfig;
     }
 }

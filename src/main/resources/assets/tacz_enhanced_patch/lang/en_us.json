@@ -9,6 +9,7 @@
   "tacz_enhanced_patch.screen.cancel": "Cancel",
   "tacz_enhanced_patch.screen.mob_list": "Mob arming config",
   "tacz_enhanced_patch.screen.open": "Open",
+  "tacz_enhanced_patch.screen.color_hint": "Color format is six hex digits, for example FF0000; invalid input is not saved",
   "tacz_enhanced_patch.screen.on": "ON",
   "tacz_enhanced_patch.screen.off": "OFF",
   "tacz_enhanced_patch.moblist.title": "Mob Arming Config",

@@ -6,6 +6,7 @@ import com.taczenhancedpatch.config.ConfigOption;
 import com.taczenhancedpatch.config.ConfigOptionGroup;
 import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.util.UiText;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -15,6 +16,7 @@ import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
+import net.minecraftforge.common.ForgeConfigSpec;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -26,18 +28,30 @@ import java.util.function.DoubleConsumer;
 
 /**
  * 模组配置页。
- * 存档创建者打开时顶部出现客户端与服务端两个页签, 一步就能切到目标参数;
- * 其余玩家只看到客户端页, 并在标题下方提示服务端设置由创建者维护。
- * 服务端页把纯按钮与调试类条目排在参数组之前, 生物持械配置的入口固定在第一行。
+ * 顶部是标题与客户端/服务端页签, 只有存档创建者能在两页之间切换;
+ * 列表按分组渲染开关, 数值与颜色项, 分组条带左侧强调线, 行底色交替并在悬停时高亮;
+ * 服务端页第一行固定是生物持械配置入口, 底部是保存与取消。
  */
 public final class PatchConfigScreen extends Screen {
-    private static final int LIST_WIDTH = 380;
-    private static final int ROW_HEIGHT = 24;
+    private static final int LIST_WIDTH = 400;
+    private static final int ROW_HEIGHT = 26;
     private static final int WIDGET_WIDTH = 190;
-    private static final int LIST_BOTTOM_MARGIN = 46;
-    private static final int TAB_WIDTH = 96;
+    private static final int BUTTON_ROW_WIDTH = 96;
+    private static final int LIST_BOTTOM_MARGIN = 54;
+    private static final int TAB_WIDTH = 100;
     private static final int TAB_HEIGHT = 18;
-    private static final int TAB_GAP = 6;
+    private static final int TAB_GAP = 4;
+    private static final int HEADER_HEIGHT = 46;
+    private static final int ACCENT_COLOR = 0xFFFFB300;
+    private static final int TITLE_COLOR = 0xFFFFFFFF;
+    private static final int LABEL_COLOR = 0xE6E6E6;
+    private static final int MUTED_COLOR = 0x9AA0A6;
+    private static final int GROUP_COLOR = 0xFFD080;
+    private static final int ROW_DARK = 0x26000000;
+    private static final int ROW_LIGHT = 0x12000000;
+    private static final int HOVER_COLOR = 0x24FFFFFF;
+    private static final int BORDER_COLOR = 0xFF5A5F66;
+    private static final int ERROR_COLOR = 0xFFFF5555;
 
     private final Screen parent;
     private final boolean owner;
@@ -45,6 +59,7 @@ public final class PatchConfigScreen extends Screen {
     private final List<ConfigOptionGroup> serverGroups;
     private final Map<ConfigOption, Object> originals = new IdentityHashMap<>();
     private final List<Row> rows = new ArrayList<>();
+    private final List<ColorField> colorFields = new ArrayList<>();
     private final List<EditBox> textFields = new ArrayList<>();
     private final ScrollBar scrollbar = new ScrollBar(value -> scroll = value);
     private boolean serverSection;
@@ -64,7 +79,6 @@ public final class PatchConfigScreen extends Screen {
     public PatchConfigScreen(@Nullable Screen parent, boolean serverSection) {
         super(UiText.of("screen.config.title"));
         this.parent = parent;
-        /* 只有存档创建者可以编辑服务端参数, 其余玩家一律落在客户端页 */
         this.owner = ConfigAccess.isWorldOwner();
         this.serverSection = serverSection && this.owner;
         this.clientGroups = ClientConfig.groups();
@@ -93,7 +107,7 @@ public final class PatchConfigScreen extends Screen {
     protected void init() {
         listLeft = (width - LIST_WIDTH) / 2;
         listRight = listLeft + LIST_WIDTH;
-        listTop = owner ? 48 : 42;
+        listTop = HEADER_HEIGHT + 6;
         listBottom = height - LIST_BOTTOM_MARGIN;
         if (owner) {
             int left = width / 2 - TAB_WIDTH - TAB_GAP / 2;
@@ -114,7 +128,6 @@ public final class PatchConfigScreen extends Screen {
         rebuildRows();
     }
 
-    /* 切换页签时重建条目, 已改动但未保存的数值留在配置对象里, 取消时统一回滚 */
     private void switchSection(boolean server) {
         if (server == serverSection) {
             return;
@@ -125,7 +138,6 @@ public final class PatchConfigScreen extends Screen {
         updateTabs();
     }
 
-    /* 当前页签置灰, 一眼看出停在哪一页 */
     private void updateTabs() {
         if (clientTab != null) {
             clientTab.active = serverSection;
@@ -137,27 +149,26 @@ public final class PatchConfigScreen extends Screen {
 
     private void rebuildRows() {
         rows.clear();
+        colorFields.clear();
         textFields.clear();
         if (serverSection) {
-            /* 纯按钮入口排在最前, 不必滚到界面与调试组 */
             Button mobListButton = Button.builder(UiText.of("screen.open"), button -> {
                 if (minecraft != null) {
                     minecraft.setScreen(new MobListScreen(this));
                 }
-            }).bounds(0, 0, WIDGET_WIDTH, 20).build();
-            rows.add(new Row("screen.mob_list", mobListButton, false));
+            }).bounds(0, 0, BUTTON_ROW_WIDTH, 20).build();
+            rows.add(new Row("screen.mob_list", mobListButton, RowKind.BUTTON));
         }
         for (ConfigOptionGroup group : currentGroups()) {
-            rows.add(new Row(group.label(), null, true));
-            /* 组内先排开关项, 再排数值与文本项, 开关最显眼 */
+            rows.add(new Row(group.label(), null, RowKind.GROUP));
             for (ConfigOption option : group.options()) {
                 if (option instanceof ConfigOption.ToggleOption) {
-                    rows.add(new Row(option.label(), createWidget(option), false));
+                    rows.add(new Row(option.label(), createWidget(option), RowKind.OPTION));
                 }
             }
             for (ConfigOption option : group.options()) {
                 if (!(option instanceof ConfigOption.ToggleOption)) {
-                    rows.add(new Row(option.label(), createWidget(option), false));
+                    rows.add(new Row(option.label(), createWidget(option), RowKind.OPTION));
                 }
             }
         }
@@ -174,48 +185,75 @@ public final class PatchConfigScreen extends Screen {
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         renderBackground(graphics);
-        if (owner) {
-            graphics.drawCenteredString(font, UiText.of(serverSection ? "screen.server.title" : "screen.client.title"),
-                    width / 2, 6, 0xFFFFFF);
-        } else {
-            graphics.drawCenteredString(font, title, width / 2, 16, 0xFFFFFF);
-            graphics.drawCenteredString(font, UiText.of("screen.hint.client_only"), width / 2, 28, 0x9E9E9E);
-        }
-        graphics.fill(listLeft - 4, listTop - 4, listRight + 20, listBottom + 4, 0x66000000);
+        drawHeader(graphics);
+        graphics.fill(listLeft - 6, listTop - 6, listRight + 22, listBottom + 6, 0x99000000);
         scroll = Mth.clamp(scroll, 0.0D, maxScroll());
         graphics.enableScissor(listLeft, listTop, listRight, listBottom);
-        for (int i = 0; i < rows.size(); i++) {
-            Row row = rows.get(i);
-            int rowY = listTop + i * ROW_HEIGHT - (int) scroll;
+        int index = 0;
+        for (Row row : rows) {
+            int rowY = listTop + index * ROW_HEIGHT - (int) scroll;
+            index++;
             boolean visible = rowY + ROW_HEIGHT > listTop && rowY < listBottom;
             AbstractWidget widget = row.widget();
             if (widget != null) {
                 widget.visible = visible;
                 if (visible) {
-                    widget.setX(listRight - WIDGET_WIDTH - 6);
-                    widget.setY(rowY + 2);
+                    int widgetWidth = row.kind() == RowKind.BUTTON ? BUTTON_ROW_WIDTH : WIDGET_WIDTH;
+                    widget.setX(listRight - widgetWidth - 8);
+                    widget.setY(rowY + 3);
                 }
             }
             if (!visible) {
                 continue;
             }
-            if (row.header()) {
-                graphics.drawString(font, UiText.plain(row.label()), listLeft + 6, rowY + 7, 0xFFD080, false);
+            boolean hovered = mouseX >= listLeft && mouseX <= listRight
+                    && mouseY >= rowY && mouseY < rowY + ROW_HEIGHT;
+            if (row.kind() == RowKind.GROUP) {
+                graphics.fill(listLeft, rowY + 2, listRight, rowY + ROW_HEIGHT - 2, 0x33000000);
+                graphics.fill(listLeft, rowY + 2, listLeft + 3, rowY + ROW_HEIGHT - 2, ACCENT_COLOR);
+                graphics.drawString(font, UiText.plain(row.label()), listLeft + 10, rowY + 9, GROUP_COLOR, false);
                 continue;
             }
-            if (widget == null) {
-                continue;
+            graphics.fill(listLeft, rowY + 1, listRight, rowY + ROW_HEIGHT - 1,
+                    index % 2 == 0 ? ROW_DARK : ROW_LIGHT);
+            if (hovered) {
+                graphics.fill(listLeft, rowY + 1, listRight, rowY + ROW_HEIGHT - 1, HOVER_COLOR);
             }
-            graphics.drawString(font, UiText.plain(row.label()), listLeft + 14, rowY + 7, 0xE0E0E0, false);
-            widget.render(graphics, mouseX, mouseY, partialTick);
+            graphics.drawString(font, UiText.plain(row.label()), listLeft + 10, rowY + 9, LABEL_COLOR, false);
+            if (widget != null) {
+                widget.render(graphics, mouseX, mouseY, partialTick);
+            }
         }
         graphics.disableScissor();
+        if (hasInvalidColor()) {
+            graphics.drawString(font, UiText.plain("screen.color_hint"), listLeft, listBottom + 4, ERROR_COLOR, false);
+        }
         syncScrollbar();
         scrollbar.render(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);
     }
 
-    /* 让滚动条的轨道位置与当前滚动量保持同步, 点击判定前也要刷新一次 */
+    private void drawHeader(GuiGraphics graphics) {
+        graphics.fill(0, 0, width, HEADER_HEIGHT, 0xE6000000);
+        graphics.fill(0, HEADER_HEIGHT - 1, width, HEADER_HEIGHT, 0x40FFFFFF);
+        if (owner) {
+            graphics.drawCenteredString(font, UiText.of(serverSection ? "screen.server.title" : "screen.client.title"),
+                    width / 2, 6, TITLE_COLOR);
+        } else {
+            graphics.drawCenteredString(font, title, width / 2, 8, TITLE_COLOR);
+            graphics.drawCenteredString(font, UiText.of("screen.hint.client_only"), width / 2, 22, MUTED_COLOR);
+        }
+    }
+
+    private boolean hasInvalidColor() {
+        for (ColorField field : colorFields) {
+            if (!field.isValid()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void syncScrollbar() {
         scrollbar.update(listRight + 8, listTop, listBottom, scroll, maxScroll());
     }
@@ -231,7 +269,6 @@ public final class PatchConfigScreen extends Screen {
                 AbstractWidget widget = row.widget();
                 if (widget != null && widget.visible && widget.mouseClicked(mouseX, mouseY, button)) {
                     dragging = widget;
-                    /* 文本框需要由本页转交键盘事件 */
                     setFocused(widget instanceof EditBox ? widget : null);
                     return true;
                 }
@@ -296,6 +333,9 @@ public final class PatchConfigScreen extends Screen {
 
     private void finish(boolean saveNow) {
         if (saveNow) {
+            for (ColorField field : colorFields) {
+                field.commitValidValue();
+            }
             ClientConfig.save();
             if (owner) {
                 ServerConfig.save();
@@ -346,10 +386,16 @@ public final class PatchConfigScreen extends Screen {
                     1.0D, true, fraction,
                     value -> intOption.value().set((int) Math.round(Mth.clamp(value, intOption.min(), intOption.max()))));
         }
+        if (option instanceof ConfigOption.ColorOption colorOption) {
+            ColorField field = new ColorField(font, colorOption.value(), readText(colorOption.value()));
+            colorFields.add(field);
+            textFields.add(field);
+            return field;
+        }
         if (option instanceof ConfigOption.TextOption textOption) {
             EditBox box = new EditBox(font, 0, 0, WIDGET_WIDTH, 20, UiText.of(textOption.label()));
-            box.setMaxLength(16);
-            box.setValue(readText(textOption));
+            box.setMaxLength(32);
+            box.setValue(readText(textOption.value()));
             box.setResponder(value -> {
                 try {
                     textOption.value().set(value);
@@ -362,9 +408,9 @@ public final class PatchConfigScreen extends Screen {
         throw new IllegalStateException("unsupported option " + option.label());
     }
 
-    private static String readText(ConfigOption.TextOption option) {
+    private static String readText(ForgeConfigSpec.ConfigValue<String> value) {
         try {
-            return option.value().get();
+            return value.get();
         } catch (IllegalStateException ignored) {
             return "";
         }
@@ -385,7 +431,10 @@ public final class PatchConfigScreen extends Screen {
             return intOption.value().get();
         }
         if (option instanceof ConfigOption.TextOption textOption) {
-            return readText(textOption);
+            return readText(textOption.value());
+        }
+        if (option instanceof ConfigOption.ColorOption colorOption) {
+            return readText(colorOption.value());
         }
         return null;
     }
@@ -402,10 +451,79 @@ public final class PatchConfigScreen extends Screen {
             intOption.value().set(((Number) value).intValue());
         } else if (option instanceof ConfigOption.TextOption textOption) {
             textOption.value().set(String.valueOf(value));
+        } else if (option instanceof ConfigOption.ColorOption colorOption) {
+            colorOption.value().set(String.valueOf(value));
         }
     }
 
-    private record Row(String label, @Nullable AbstractWidget widget, boolean header) {
+    /* 颜色项: 六位十六进制输入框, 右侧实时预览方块, 非法输入时边框与提示变红 */
+    private final class ColorField extends EditBox {
+        private static final int BOX_WIDTH = 150;
+        private static final int SWATCH_SIZE = 16;
+        private static final String FALLBACK = "FF0000";
+        private final ForgeConfigSpec.ConfigValue<String> holder;
+        private String lastValid;
+
+        private ColorField(Font font, ForgeConfigSpec.ConfigValue<String> holder, String initial) {
+            super(font, 0, 0, BOX_WIDTH, 20, UiText.of("opt.heading_ruler_color"));
+            this.holder = holder;
+            this.lastValid = ClientConfig.isValidRgb(initial) ? ClientConfig.normalize(initial) : FALLBACK;
+            setMaxLength(7);
+            setValue(initial == null ? "" : initial);
+            setResponder(value -> {
+                if (ClientConfig.isValidRgb(value)) {
+                    this.lastValid = ClientConfig.normalize(value);
+                }
+                try {
+                    holder.set(value);
+                } catch (IllegalStateException ignored) {
+                }
+            });
+        }
+
+        private boolean isValid() {
+            return ClientConfig.isValidRgb(getValue());
+        }
+
+        /* 保存时把非法输入回退成最近一次合法值, 保证配置里不留脏数据 */
+        private void commitValidValue() {
+            if (isValid()) {
+                try {
+                    holder.set(ClientConfig.normalize(getValue()));
+                } catch (IllegalStateException ignored) {
+                }
+                return;
+            }
+            setValue(lastValid);
+            try {
+                holder.set(lastValid);
+            } catch (IllegalStateException ignored) {
+            }
+        }
+
+        private int previewColor() {
+            return ClientConfig.parseRgb(isValid() ? getValue() : lastValid, 0xFFFF0000);
+        }
+
+        @Override
+        public void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+            int border = isValid() ? BORDER_COLOR : ERROR_COLOR;
+            graphics.fill(getX() - 1, getY() - 1, getX() + BOX_WIDTH + 1, getY() + 21, border);
+            graphics.fill(getX(), getY(), getX() + BOX_WIDTH, getY() + 20, 0xFF000000);
+            super.renderWidget(graphics, mouseX, mouseY, partialTick);
+            int swatchX = getX() + BOX_WIDTH + 6;
+            graphics.fill(swatchX - 1, getY(), swatchX + SWATCH_SIZE + 1, getY() + SWATCH_SIZE + 2, BORDER_COLOR);
+            graphics.fill(swatchX, getY() + 1, swatchX + SWATCH_SIZE, getY() + SWATCH_SIZE + 1, previewColor());
+        }
+    }
+
+    private record Row(String label, @Nullable AbstractWidget widget, RowKind kind) {
+    }
+
+    private enum RowKind {
+        GROUP,
+        OPTION,
+        BUTTON
     }
 
     private static final class NumberSlider extends AbstractSliderButton {

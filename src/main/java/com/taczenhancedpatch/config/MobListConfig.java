@@ -1,116 +1,118 @@
 package com.taczenhancedpatch.config;
 
-import net.minecraftforge.common.ForgeConfigSpec;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.taczenhancedpatch.TACZEnhancedPatch;
+import net.minecraftforge.fml.loading.FMLPaths;
 
-import javax.annotation.Nullable;
-import java.util.ArrayList;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * 生物持械配置。
- * 每个生物占一条记录, 形如 实体ID=开关, 开关为 true 表示该生物可以持械。
- * 记录同时保存在运行期缓存里, 因此即使服务端配置尚未加载(例如标题界面),
- * 扫描结果与界面依然可用; 配置加载后再把缓存写回文件。
+ * 数据写在 config 目录下的独立 JSON 文件里, 不依赖 Forge 配置的加载时机,
+ * 因此无论配置界面在标题界面还是存档内打开, 都能读到完整名单并立即写盘。
+ * 文件形如 {"mobs": {"minecraft:zombie": true, ...}}, 键是实体 ID, 值是开关。
  */
 public final class MobListConfig {
-    private static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
-    private static final String SEPARATOR = "=";
+    private static final String FILE_NAME = "tacz_enhanced_patch-moblist.json";
+    private static final String ROOT_KEY = "mobs";
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
-    private static final ForgeConfigSpec.ConfigValue<List<? extends String>> MOBS = BUILDER
-            .comment("生物持械配置, 每项形如 实体ID=开关, 例如 minecraft:zombie=true",
-                    "进入世界时扫描全部生物写入本表, 新条目默认关闭",
-                    "需要调整时在生物持械配置页勾选分组或逐项开关, 不要直接手改")
-            .defineListAllowEmpty("mobs", List.of(), element -> element instanceof String);
-
-    public static final ForgeConfigSpec SPEC = BUILDER.build();
-
-    /* 运行期缓存: 配置未加载时界面与判定都读这里, 配置可用时每次读盘后刷新 */
-    private static final Map<String, Boolean> CACHE = new LinkedHashMap<>();
+    private static Map<String, Boolean> states;
 
     private MobListConfig() {
     }
 
-    /* 读取全部记录, 配置已加载时以文件为准并刷新缓存 */
-    public static Map<String, Boolean> states() {
-        List<? extends String> raw = readRaw();
-        synchronized (CACHE) {
-            if (raw != null) {
-                CACHE.clear();
-                CACHE.putAll(parse(raw));
+    public static synchronized Map<String, Boolean> states() {
+        ensureLoaded();
+        return new LinkedHashMap<>(states);
+    }
+
+    public static synchronized boolean isEmpty() {
+        ensureLoaded();
+        return states.isEmpty();
+    }
+
+    public static synchronized boolean isEnabled(String id) {
+        ensureLoaded();
+        return Boolean.TRUE.equals(states.get(id));
+    }
+
+    public static synchronized void setStates(Map<String, Boolean> next) {
+        ensureLoaded();
+        states.clear();
+        states.putAll(next);
+        save();
+    }
+
+    public static synchronized void setState(String id, boolean enabled) {
+        ensureLoaded();
+        states.put(id, enabled);
+        save();
+    }
+
+    /* 立即写盘, 失败只记日志, 不静默吞掉 */
+    public static synchronized void save() {
+        ensureLoaded();
+        JsonObject root = new JsonObject();
+        JsonObject mobs = new JsonObject();
+        for (Map.Entry<String, Boolean> entry : new TreeMap<>(states).entrySet()) {
+            mobs.addProperty(entry.getKey(), Boolean.TRUE.equals(entry.getValue()));
+        }
+        root.add(ROOT_KEY, mobs);
+        Path file = file();
+        try {
+            Files.createDirectories(file.getParent());
+            try (Writer writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
+                GSON.toJson(root, writer);
             }
-            return new LinkedHashMap<>(CACHE);
+        } catch (IOException exception) {
+            TACZEnhancedPatch.LOGGER.error("[moblist] failed to write {}", file, exception);
         }
     }
 
-    public static List<String> mobs() {
-        return new ArrayList<>(states().keySet());
-    }
-
-    public static boolean isEnabled(String id) {
-        return Boolean.TRUE.equals(states().get(id));
-    }
-
-    /* 整表写回, 先更新缓存再按实体 ID 排序写盘, 配置不可用时只更新缓存 */
-    public static void setStates(Map<String, Boolean> states) {
-        synchronized (CACHE) {
-            CACHE.clear();
-            CACHE.putAll(states);
-        }
-        if (readRaw() == null) {
+    private static void ensureLoaded() {
+        if (states != null) {
             return;
         }
-        List<String> entries = new ArrayList<>(states.size());
-        states.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .forEach(entry -> entries.add(entry.getKey() + SEPARATOR + entry.getValue()));
-        try {
-            MOBS.set(List.copyOf(entries));
-        } catch (IllegalStateException ignored) {
+        states = new LinkedHashMap<>();
+        Path file = file();
+        if (!Files.isRegularFile(file)) {
+            return;
         }
-    }
-
-    public static void setState(String id, boolean enabled) {
-        Map<String, Boolean> states = states();
-        states.put(id, enabled);
-        setStates(states);
-    }
-
-    public static void save() {
-        var config = ConfigEvents.mobListConfig();
-        if (config != null) {
-            config.save();
-        }
-    }
-
-    @Nullable
-    private static List<? extends String> readRaw() {
-        try {
-            return MOBS.get();
-        } catch (IllegalStateException ignored) {
-            return null;
-        }
-    }
-
-    private static Map<String, Boolean> parse(List<? extends String> raw) {
-        Map<String, Boolean> states = new LinkedHashMap<>();
-        for (String entry : raw) {
-            if (entry == null || entry.isBlank()) {
-                continue;
+        try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+            JsonElement parsed = JsonParser.parseReader(reader);
+            if (parsed == null || !parsed.isJsonObject()) {
+                return;
             }
-            int split = entry.lastIndexOf(SEPARATOR);
-            if (split <= 0) {
-                /* 兼容只写了实体 ID 的行, 视为开启 */
-                states.put(entry.trim(), Boolean.TRUE);
-                continue;
+            JsonElement mobs = parsed.getAsJsonObject().get(ROOT_KEY);
+            if (mobs == null || !mobs.isJsonObject()) {
+                return;
             }
-            String id = entry.substring(0, split).trim();
-            boolean enabled = Boolean.parseBoolean(entry.substring(split + SEPARATOR.length()).trim());
-            if (!id.isEmpty()) {
-                states.put(id, enabled);
+            for (Map.Entry<String, JsonElement> entry : mobs.getAsJsonObject().entrySet()) {
+                JsonElement value = entry.getValue();
+                if (value != null && value.isJsonPrimitive()) {
+                    states.put(entry.getKey(), value.getAsBoolean());
+                }
             }
+        } catch (IOException | RuntimeException exception) {
+            TACZEnhancedPatch.LOGGER.error("[moblist] failed to read {}", file, exception);
+            states.clear();
         }
-        return states;
+    }
+
+    private static Path file() {
+        return FMLPaths.CONFIGDIR.get().resolve(FILE_NAME);
     }
 }
