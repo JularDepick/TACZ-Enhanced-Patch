@@ -22,6 +22,10 @@ public final class GunnerEligibility {
         if (isBlacklisted(mob) || mob instanceof WitherBoss) {
             return false;
         }
+        /* 持枪小兵自带枪械, 不进入枪手系统 */
+        if (mob instanceof com.taczenhancedpatch.entity.GunnerGrunt) {
+            return false;
+        }
         if (!GunnerMobRegistry.isEmpty()) {
             return GunnerMobRegistry.isEnabled(mob.getType());
         }

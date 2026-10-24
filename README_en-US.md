@@ -37,6 +37,13 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Toughness | Regular gunners gain tiered health and roll each of the four armor pieces independently from leather up to netherite, while improvised mobs only get the gun |
 | Loot | Kills always drop matching ammunition scaled by the reserve left, plus a chance at the exact gun, a random attachment and high tier ammo |
 
+### Armed grunts
+
+| Mechanic | Description |
+|:---:|:---|
+| Neutral spawning | Spawns on open ground at roughly sheep frequency, never attacks on its own and only flees when hit |
+| Always armed | Carries a random gun from the moment it spawns, ignoring the gunner master switch and the mob list |
+| Supply drops | Kills always drop matching ammo, with a chance at the gun and an attachment, plus random food and scrap in random amounts |
 ### Ruins
 
 | Mechanic | Description |

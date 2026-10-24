@@ -35,6 +35,10 @@ src/main/
 │   │   └── ServerConfig.java             # Server configuration and option list
 │   ├── debug/
 │   │   └── TaczEventProbe.java           # TACZ API event probe (disabled by default)
+│   ├── entity/
+│   │   ├── GunnerGrunt.java              # Armed grunt entity and arming
+│   │   ├── GruntRegistration.java        # Attributes, spawn rules and spawn egg
+│   │   └── GruntRegistry.java            # Entity and item registration
 │   ├── fastmag/
 │   │   ├── FastMag.java                  # Fast mag marker and reload ratios
 │   │   ├── FastMagCreativeTab.java       # Fast mag creative tab

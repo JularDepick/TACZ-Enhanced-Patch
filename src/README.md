@@ -35,6 +35,10 @@ src/main/
 │   │   └── ServerConfig.java             # 服务端配置与配置项列表
 │   ├── debug/
 │   │   └── TaczEventProbe.java           # TACZ API 事件探针(默认关闭)
+│   ├── entity/
+│   │   ├── GunnerGrunt.java              # 持枪小兵实体与装配
+│   │   ├── GruntRegistration.java        # 属性, 生成规则与刷怪蛋
+│   │   └── GruntRegistry.java            # 实体与物品注册
 │   ├── fastmag/
 │   │   ├── FastMag.java                  # 快速扩容弹夹标记与倍率
 │   │   ├── FastMagCreativeTab.java       # 快速扩容弹夹物品页

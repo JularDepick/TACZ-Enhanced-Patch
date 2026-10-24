@@ -50,6 +50,15 @@ public final class ServerConfig {
     private static final ForgeConfigSpec.DoubleValue GUNNER_GUN_DROP_CHANCE;
     private static final ForgeConfigSpec.DoubleValue GUNNER_ATTACHMENT_DROP_CHANCE;
     private static final ForgeConfigSpec.BooleanValue RUINS_ENABLED;
+    private static final ForgeConfigSpec.DoubleValue GRUNT_AMMO_DROP_MULTIPLIER;
+    private static final ForgeConfigSpec.DoubleValue GRUNT_HIGH_TIER_AMMO_CHANCE;
+    private static final ForgeConfigSpec.DoubleValue GRUNT_GUN_DROP_CHANCE;
+    private static final ForgeConfigSpec.DoubleValue GRUNT_ATTACHMENT_DROP_CHANCE;
+    private static final ForgeConfigSpec.IntValue GRUNT_FOOD_STACKS_MIN;
+    private static final ForgeConfigSpec.IntValue GRUNT_FOOD_STACKS_MAX;
+    private static final ForgeConfigSpec.IntValue GRUNT_FOOD_COUNT_MIN;
+    private static final ForgeConfigSpec.IntValue GRUNT_FOOD_COUNT_MAX;
+    private static final ForgeConfigSpec.DoubleValue GRUNT_RESOURCE_CHANCE;
 
     public static final ForgeConfigSpec SPEC;
 
@@ -155,6 +164,36 @@ public final class ServerConfig {
                 .defineInRange("attachmentDropChance", 0.08D, 0.0D, 1.0D);
         BUILDER.pop();
 
+        BUILDER.comment("持枪小兵").push("grunt");
+        GRUNT_AMMO_DROP_MULTIPLIER = BUILDER
+                .comment("击杀持枪小兵时弹药数量相对剩余备弹的倍率")
+                .defineInRange("ammoDropMultiplier", 1.0D, 0.0D, 5.0D);
+        GRUNT_HIGH_TIER_AMMO_CHANCE = BUILDER
+                .comment("击杀持枪小兵时额外掉落一份高级弹药的概率")
+                .defineInRange("highTierAmmoChance", 0.1D, 0.0D, 1.0D);
+        GRUNT_GUN_DROP_CHANCE = BUILDER
+                .comment("击杀持枪小兵时掉落其手中枪械的概率")
+                .defineInRange("gunDropChance", 0.12D, 0.0D, 1.0D);
+        GRUNT_ATTACHMENT_DROP_CHANCE = BUILDER
+                .comment("击杀持枪小兵时掉落随机配件的概率")
+                .defineInRange("attachmentDropChance", 0.1D, 0.0D, 1.0D);
+        GRUNT_FOOD_STACKS_MIN = BUILDER
+                .comment("击杀持枪小兵时掉落食物堆数的最少值")
+                .defineInRange("foodStacksMin", 2, 0, 8);
+        GRUNT_FOOD_STACKS_MAX = BUILDER
+                .comment("击杀持枪小兵时掉落食物堆数的最多值")
+                .defineInRange("foodStacksMax", 4, 0, 8);
+        GRUNT_FOOD_COUNT_MIN = BUILDER
+                .comment("每堆食物的最少数量")
+                .defineInRange("foodCountMin", 1, 1, 16);
+        GRUNT_FOOD_COUNT_MAX = BUILDER
+                .comment("每堆食物的最多数量")
+                .defineInRange("foodCountMax", 4, 1, 16);
+        GRUNT_RESOURCE_CHANCE = BUILDER
+                .comment("击杀持枪小兵时掉落一份随机杂物的概率")
+                .defineInRange("resourceChance", 0.6D, 0.0D, 1.0D);
+        BUILDER.pop();
+
         BUILDER.comment("世界生成").push("worldgen");
         RUINS_ENABLED = BUILDER
                 .comment("是否生成废弃前哨遗迹, 关闭后不再新增遗迹但已生成的保留")
@@ -181,6 +220,34 @@ public final class ServerConfig {
 
     public static double gunnerSpawnerChance() {
         return value(GUNNER_SPAWNER_CHANCE, 0.6D);
+    }
+
+    public static double gruntAmmoDropMultiplier() {
+        return value(GRUNT_AMMO_DROP_MULTIPLIER, 1.0D);
+    }
+
+    public static double gruntHighTierAmmoChance() {
+        return value(GRUNT_HIGH_TIER_AMMO_CHANCE, 0.1D);
+    }
+
+    public static double gruntGunDropChance() {
+        return value(GRUNT_GUN_DROP_CHANCE, 0.12D);
+    }
+
+    public static double gruntAttachmentDropChance() {
+        return value(GRUNT_ATTACHMENT_DROP_CHANCE, 0.1D);
+    }
+
+    public static int[] gruntFoodStacks() {
+        return range(GRUNT_FOOD_STACKS_MIN, GRUNT_FOOD_STACKS_MAX, 2, 4);
+    }
+
+    public static int[] gruntFoodCount() {
+        return range(GRUNT_FOOD_COUNT_MIN, GRUNT_FOOD_COUNT_MAX, 1, 4);
+    }
+
+    public static double gruntResourceChance() {
+        return value(GRUNT_RESOURCE_CHANCE, 0.6D);
     }
 
     public static boolean ruinsEnabled() {
@@ -322,6 +389,16 @@ public final class ServerConfig {
                         new ConfigOption.DoubleOption("opt.high_tier_chance", GUNNER_HIGH_TIER_AMMO_CHANCE, 0.0D, 1.0D, 0.01D),
                         new ConfigOption.DoubleOption("opt.gun_drop", GUNNER_GUN_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
                         new ConfigOption.DoubleOption("opt.attachment_drop", GUNNER_ATTACHMENT_DROP_CHANCE, 0.0D, 1.0D, 0.01D))),
+                new ConfigOptionGroup("group.grunt", List.of(
+                        new ConfigOption.DoubleOption("opt.grunt_ammo_mult", GRUNT_AMMO_DROP_MULTIPLIER, 0.0D, 5.0D, 0.1D),
+                        new ConfigOption.DoubleOption("opt.grunt_high_tier", GRUNT_HIGH_TIER_AMMO_CHANCE, 0.0D, 1.0D, 0.01D),
+                        new ConfigOption.DoubleOption("opt.grunt_gun_drop", GRUNT_GUN_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
+                        new ConfigOption.DoubleOption("opt.grunt_attachment_drop", GRUNT_ATTACHMENT_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
+                        new ConfigOption.IntOption("opt.grunt_food_stacks_min", GRUNT_FOOD_STACKS_MIN, 0, 8),
+                        new ConfigOption.IntOption("opt.grunt_food_stacks_max", GRUNT_FOOD_STACKS_MAX, 0, 8),
+                        new ConfigOption.IntOption("opt.grunt_food_count_min", GRUNT_FOOD_COUNT_MIN, 1, 16),
+                        new ConfigOption.IntOption("opt.grunt_food_count_max", GRUNT_FOOD_COUNT_MAX, 1, 16),
+                        new ConfigOption.DoubleOption("opt.grunt_resource_chance", GRUNT_RESOURCE_CHANCE, 0.0D, 1.0D, 0.01D))),
                 new ConfigOptionGroup("group.ruins", List.of(
                         new ConfigOption.ToggleOption("opt.ruins", RUINS_ENABLED))),
                 new ConfigOptionGroup(GROUP_UI, List.of(
