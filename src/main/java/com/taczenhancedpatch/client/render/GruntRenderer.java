@@ -5,7 +5,7 @@ import com.taczenhancedpatch.entity.GunnerGrunt;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.model.VillagerModel;
 import net.minecraft.client.model.geom.ModelLayers;
-import net.minecraft.client.renderer.entity.CrossedArmsItemLayer;
+import net.minecraft.client.renderer.entity.layers.CrossedArmsItemLayer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.MobRenderer;
 import net.minecraft.resources.ResourceLocation;
@@ -17,7 +17,7 @@ import net.minecraft.resources.ResourceLocation;
  */
 public class GruntRenderer extends MobRenderer<GunnerGrunt, VillagerModel<GunnerGrunt>> {
     private static final ResourceLocation TEXTURE =
-            new ResourceLocation(TACZEnhancedPatch.MOD_ID, "textures/entity/gunner_grunt.png");
+            new ResourceLocation(TACZEnhancedPatch.MOD_ID + ":textures/entity/gunner_grunt.png");
 
     public GruntRenderer(EntityRendererProvider.Context context) {
         super(context, new VillagerModel<>(context.bakeLayer(ModelLayers.VILLAGER)), 0.3F);

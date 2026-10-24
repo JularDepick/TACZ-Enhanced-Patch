@@ -22,7 +22,7 @@ public final class FastMagCreativeTab {
     public static final RegistryObject<CreativeModeTab> FAST_MAG_TAB = TABS.register("fast_extended_mag",
             () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.tacz_enhanced_patch.fast_extended_mag"))
-                    .withTabsBefore(new ResourceLocation("tacz", "extended_mag"))
+                    .withTabsBefore(new ResourceLocation("tacz:extended_mag"))
                     .icon(FastMagCreativeTab::iconStack)
                     .displayItems((parameters, output) -> {
                         for (TaczApi.ExtendedMagEntry entry : TaczApi.extendedMags()) {

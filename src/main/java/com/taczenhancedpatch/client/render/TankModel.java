@@ -21,7 +21,7 @@ import net.minecraft.util.Mth;
  */
 public class TankModel extends EntityModel<TankElite> {
     public static final ModelLayerLocation LAYER =
-            new ModelLayerLocation(new ResourceLocation(TACZEnhancedPatch.MOD_ID, "tank_elite"), "main");
+            new ModelLayerLocation(new ResourceLocation(TACZEnhancedPatch.MOD_ID + ":tank_elite"), "main");
 
     private final ModelPart root;
     private final ModelPart turret;

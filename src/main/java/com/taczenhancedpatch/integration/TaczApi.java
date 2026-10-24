@@ -9,6 +9,7 @@ import com.tacz.guns.api.item.builder.AmmoItemBuilder;
 import com.tacz.guns.api.item.builder.AttachmentItemBuilder;
 import com.tacz.guns.api.item.builder.GunItemBuilder;
 import com.tacz.guns.resource.index.CommonAttachmentIndex;
+import com.tacz.guns.util.AttachmentDataUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
@@ -167,6 +168,40 @@ public final class TaczApi {
         }
         ItemStack stack = AttachmentItemBuilder.create().setId(attachmentId).build();
         return stack == null ? ItemStack.EMPTY : stack;
+    }
+
+    /* 枪械的弹匣容量, 已计入当前装配的扩容弹夹带来的加成 */
+    public static int maxMagazineAmmo(@Nullable ItemStack gunStack) {
+        IGun gun = getGun(gunStack);
+        if (gun == null) {
+            return 0;
+        }
+        ResourceLocation gunId = gun.getGunId(gunStack);
+        return TimelessAPI.getCommonGunIndex(gunId)
+                .map(index -> AttachmentDataUtils.getAmmoCountWithAttachment(gunStack, index.getGunData()))
+                .orElse(0);
+    }
+
+    /* 直接把弹匣子弹数写到指定值 */
+    public static void setMagazineAmmo(@Nullable ItemStack gunStack, int amount) {
+        IGun gun = getGun(gunStack);
+        if (gun != null) {
+            gun.setCurrentAmmoCount(gunStack, Math.max(0, amount));
+        }
+    }
+
+    /* 把虚拟备弹补满, 让使用背包弹药的枪械改为消耗虚拟备弹 */
+    public static void fillDummyAmmo(@Nullable ItemStack gunStack, int amount) {
+        IGun gun = getGun(gunStack);
+        if (gun == null) {
+            return;
+        }
+        if (!gun.hasMaxDummyAmmo(gunStack) || gun.getMaxDummyAmmoAmount(gunStack) != amount) {
+            gun.setMaxDummyAmmoAmount(gunStack, amount);
+        }
+        if (gun.getDummyAmmoAmount(gunStack) != amount) {
+            gun.setDummyAmmoAmount(gunStack, amount);
+        }
     }
 
     /* 枪械当前装配的扩容弹夹, 未装配时返回空物品 */

@@ -16,6 +16,7 @@ src/main/
 │   │   ├── AutoReloadHandler.java        # Automatic reload
 │   │   ├── ConfigAccess.java             # World owner check
 │   │   ├── ConfigShortcutHandler.java    # Config entry key binding (vanilla)
+│   │   ├── InfiniteMagTooltipHandler.java # Infinite magazine tooltip
 │   │   ├── TACZEnhancedPatchClient.java  # Client entry point
 │   │   ├── config/
 │   │   │   ├── ConfigHubScreen.java      # Configuration entry screen
@@ -70,6 +71,10 @@ src/main/
 │   ├── integration/
 │   │   ├── TaczApi.java                  # Single access point for the TACZ public API
 │   │   └── TaczAutoReload.java           # Upstream automatic reload bridge
+│   ├── item/
+│   │   ├── InfiniteMag.java              # Infinite magazine marker and name
+│   │   ├── InfiniteMagHandler.java       # Magazine and dummy ammo upkeep
+│   │   └── PatchCreativeTab.java         # Patch item tab
 │   ├── loot/
 │   │   ├── BattleLootHandler.java        # Gunner loot drops
 │   │   └── GruntLootHandler.java         # Armed grunt loot

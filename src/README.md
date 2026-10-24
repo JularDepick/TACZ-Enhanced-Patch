@@ -16,6 +16,7 @@ src/main/
 │   │   ├── AutoReloadHandler.java        # 自动换弹
 │   │   ├── ConfigAccess.java             # 存档创建者判定
 │   │   ├── ConfigShortcutHandler.java    # 配置入口快捷键(原版按键)
+│   │   ├── InfiniteMagTooltipHandler.java # 无限弹夹提示
 │   │   ├── TACZEnhancedPatchClient.java  # 客户端入口
 │   │   ├── config/
 │   │   │   ├── ConfigHubScreen.java      # 配置入口页
@@ -70,6 +71,10 @@ src/main/
 │   ├── integration/
 │   │   ├── TaczApi.java                  # TACZ 公开 API 统一入口
 │   │   └── TaczAutoReload.java           # 上游自动换弹开关桥接
+│   ├── item/
+│   │   ├── InfiniteMag.java              # 无限弹夹标记与名称
+│   │   ├── InfiniteMagHandler.java       # 弹匣与虚拟备弹维持
+│   │   └── PatchCreativeTab.java         # 补丁物品页
 │   ├── loot/
 │   │   ├── BattleLootHandler.java        # 枪手战利品掉落
 │   │   └── GruntLootHandler.java         # 持枪小兵战利品

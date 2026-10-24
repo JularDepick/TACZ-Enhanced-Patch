@@ -90,9 +90,13 @@
   "entity.tacz_enhanced_patch.tank_elite": "坦克精英怪",
   "item.tacz_enhanced_patch.tank_elite_spawn_egg": "坦克精英怪刷怪蛋",
   "item.tacz_enhanced_patch.gunner_grunt_spawn_egg": "持枪小兵刷怪蛋",
+  "itemGroup.tacz_enhanced_patch.patch": "TACZ 增强补丁",
+  "item.tacz_enhanced_patch.infinite_mag": "无限弹夹",
+  "tooltip.tacz_enhanced_patch.infinite_mag.capacity": "容量: ∞",
+  "tooltip.tacz_enhanced_patch.infinite_mag.behavior": "开火与换弹不消耗弹匣与背包弹药",
   "item.tacz_enhanced_patch.fast_extended_mag": "快速扩容弹夹 %s",
   "itemGroup.tacz_enhanced_patch.fast_extended_mag": "快速扩容弹夹",
   "tooltip.tacz_enhanced_patch.fast_extended_mag": "换弹时长降为原来的 %s%%",
-  "tacz_enhanced_patch.key.categories.tacz_enhanced_patch": "TACZ 增强补丁",
-  "tacz_enhanced_patch.key.tacz_enhanced_patch.open_config": "打开模组配置"
+  "key.categories.tacz_enhanced_patch": "TACZ 增强补丁",
+  "key.tacz_enhanced_patch.open_config": "打开模组配置"
 }

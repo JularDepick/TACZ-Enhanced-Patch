@@ -12,7 +12,7 @@ import net.minecraft.resources.ResourceLocation;
  */
 public class TankRenderer extends MobRenderer<TankElite, TankModel> {
     private static final ResourceLocation TEXTURE =
-            new ResourceLocation(TACZEnhancedPatch.MOD_ID, "textures/entity/tank_elite.png");
+            new ResourceLocation(TACZEnhancedPatch.MOD_ID + ":textures/entity/tank_elite.png");
 
     public TankRenderer(EntityRendererProvider.Context context) {
         super(context, new TankModel(context.bakeLayer(TankModel.LAYER)), 1.4F);
