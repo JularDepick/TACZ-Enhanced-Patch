@@ -32,7 +32,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 |:---:|:---|
 | Armed spawning | Hostile mobs may carry TACZ guns based on difficulty, non-humanoid ones such as creepers included, with no new entity types |
 | Return fire | Any armed mob that gets hit locks onto the attacker, and can be limited to hostile targets so allies do not fight each other |
-| Improvised arming | Passive, neutral and friendly mobs may grab a random gun below half health and turn on whatever hurt them |
+| Improvised arming | Passive, neutral and friendly mobs may grab a random gun below the configured health threshold and turn on whatever hurt them; humanoid and non-humanoid chances are configured separately |
 | Ammo and attachments | Every gun rolls its own attachments and limited ammo, then falls back to its vanilla weapon once dry to give players a window |
 | Toughness | Regular gunners gain tiered health and roll each of the four armor pieces independently from leather up to netherite, while improvised mobs only get the gun |
 | Loot | Kills always drop matching ammunition scaled by the reserve left, plus a chance at the exact gun, a random attachment and high tier ammo |
@@ -41,24 +41,29 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 
 | Mechanic | Description |
 |:---:|:---|
-| Neutral spawning | Spawns on open ground at roughly sheep frequency, never attacks on its own and only flees when hit |
+| Neutral spawning | Spawns on open ground at roughly sheep frequency, attacks nothing on its own and only flees when hit; ruin guards are the exception |
 | Always armed | Carries a random gun from the moment it spawns, ignoring the gunner master switch and the mob list |
 | Supply drops | Kills always drop matching ammo, with a chance at the gun and an attachment, plus random food and scrap in random amounts |
-| Appearance | A zombie villager body with a hand-drawn camouflage texture, complete with a head and limbs, holding a visible gun |
+| Appearance | A zombie villager body with a hand-drawn camouflage texture, complete with a head, limbs and facial features, holding a visible gun |
+| Ruin guards | Guards bind to the ruin faction, fight back in melee inside their territory and ride tanks as a combined unit |
+| Attributes | Health and armor follow difficulty presets at a quarter of the tank and ignore mod config |
 ### Ruins
 
 | Mechanic | Description |
 |:---:|:---|
 | Ruined outpost | An 11 by 11 collapsed outpost generates in the wild, with a chest of ammunition and attachments and a spawner that produces guards |
 | Terrain fitting | The site requires an even surface, fills low spots, shaves high ones, and never generates at or below sea level |
+| Guards and factions | Each ruin is its own faction; guards are filled in when a player comes close, intruders in the territory are attacked, and different ruins may ally or turn hostile |
 
 ### Tank elite
 
 | Mechanic | Description |
 |:---:|:---|
-| Elite shelling | A rarely spawning tank-shaped monster that locks onto players and fires periodic shells with far larger explosions than a ghast fireball |
+| Elite shelling | A rarely spawning tank-shaped monster that guards its territory when it belongs to a faction, otherwise retaliates only, and fires periodic shells with far larger explosions than a ghast fireball |
 | Imposing bulk | A 3.4 x 2.4 hitbox with a custom model whose tracks sit on the ground and whose hull and turret stack upwards, immune to fire and fully knockback resistant |
-| Loot | Drops iron, copper and gunpowder; cooldown, explosion power and cannon range are configurable |
+| Loot | Drops iron, copper and gunpowder; cooldown and cannon range are configurable while health and power follow difficulty presets |
+| Combined unit | Up to four grunts ride on the shoulders, members share a health and armor bonus derived from their total health, and a faction tank revives factionless up to three times |
+| Player driving | A factionless tank can be mounted, aimed with the crosshair, driven with WASD and fired with the space bar |
 ### Fast extended magazines
 
 | Mechanic | Description |
