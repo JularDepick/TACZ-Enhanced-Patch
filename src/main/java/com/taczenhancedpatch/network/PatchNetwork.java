@@ -12,7 +12,7 @@ import java.util.Objects;
 
 /**
  * 模组网络通道。
- * 目前只用于把枪击来源方向发给受击玩家, 协议版本变化时递增即可。
+ * 下行用于把枪击来源方向发给受击玩家, 上行用于玩家驾驶坦克时的开火请求; 协议版本变化时递增即可。
  */
 public final class PatchNetwork {
     private static final String PROTOCOL = "1";
@@ -34,6 +34,15 @@ public final class PatchNetwork {
                 .decoder(HitDirectionMessage::decode)
                 .consumerMainThread(HitDirectionMessage::handle)
                 .add();
+        CHANNEL.messageBuilder(TankFireMessage.class, id++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(TankFireMessage::encode)
+                .decoder(TankFireMessage::decode)
+                .consumerMainThread(TankFireMessage::handle)
+                .add();
+    }
+
+    public static void sendTankFire() {
+        CHANNEL.sendToServer(new TankFireMessage());
     }
 
     public static void sendHitDirection(ServerPlayer player, float sourceYaw) {

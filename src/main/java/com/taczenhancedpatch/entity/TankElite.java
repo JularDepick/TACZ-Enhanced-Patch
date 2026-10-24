@@ -26,6 +26,7 @@ import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.SpawnGroupData;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 
 import javax.annotation.Nullable;
@@ -178,6 +179,46 @@ public class TankElite extends Monster {
             }
         }
         return super.getControllingPassenger();
+    }
+
+    /* 玩家驾驶时由玩家输入驱动移动与瞄准, AI 不再接管寻路 */
+    @Override
+    public void travel(Vec3 travelVector) {
+        if (this.getControllingPassenger() instanceof Player player) {
+            this.setYRot(player.getYRot());
+            this.yRotO = this.getYRot();
+            this.setYHeadRot(player.getYRot());
+            this.yHeadRotO = this.getYHeadRot();
+            this.setXRot(Mth.clamp(player.getXRot(), -20.0F, 12.0F));
+            this.setSpeed((float) this.getAttributeValue(Attributes.MOVEMENT_SPEED) * 2.2F);
+            super.travel(new Vec3(player.xxa, 0.0D, player.zza));
+            return;
+        }
+        super.travel(travelVector);
+    }
+
+    @Override
+    protected void customServerAiStep() {
+        if (this.getControllingPassenger() instanceof Player) {
+            this.getNavigation().stop();
+            return;
+        }
+        super.customServerAiStep();
+    }
+
+    /* 玩家驾驶时按准星方向开炮, 冷却与威力与其他坦克一致 */
+    public void tryFire(Player player) {
+        if (this.level().isClientSide() || this.cooldown > 0) {
+            return;
+        }
+        Vec3 look = player.getViewVector(1.0F);
+        Vec3 muzzle = this.position().add(0.0D, 2.1D, 0.0D).add(look.scale(2.2D));
+        LargeFireball shell = new LargeFireball(this.level(), this, look.x * SHELL_SPEED, look.y * SHELL_SPEED,
+                look.z * SHELL_SPEED, CombatPreset.tankExplosionPower(this.level().getDifficulty()));
+        shell.setPos(muzzle.x, muzzle.y, muzzle.z);
+        this.level().addFreshEntity(shell);
+        this.playSound(SoundEvents.GHAST_SHOOT, 4.0F, 0.5F);
+        this.resetCooldown(ServerConfig.tankCannonCooldown());
     }
 
     @Override

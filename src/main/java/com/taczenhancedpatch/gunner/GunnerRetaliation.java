@@ -39,9 +39,9 @@ public final class GunnerRetaliation {
         if (!isCandidate(mob) || GunnerMarker.isRetaliationChecked(mob)) {
             return;
         }
-        /* 用受伤后的预计生命值判定, 必须活着且已降到阈值以下 */
+        /* 用受伤后的预计生命值判定, 必须活着且已降到配置的阈值以下 */
         float projected = mob.getHealth() - event.getAmount();
-        if (projected <= 0.0F || projected > mob.getMaxHealth() * GunnerArsenal.RETALIATION_HEALTH_THRESHOLD) {
+        if (projected <= 0.0F || projected > mob.getMaxHealth() * ServerConfig.gunnerRetaliationThreshold()) {
             return;
         }
         GunnerMarker.markRetaliationChecked(mob);
@@ -49,7 +49,8 @@ public final class GunnerRetaliation {
         if (attacker != null && !GunnerCombat.shouldRetaliate(mob, attacker)) {
             return;
         }
-        if (mob.getRandom().nextDouble() >= ServerConfig.gunnerRetaliationChance()) {
+        boolean humanoid = GunnerMobRegistry.matchesGroup("humanoid", mob.getType());
+        if (mob.getRandom().nextDouble() >= ServerConfig.gunnerRetaliationChance(humanoid)) {
             return;
         }
         Difficulty difficulty = mob.level().getCurrentDifficultyAt(mob.blockPosition()).getDifficulty();

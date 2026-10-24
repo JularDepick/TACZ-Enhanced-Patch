@@ -41,7 +41,9 @@ public final class ServerConfig {
     private static final ForgeConfigSpec.DoubleValue GUNNER_HEALTH_MULTIPLIER;
     private static final ForgeConfigSpec.IntValue GUNNER_ARMOR_BONUS;
     private static final ForgeConfigSpec.DoubleValue GUNNER_ARMOR_DROP_CHANCE;
-    private static final ForgeConfigSpec.DoubleValue GUNNER_RETALIATION_CHANCE;
+    private static final ForgeConfigSpec.DoubleValue GUNNER_RETALIATION_CHANCE_HUMANOID;
+    private static final ForgeConfigSpec.DoubleValue GUNNER_RETALIATION_CHANCE_NON_HUMANOID;
+    private static final ForgeConfigSpec.DoubleValue GUNNER_RETALIATION_HEALTH_THRESHOLD;
     private static final ForgeConfigSpec.IntValue GUNNER_BASE_AMMO;
     private static final ForgeConfigSpec.IntValue GUNNER_RANDOM_ATTACHMENT_SLOTS;
     private static final ForgeConfigSpec.BooleanValue GUNNER_FORCED_RETALIATION;
@@ -138,10 +140,18 @@ public final class ServerConfig {
         GUNNER_ARMOR_DROP_CHANCE = BUILDER
                 .comment("枪手穿戴的护甲每个部位的掉落概率")
                 .defineInRange("armorDropChance", 0.05D, 0.0D, 1.0D);
-        GUNNER_RETALIATION_CHANCE = BUILDER
-                .comment("和平生物, 中立生物与友军生物受击后生命降到一半时临场获得枪械的概率",
-                        "每只生物只判定一次, 取 0 表示关闭临场武装")
-                .defineInRange("retaliationChance", 0.35D, 0.0D, 1.0D);
+        GUNNER_RETALIATION_CHANCE_HUMANOID = BUILDER
+                .comment("人形生物受击后生命降到阈值时临场获得枪械的概率",
+                        "每只生物只判定一次, 取 0 表示关闭人形生物的临场武装")
+                .defineInRange("retaliationHumanoidChance", 0.35D, 0.0D, 1.0D);
+        GUNNER_RETALIATION_CHANCE_NON_HUMANOID = BUILDER
+                .comment("非人形生物受击后生命降到阈值时临场获得枪械的概率",
+                        "每只生物只判定一次, 取 0 表示关闭非人形生物的临场武装")
+                .defineInRange("retaliationNonHumanoidChance", 0.2D, 0.0D, 1.0D);
+        GUNNER_RETALIATION_HEALTH_THRESHOLD = BUILDER
+                .comment("临场武装触发的生命百分比阈值, 受伤后的生命不高于该比例时判定",
+                        "例如 0.5 表示降到一半及以下才判定")
+                .defineInRange("retaliationHealthThreshold", 0.5D, 0.1D, 0.9D);
         GUNNER_BASE_AMMO = BUILDER
                 .comment("枪手的基本弹药量, 实际获得的备弹量在基本值的 0.5 到 2 倍之间随机")
                 .defineInRange("baseAmmo", 60, 1, 1000);
@@ -349,9 +359,16 @@ public final class ServerConfig {
         return value(GUNNER_FORCED_RETALIATION, true);
     }
 
-    /* 持械生物分组开关, 供配置界面单独渲染 */
-    public static double gunnerRetaliationChance() {
-        return value(GUNNER_RETALIATION_CHANCE, 0.35D);
+    /* 临场武装概率: 人形与非人形分开配置 */
+    public static double gunnerRetaliationChance(boolean humanoid) {
+        return humanoid
+                ? value(GUNNER_RETALIATION_CHANCE_HUMANOID, 0.35D)
+                : value(GUNNER_RETALIATION_CHANCE_NON_HUMANOID, 0.2D);
+    }
+
+    /* 触发临场武装的生命百分比阈值 */
+    public static double gunnerRetaliationThreshold() {
+        return value(GUNNER_RETALIATION_HEALTH_THRESHOLD, 0.5D);
     }
 
     public static int gunnerBaseAmmo() {
@@ -419,7 +436,9 @@ public final class ServerConfig {
                         new ConfigOption.DoubleOption("opt.health", GUNNER_HEALTH_MULTIPLIER, 1.0D, 10.0D, 0.1D),
                         new ConfigOption.IntOption("opt.armor_bonus", GUNNER_ARMOR_BONUS, 0, 30),
                         new ConfigOption.DoubleOption("opt.armor_drop", GUNNER_ARMOR_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
-                        new ConfigOption.DoubleOption("opt.retaliation_chance", GUNNER_RETALIATION_CHANCE, 0.0D, 1.0D, 0.01D))),
+                        new ConfigOption.DoubleOption("opt.retaliation_humanoid", GUNNER_RETALIATION_CHANCE_HUMANOID, 0.0D, 1.0D, 0.01D),
+                        new ConfigOption.DoubleOption("opt.retaliation_non_humanoid", GUNNER_RETALIATION_CHANCE_NON_HUMANOID, 0.0D, 1.0D, 0.01D),
+                        new ConfigOption.DoubleOption("opt.retaliation_threshold", GUNNER_RETALIATION_HEALTH_THRESHOLD, 0.1D, 0.9D, 0.05D))),
                 new ConfigOptionGroup("group.loot", List.of(
                         new ConfigOption.DoubleOption("opt.ammo_drop_mult", GUNNER_AMMO_DROP_MULTIPLIER, 0.0D, 5.0D, 0.1D),
                         new ConfigOption.DoubleOption("opt.high_tier_chance", GUNNER_HIGH_TIER_AMMO_CHANCE, 0.0D, 1.0D, 0.01D),

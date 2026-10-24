@@ -332,6 +332,11 @@ public final class TaczApi {
         IGunOperator.fromLivingEntity(entity).reload();
     }
 
+    /* 取消当前换弹, 用于拦截上游"弹匣已满仍然换弹"的行为 */
+    public static void cancelReload(LivingEntity entity) {
+        IGunOperator.fromLivingEntity(entity).cancelReload();
+    }
+
     public static ShotOutcome shoot(LivingEntity shooter, float pitch, float yaw) {
         return switch (IGunOperator.fromLivingEntity(shooter).shoot(() -> pitch, () -> yaw)) {
             case SUCCESS -> ShotOutcome.SUCCESS;
