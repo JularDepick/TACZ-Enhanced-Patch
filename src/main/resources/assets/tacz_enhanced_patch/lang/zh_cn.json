@@ -72,6 +72,9 @@
   "tacz_enhanced_patch.opt.auto_reload": "自动换弹",
   "tacz_enhanced_patch.opt.hit_indicator": "枪击来源提示",
   "tacz_enhanced_patch.opt.heading_ruler": "方向标尺",
+  "item.tacz_enhanced_patch.fast_extended_mag": "快速扩容弹夹 %s",
+  "itemGroup.tacz_enhanced_patch.fast_extended_mag": "快速扩容弹夹",
+  "tooltip.tacz_enhanced_patch.fast_extended_mag": "换弹时长降为原来的 %s%%",
   "tacz_enhanced_patch.key.categories.tacz_enhanced_patch": "TACZ 增强补丁",
   "tacz_enhanced_patch.key.tacz_enhanced_patch.open_config": "打开模组配置"
 }

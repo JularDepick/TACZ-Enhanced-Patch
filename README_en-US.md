@@ -44,6 +44,13 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Ruined outpost | An 11 by 11 collapsed outpost generates in the wild, with a chest of ammunition and attachments and a spawner that produces guards |
 | Terrain fitting | The site requires an even surface, fills low spots, shaves high ones, and never generates at or below sea level |
 
+### Fast extended magazines
+
+| Mechanic | Description |
+|:---:|:---|
+| Item tab | A dedicated creative tab lists fast variants of the upstream extended mags, reusing the same items without registering new item IDs |
+| Reload speed | An equipped fast mag cuts reload time to 30%, 40% or 50% of normal for ammo capacity I to III |
+
 ### Client features
 
 | Feature | Description |

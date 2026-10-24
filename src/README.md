@@ -35,6 +35,11 @@ src/main/
 │   │   └── ServerConfig.java             # 服务端配置与配置项列表
 │   ├── debug/
 │   │   └── TaczEventProbe.java           # TACZ API 事件探针(默认关闭)
+│   ├── fastmag/
+│   │   ├── FastMag.java                  # 快速扩容弹夹标记与倍率
+│   │   ├── FastMagCreativeTab.java       # 快速扩容弹夹物品页
+│   │   ├── FastMagReloadHandler.java     # 换弹加速
+│   │   └── FastMagTooltipHandler.java    # 物品提示
 │   ├── gunner/
 │   │   ├── GunnerArming.java             # 枪械装配与随机配件, 随机备弹
 │   │   ├── GunnerArsenal.java            # 枪手军械库与平衡常量

@@ -35,6 +35,11 @@ src/main/
 │   │   └── ServerConfig.java             # Server configuration and option list
 │   ├── debug/
 │   │   └── TaczEventProbe.java           # TACZ API event probe (disabled by default)
+│   ├── fastmag/
+│   │   ├── FastMag.java                  # Fast mag marker and reload ratios
+│   │   ├── FastMagCreativeTab.java       # Fast mag creative tab
+│   │   ├── FastMagReloadHandler.java     # Reload acceleration
+│   │   └── FastMagTooltipHandler.java    # Item tooltip
 │   ├── gunner/
 │   │   ├── GunnerArming.java             # Gun arming with random attachments and ammo
 │   │   ├── GunnerArsenal.java            # Gunner arsenal and balance constants

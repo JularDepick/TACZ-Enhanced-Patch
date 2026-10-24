@@ -4,15 +4,20 @@ import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.api.entity.IGunOperator;
 import com.tacz.guns.api.item.IAttachment;
 import com.tacz.guns.api.item.IGun;
+import com.tacz.guns.api.item.attachment.AttachmentType;
 import com.tacz.guns.api.item.builder.AmmoItemBuilder;
 import com.tacz.guns.api.item.builder.AttachmentItemBuilder;
 import com.tacz.guns.api.item.builder.GunItemBuilder;
+import com.tacz.guns.resource.index.CommonAttachmentIndex;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -39,6 +44,10 @@ public final class TaczApi {
                 return SEMI;
             }
         }
+    }
+
+    /** 一条上游扩容弹夹条目: 配件 ID, 名称翻译键与按名称键推断的等级(1 到 3) */
+    public record ExtendedMagEntry(ResourceLocation id, String nameKey, int level) {
     }
 
     /** 对外暴露的射击结果, 收窄 TACZ 的 ShootResult 取值 */
@@ -149,6 +158,91 @@ public final class TaczApi {
             gun.installAttachment(gunStack, attachment);
             return true;
         }).orElse(false);
+    }
+
+    /* 按配件 ID 构建一个上游配件物品, ID 无效时返回空物品 */
+    public static ItemStack createAttachment(ResourceLocation attachmentId) {
+        if (attachmentId == null) {
+            return ItemStack.EMPTY;
+        }
+        ItemStack stack = AttachmentItemBuilder.create().setId(attachmentId).build();
+        return stack == null ? ItemStack.EMPTY : stack;
+    }
+
+    /* 枪械当前装配的扩容弹夹, 未装配时返回空物品 */
+    public static ItemStack getExtendedMag(@Nullable ItemStack gunStack) {
+        IGun gun = getGun(gunStack);
+        if (gun == null) {
+            return ItemStack.EMPTY;
+        }
+        ItemStack attachment = gun.getAttachment(gunStack, AttachmentType.EXTENDED_MAG);
+        return attachment == null ? ItemStack.EMPTY : attachment;
+    }
+
+    /**
+     * 上游全部扩容弹夹条目, 按上游排序值升序。
+     * 等级优先从名称翻译键里的 level_N 读取, 读不到时退回配件 ID 的数字后缀。
+     */
+    public static List<ExtendedMagEntry> extendedMags() {
+        List<Map.Entry<ResourceLocation, CommonAttachmentIndex>> entries = new ArrayList<>();
+        for (Map.Entry<ResourceLocation, CommonAttachmentIndex> entry : TimelessAPI.getAllCommonAttachmentIndex()) {
+            if (entry.getValue().getType() == AttachmentType.EXTENDED_MAG) {
+                entries.add(entry);
+            }
+        }
+        entries.sort(Comparator.comparingInt(entry -> entry.getValue().getSort()));
+        List<ExtendedMagEntry> result = new ArrayList<>(entries.size());
+        for (Map.Entry<ResourceLocation, CommonAttachmentIndex> entry : entries) {
+            String nameKey = entry.getValue().getPojo().getName();
+            result.add(new ExtendedMagEntry(entry.getKey(), nameKey, levelOf(nameKey, entry.getKey())));
+        }
+        return result;
+    }
+
+    private static int levelOf(@Nullable String nameKey, ResourceLocation id) {
+        if (nameKey != null) {
+            int index = nameKey.lastIndexOf("_level_");
+            if (index >= 0) {
+                int level = parseLevel(nameKey.substring(index + "_level_".length()));
+                if (level > 0) {
+                    return level;
+                }
+            }
+        }
+        String path = id.getPath();
+        int separator = path.lastIndexOf('_');
+        if (separator >= 0) {
+            int level = parseLevel(path.substring(separator + 1));
+            if (level > 0) {
+                return level;
+            }
+        }
+        return 1;
+    }
+
+    private static int parseLevel(String text) {
+        try {
+            int level = Integer.parseInt(text.trim());
+            return level >= 1 && level <= 3 ? level : 0;
+        } catch (NumberFormatException ignored) {
+            return 0;
+        }
+    }
+
+    /* 当前换弹开始时间戳, 未在换弹时为 -1 */
+    public static long reloadStartTimestamp(LivingEntity entity) {
+        return IGunOperator.fromLivingEntity(entity).getDataHolder().reloadTimestamp;
+    }
+
+    /* 把换弹开始时间戳前移, 让换弹进度以更快的速度推进 */
+    public static void advanceReloadStart(LivingEntity entity, long millis) {
+        if (millis <= 0L) {
+            return;
+        }
+        var data = IGunOperator.fromLivingEntity(entity).getDataHolder();
+        if (data.reloadTimestamp > 0L) {
+            data.reloadTimestamp -= millis;
+        }
     }
 
     public static int magazineAmmo(@Nullable ItemStack gunStack) {
