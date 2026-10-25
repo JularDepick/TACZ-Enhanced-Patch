@@ -41,7 +41,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 
 | Mechanic | Description |
 |:---:|:---|
-| Neutral spawning | Spawns on open ground at roughly sheep frequency, attacks nothing on its own and only flees when hit; ruin guards are the exception |
+| Neutral spawning | Spawns as part of ruin garrisons, attacks nothing on its own and only flees when hit; faction guards are the exception |
 | Always armed | Carries a random gun from the moment it spawns, ignoring the gunner master switch and the mob list |
 | Supply drops | Kills always drop matching ammo, with a chance at the gun and an attachment, plus random food and scrap in random amounts |
 | Appearance | A zombie villager body with a hand-drawn camouflage texture, complete with a head, limbs and facial features, holding a visible gun |
