@@ -1,6 +1,7 @@
 package com.taczenhancedpatch.world;
 
 import com.mojang.serialization.Codec;
+import com.taczenhancedpatch.TACZEnhancedPatch;
 import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.faction.RuinSites;
 import com.taczenhancedpatch.world.ruin.RuinLayout;
@@ -32,6 +33,8 @@ import java.util.Objects;
  * 因此改造型, 换材质, 加房间都只需要修改 JSON 后重新构建。
  */
 public class RuinedOutpostFeature extends Feature<NoneFeatureConfiguration> {
+    private static final org.slf4j.Logger LOGGER =
+            com.mojang.logging.LogUtils.getLogger();
     private static final ResourceLocation LOOT_TABLE =
             Objects.requireNonNull(ResourceLocation.tryParse("tacz_enhanced_patch:chests/ruined_outpost"));
 
@@ -44,23 +47,49 @@ public class RuinedOutpostFeature extends Feature<NoneFeatureConfiguration> {
         if (!ServerConfig.ruinsEnabled()) {
             return false;
         }
-        RuinLayout layout = RuinLayouts.ruinedOutpost();
+        RuinLayout layout;
+        try {
+            layout = RuinLayouts.ruinedOutpost();
+        } catch (RuntimeException exception) {
+            TACZEnhancedPatch.LOGGER.error("[ruin] layout unavailable, ruin generation disabled", exception);
+            return false;
+        }
         WorldGenLevel level = context.level();
         RandomSource random = context.random();
         BlockPos origin = context.origin();
         int baseY = origin.getY() - 1;
         int halfWidth = layout.width() / 2;
         int halfDepth = layout.depth() / 2;
-        if (baseY <= level.getSeaLevel() || !prepareGround(level, origin, baseY, halfWidth, halfDepth)) {
+        if (baseY <= level.getSeaLevel()) {
+            LOGGER.debug("[ruin] skip below sea level at {}", origin);
             return false;
         }
+        if (!prepareGround(level, origin, baseY, halfWidth, halfDepth)) {
+            LOGGER.debug("[ruin] skip uneven ground at {}", origin);
+            return false;
+        }
+        long startNanos = System.nanoTime();
         buildFloor(level, origin, random, layout, halfWidth, halfDepth);
+        long floorNanos = System.nanoTime();
         clearSpace(level, origin, layout, halfWidth, halfDepth);
+        long clearNanos = System.nanoTime();
         placeLayers(level, origin, random, layout, halfWidth, halfDepth);
+        long layersNanos = System.nanoTime();
         placeMarkers(level, origin, random, layout);
+        long markersNanos = System.nanoTime();
         scatterDebris(level, origin, random, layout);
         /* 登记遗迹站点, 由服务端 tick 在玩家靠近时补齐守军 */
         RuinSites.queue(origin);
+        long totalNanos = System.nanoTime() - startNanos;
+        LOGGER.debug("[ruin] steps floor={}us clear={}us layers={}us markers={}us debris={}us at {}",
+                (floorNanos - startNanos) / 1000L,
+                (clearNanos - floorNanos) / 1000L,
+                (layersNanos - clearNanos) / 1000L,
+                (markersNanos - layersNanos) / 1000L,
+                (totalNanos - (markersNanos - startNanos)) / 1000L,
+                origin);
+        TACZEnhancedPatch.LOGGER.info("[ruin] placed ruined outpost at {} in {} us",
+                origin, totalNanos / 1000L);
         return true;
     }
 

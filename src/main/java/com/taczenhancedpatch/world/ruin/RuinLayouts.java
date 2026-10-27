@@ -54,7 +54,21 @@ public final class RuinLayouts {
 
         List<List<String>> layers = new ArrayList<>(RuinedOutpostLayoutData.LAYERS.length);
         for (String[] rows : RuinedOutpostLayoutData.LAYERS) {
+            if (rows.length != RuinedOutpostLayoutData.DEPTH) {
+                throw new IllegalStateException("layout " + RuinedOutpostLayoutData.ID
+                        + ": expected " + RuinedOutpostLayoutData.DEPTH + " rows, got " + rows.length);
+            }
+            for (String row : rows) {
+                if (row.length() != RuinedOutpostLayoutData.WIDTH) {
+                    throw new IllegalStateException("layout " + RuinedOutpostLayoutData.ID
+                            + ": expected " + RuinedOutpostLayoutData.WIDTH + " columns, got " + row.length());
+                }
+            }
             layers.add(List.of(rows));
+        }
+        if (layers.size() != RuinedOutpostLayoutData.HEIGHT) {
+            throw new IllegalStateException("layout " + RuinedOutpostLayoutData.ID
+                    + ": expected " + RuinedOutpostLayoutData.HEIGHT + " layers, got " + layers.size());
         }
 
         return new RuinLayout(

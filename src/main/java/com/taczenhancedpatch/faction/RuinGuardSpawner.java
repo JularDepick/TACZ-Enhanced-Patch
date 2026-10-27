@@ -30,6 +30,7 @@ public final class RuinGuardSpawner {
     /* 每个遗迹只补一次守军, 周围已有守军时直接跳过, 避免重复叠加成灾 */
     private static final double GUARD_RADIUS = 48.0D;
     private static int tick;
+    private static int checkRounds;
 
     private RuinGuardSpawner() {
     }
@@ -42,15 +43,20 @@ public final class RuinGuardSpawner {
         if (++tick % CHECK_INTERVAL != 0) {
             return;
         }
+        checkRounds++;
         event.getServer().getAllLevels().forEach(RuinGuardSpawner::tickLevel);
+        if (checkRounds % 30 == 0 && TACZEnhancedPatch.LOGGER.isInfoEnabled()) {
+            TACZEnhancedPatch.LOGGER.info("[ruin] guard spawner heartbeat: checked {} rounds", checkRounds);
+        }
     }
 
     private static void tickLevel(ServerLevel level) {
+        /* 无玩家也先收敛站点队列, 避免世界生成线程的登记长期堆积 */
+        RuinSites data = RuinSites.get(level);
+        data.drainPending();
         if (level.players().isEmpty()) {
             return;
         }
-        RuinSites data = RuinSites.get(level);
-        data.drainPending();
         for (RuinSites.Site site : data.sites()) {
             if (site.seeded() || !level.isLoaded(site.origin())) {
                 continue;

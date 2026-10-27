@@ -18,6 +18,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  */
 public final class RuinSites extends SavedData {
     private static final String DATA_NAME = "tacz_enhanced_patch_ruins";
+    /* 队列上限: 防守军生成器失联时队列无界增长拖垮内存 */
+    private static final int PENDING_LIMIT = 4096;
     private static final ConcurrentLinkedQueue<BlockPos> PENDING = new ConcurrentLinkedQueue<>();
 
     private final List<Site> sites = new ArrayList<>();
@@ -25,8 +27,11 @@ public final class RuinSites extends SavedData {
     public record Site(BlockPos origin, int radius, boolean seeded) {
     }
 
-    /* 世界生成线程调用, 只入队 */
+    /* 世界生成线程调用, 只入队, 超过上限后丢弃新站点 */
     public static void queue(BlockPos origin) {
+        if (PENDING.size() >= PENDING_LIMIT) {
+            return;
+        }
         PENDING.add(origin.immutable());
     }
 
