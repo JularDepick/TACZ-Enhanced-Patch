@@ -51,8 +51,10 @@
 
 | 机制 | 说明 |
 |:---:|:---|
-| 废弃前哨 | 野外生成 11 格见方的坍塌据点, 中央宝箱提供弹药与配件, 刷怪笼产出守卫 |
-| 地形适配 | 对范围内高差有要求, 低洼补平高处削平, 海平面及以下不生成 |
+| 建筑模型 | 建筑本体是 WorldEdit 的 .schematic 文件, 放在 `src/main/ruins/` 下, 每次生成随机选一座, 增加建筑只需要放文件 |
+| 分帧粘贴 | 建筑按区块分帧落地, 底面以下补齐石头系地基, 建筑在玩家靠近时逐步出现 |
+| 地形适配 | 选址要求中心附近地表高差不超过两格, 海平面及以下不生成 |
+| 宝箱与刷怪笼 | 在建筑内部自动寻找有地有顶的空位放置, 找不到时退回中心点 |
 | 守军与阵营 | 每个遗迹是一个独立阵营, 玩家靠近后补齐守军, 领地内的其他生物会被主动攻击, 不同遗迹之间随机合作或敌对 |
 | 遗迹指南针 | 绿宝石与指南针在工作台横向相邻合成, 右键记录最近的遗迹, 指针始终指向该遗迹并提示距离 |
 
@@ -142,3 +144,4 @@ Copyright &copy; 2026 JularDepick
 - CurseForge模组链接: https://www.curseforge.com/minecraft/mc-mods/TACZ-Enhanced-Patch
 - Modrinth模组链接: https://modrinth.com/mod/TACZ-Enhanced-Patch
 - TACZ原模组: https://www.curseforge.com/minecraft/mc-mods/timeless-and-classics-zero
+- 建筑模型导入支持: https://github.com/EngineHub/WorldEdit

@@ -15,6 +15,14 @@
 
 配置界面从模组列表的配置按钮进入, 不属于快捷键入口
 
+## 遗迹建筑模型
+
+- 建筑源文件放在 `src/main/ruins/`, 只接受 WorldEdit 的 .schematic 格式, 文件名随意, 中文名同样可用
+- 构建时 `processResources` 把它们原样并入资源包的 `assets/tacz_enhanced_patch/ruins/`, 不做转换
+- 运行期由 `SchematicCatalog` 扫描目录并随机选取, `SchematicReader` 解析, `RuinPasteHandler` 在服务端 tick 分帧粘贴
+- 新增或替换建筑只需要放文件后重新构建, 不需要改 Java, 也不需要登记清单
+- 旧版数字方块 ID 由 `LegacyBlocks` 映射, 未收录的 ID 退回石头并记一条调试日志
+
 ## 开发者文档清单
 
 | 文档 | 用途 |

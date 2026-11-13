@@ -7,7 +7,7 @@
 
 ```
 src/main/
-├── ruins/ruined_outpost.json             # 遗迹布局(构建期生成数据类)
+├── ruins/                                 # 遗迹建筑模型(*.schematic, 构建时并入资源包)
 ├── java/com/taczenhancedpatch/
 │   ├── TACZEnhancedPatch.java            # 模组主入口
 │   ├── balance/
@@ -86,9 +86,13 @@ src/main/
 │   └── world/
 │       ├── ModFeatures.java              # 世界生成特性注册
 │       ├── RuinedOutpostFeature.java     # 废弃前哨遗迹生成
-│       └── ruin/
-│           ├── RuinLayout.java           # 遗迹布局数据形态
-│           └── RuinLayouts.java          # 布局装配与缓存
+│       └── schematic/
+│           ├── LegacyBlocks.java         # 旧版方块 ID 到现代方块状态映射
+│           ├── RuinPasteHandler.java     # 分帧粘贴调度与容器摆放
+│           ├── RuinSchematic.java        # 建筑数据形态
+│           ├── SchematicCatalog.java     # 建筑目录扫描与缓存
+│           ├── SchematicPaster.java      # 按区块粘贴
+│           └── SchematicReader.java      # .schematic 解析
 └── resources/
     ├── META-INF/mods.toml                # 模组元信息
     ├── pack.mcmeta                       # 资源包元信息

@@ -51,8 +51,10 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 
 | Mechanic | Description |
 |:---:|:---|
-| Ruined outpost | An 11 by 11 collapsed outpost generates in the wild, with a chest of ammunition and attachments and a spawner that produces guards |
-| Terrain fitting | The site requires an even surface, fills low spots, shaves high ones, and never generates at or below sea level |
+| Building models | The building itself is a WorldEdit .schematic file under `src/main/ruins/`, one is picked at random per ruin, and adding a building only means adding a file |
+| Framed pasting | Blocks are written chunk by chunk across ticks and the space under the building is filled with a stone foundation, so a large ruin appears as the player approaches |
+| Terrain fitting | The site requires a surface variation of at most two blocks around its center and never generates at or below sea level |
+| Chest and spawner | Placed automatically at a covered spot inside the building, falling back to the center |
 | Guards and factions | Each ruin is its own faction; guards are filled in when a player comes close, intruders in the territory are attacked, and different ruins may ally or turn hostile |
 | Ruin compass | Crafted from an emerald next to a compass; right-click records the nearest ruin and the needle keeps pointing at it with the distance shown |
 
@@ -142,3 +144,4 @@ This repository is licensed under the [Apache-2.0 License](./LICENSE)
 - CurseForge mod page: https://www.curseforge.com/minecraft/mc-mods/TACZ-Enhanced-Patch
 - Modrinth mod page: https://modrinth.com/mod/TACZ-Enhanced-Patch
 - TACZ mod: https://www.curseforge.com/minecraft/mc-mods/timeless-and-classics-zero
+- Building model import support: https://github.com/EngineHub/WorldEdit

@@ -7,7 +7,7 @@ This directory holds the functional source code of the mod, while the rest of th
 
 ```
 src/main/
-├── ruins/ruined_outpost.json             # Ruin layout (compiled at build time)
+├── ruins/                                 # Ruin building models (*.schematic, packed into resources at build time)
 ├── java/com/taczenhancedpatch/
 │   ├── TACZEnhancedPatch.java            # Mod entry point
 │   ├── balance/
@@ -86,9 +86,13 @@ src/main/
 │   └── world/
 │       ├── ModFeatures.java              # World generation feature registration
 │       ├── RuinedOutpostFeature.java     # Ruined outpost generation
-│       └── ruin/
-│           ├── RuinLayout.java           # Ruin layout data shape
-│           └── RuinLayouts.java          # Layout assembly and cache
+│       └── schematic/
+│           ├── LegacyBlocks.java         # Legacy block id to modern state mapping
+│           ├── RuinPasteHandler.java     # Framed paste scheduling and containers
+│           ├── RuinSchematic.java        # Building data shape
+│           ├── SchematicCatalog.java     # Building catalog scan and cache
+│           ├── SchematicPaster.java      # Per-chunk pasting
+│           └── SchematicReader.java      # .schematic parsing
 └── resources/
     ├── META-INF/mods.toml                # Mod metadata
     ├── pack.mcmeta                       # Resource pack metadata
