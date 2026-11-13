@@ -25,7 +25,12 @@ public final class VillagerArmingHandler {
         if (event.getLevel().isClientSide() || !(event.getEntity() instanceof Villager villager)) {
             return;
         }
-        if (ArmedVillager.isArmed(villager) || villager.getPersistentData().getBoolean(TAG_ROLLED)) {
+        if (ArmedVillager.isArmed(villager)) {
+            /* 已持械的村民重新载入时重建一次商品, 保证存档里的交易页与账目一致 */
+            ArmedVillager.refreshOffers(villager);
+            return;
+        }
+        if (villager.getPersistentData().getBoolean(TAG_ROLLED)) {
             return;
         }
         villager.getPersistentData().putBoolean(TAG_ROLLED, true);

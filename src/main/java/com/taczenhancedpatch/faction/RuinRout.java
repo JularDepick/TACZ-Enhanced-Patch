@@ -22,6 +22,8 @@ public final class RuinRout {
     /* 固定修饰符标识, 重复标记时先移除再加, 保证只生效一份 */
     private static final UUID HEALTH_ID = UUID.fromString("3f2a1c4e-9b7d-4c21-8f60-2a5d7e9c1b34");
     private static final UUID DAMAGE_ID = UUID.fromString("8c1d5b6a-4e2f-4a90-b3d7-6f8e2c4a9d51");
+    private static final UUID ARMOR_ID = UUID.fromString("b7e4d2c1-5a93-4f68-9c02-3d8b6e1a7f45");
+    private static final UUID TOUGHNESS_ID = UUID.fromString("e2c9a4b7-1f65-4d38-8a90-5b7c3e2d6f18");
     /* 溃军搜索范围: 领地半径之外再放宽一段, 覆盖正在追击玩家的守军 */
     private static final int SEARCH_MARGIN = 64;
 
@@ -71,11 +73,13 @@ public final class RuinRout {
         return Math.max(1, Math.min(100, percent)) / 100.0F;
     }
 
-    /* 生命上限与攻击力按同一系数缩放, 缩放后把当前生命夹到新上限 */
+    /* 生命上限, 攻击力, 护甲与护甲韧性按同一系数缩放, 缩放后把当前生命夹到新上限 */
     private static void apply(Mob mob, float factor) {
         double delta = factor - 1.0D;
         applyModifier(mob, Attributes.MAX_HEALTH, HEALTH_ID, "ruin_routed_health", delta);
         applyModifier(mob, Attributes.ATTACK_DAMAGE, DAMAGE_ID, "ruin_routed_damage", delta);
+        applyModifier(mob, Attributes.ARMOR, ARMOR_ID, "ruin_routed_armor", delta);
+        applyModifier(mob, Attributes.ARMOR_TOUGHNESS, TOUGHNESS_ID, "ruin_routed_toughness", delta);
         if (mob.getHealth() > mob.getMaxHealth()) {
             mob.setHealth(mob.getMaxHealth());
         }

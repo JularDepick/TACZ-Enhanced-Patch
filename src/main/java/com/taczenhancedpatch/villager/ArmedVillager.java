@@ -1,6 +1,7 @@
 package com.taczenhancedpatch.villager;
 
 import com.taczenhancedpatch.TACZEnhancedPatch;
+import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.gunner.GunnerArsenal;
 import com.taczenhancedpatch.gunner.GunnerArming;
 import com.taczenhancedpatch.gunner.GunnerMarker;
@@ -13,6 +14,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.trading.MerchantOffer;
@@ -70,6 +72,7 @@ public final class ArmedVillager {
         GunnerMarker.mark(villager, arming.profile(), arming.ammoPool(), true);
         GunnerArming.equip(villager, arming.profile().gunId(), arming.profile().fireMode(), arming.ammoPool(), random);
         villager.setDropChance(EquipmentSlot.MAINHAND, 0.0F);
+        equipLightArmor(villager, random);
 
         CompoundTag data = new CompoundTag();
         ListTag stock = new ListTag();
@@ -132,6 +135,48 @@ public final class ArmedVillager {
         return false;
     }
 
+    /* 只穿轻甲: 四个部位各随机皮革或锁链, 不加额外护甲点 */
+    private static void equipLightArmor(Villager villager, RandomSource random) {
+        float dropChance = (float) ServerConfig.gunnerArmorDropChance();
+        for (EquipmentSlot slot : new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST,
+                EquipmentSlot.LEGS, EquipmentSlot.FEET}) {
+            boolean leather = random.nextBoolean();
+            villager.setItemSlot(slot, new ItemStack(lightArmor(slot, leather)));
+            villager.setDropChance(slot, dropChance);
+        }
+    }
+
+    private static Item lightArmor(EquipmentSlot slot, boolean leather) {
+        if (leather) {
+            return switch (slot) {
+                case HEAD -> Items.LEATHER_HELMET;
+                case CHEST -> Items.LEATHER_CHESTPLATE;
+                case LEGS -> Items.LEATHER_LEGGINGS;
+                default -> Items.LEATHER_BOOTS;
+            };
+        }
+        return switch (slot) {
+            case HEAD -> Items.CHAINMAIL_HELMET;
+            case CHEST -> Items.CHAINMAIL_CHESTPLATE;
+            case LEGS -> Items.CHAINMAIL_LEGGINGS;
+            default -> Items.CHAINMAIL_BOOTS;
+        };
+    }
+
+    /* 取出并清空库存, 用于感染转换时把物品交给新生物或掉在地上 */
+    public static List<ItemStack> takeStock(Villager villager) {
+        CompoundTag data = root(villager);
+        List<ItemStack> stacks = new ArrayList<>();
+        if (data == null) {
+            return stacks;
+        }
+        stacks.addAll(readStock(data.getList(STOCK, Tag.TAG_COMPOUND)));
+        villager.getPersistentData().remove(ROOT);
+        GunnerMarker.clear(villager);
+        villager.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+        return stacks;
+    }
+
     /* 退化为原版村民 */
     public static void degrade(Villager villager) {
         CompoundTag persistent = villager.getPersistentData();
@@ -165,7 +210,8 @@ public final class ArmedVillager {
         }
         CompoundTag quota = data.getCompound(QUOTA);
         ListTag stock = data.getList(STOCK, Tag.TAG_COMPOUND);
-        for (String key : quota.getAllKeys()) {
+        /* 按 key 排序保证商品顺序稳定, 职业变更重建商品时不会错位 */
+        for (String key : new java.util.TreeSet<>(quota.getAllKeys())) {
             CompoundTag entry = quota.getCompound(key);
             int remaining = entry.getInt(TOTAL) - entry.getInt(SOLD);
             if (remaining <= 0) {
