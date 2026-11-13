@@ -55,7 +55,11 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Framed pasting | Blocks are written chunk by chunk across ticks and the space under the building is filled with a stone foundation, so a large ruin appears as the player approaches |
 | Terrain fitting | The site requires a surface variation of at most two blocks around its center and never generates at or below sea level |
 | Chest and spawner | Placed automatically at a covered spot inside the building, falling back to the center |
-| Guards and factions | Each ruin is its own faction; guards are filled in when a player comes close, intruders in the territory are attacked, and different ruins may ally or turn hostile |
+| Banner and factions | A vanilla banner marks the building center and its color is the faction, so same-colored ruins are allied while different colors may ally or turn hostile |
+| Territory and reinforcement | A cylinder around the banner with a radius fitted to the building; the garrison is reinforced at a fixed interval until it reaches the threshold |
+| Capture | Players inside the core area start a shared countdown while the garrison is thin, leaving the core aborts it, and the garrison strength decides the outcome |
+| Capture loot | A supply chest appears in the core area, with ammo and weapons converted from the kill tally plus experience for each participant |
+| Banner souvenir | After a successful capture the banner can be broken and dropped, and its tooltip lists every participant |
 | Ruin compass | Crafted from an emerald next to a compass; right-click records the nearest ruin and the needle keeps pointing at it with the distance shown |
 
 ### Tank elite
