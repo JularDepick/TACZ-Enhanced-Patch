@@ -48,6 +48,7 @@ public final class RuinBanner {
     private static final String TAG_KILLS = "kills";
     private static final String TAG_XP = "xp";
     private static final String TAG_NAME = "name";
+    private static final String TAG_POS = "pos";
 
     private RuinBanner() {
     }
@@ -109,6 +110,10 @@ public final class RuinBanner {
         level.removeBlock(pos, false);
         ItemStack stack = new ItemStack(event.getState().getBlock());
         writeStats(stack, site);
+        /* 名称固定为 颜色阵营旗帜-(x,y,z), 方便玩家按坐标巡回 */
+        stack.setHoverName(Component.translatable("tacz_enhanced_patch.ruin.banner_name",
+                Component.translatable("color.minecraft." + site.bannerColor()),
+                pos.getX(), pos.getY(), pos.getZ()));
         Containers.dropItemStack(level, pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D, stack);
     }
 
@@ -133,6 +138,11 @@ public final class RuinBanner {
         CompoundTag stats = tag.getCompound(TAG_STATS);
         event.getToolTip().add(Component.translatable("tacz_enhanced_patch.ruin.banner_header")
                 .withStyle(ChatFormatting.GOLD));
+        if (stats.contains(TAG_POS, Tag.TAG_INT_ARRAY)) {
+            int[] pos = stats.getIntArray(TAG_POS);
+            event.getToolTip().add(Component.translatable("tacz_enhanced_patch.ruin.banner_coord",
+                    pos[0], pos[1], pos[2]).withStyle(ChatFormatting.GRAY));
+        }
         ListTag lines = stats.getList(TAG_LINES, Tag.TAG_COMPOUND);
         for (int i = 0; i < lines.size(); i++) {
             CompoundTag line = lines.getCompound(i);
@@ -159,6 +169,10 @@ public final class RuinBanner {
             lines.add(line);
         }
         root.put(TAG_LINES, lines);
+        BlockPos banner = site.banner();
+        if (banner != null) {
+            root.putIntArray(TAG_POS, new int[]{banner.getX(), banner.getY(), banner.getZ()});
+        }
         stack.addTagElement(TAG_STATS, root);
         if (ServerConfig.debugEvents()) {
             TACZEnhancedPatch.LOGGER.info("[ruin] banner souvenir with {} entries from {}", lines.size(), site.origin());

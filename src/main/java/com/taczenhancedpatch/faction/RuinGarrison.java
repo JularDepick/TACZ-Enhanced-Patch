@@ -166,6 +166,8 @@ public final class RuinGarrison {
             return;
         }
         site.setCaptured(true);
+        /* 势力瓦解: 剩余守军转为溃军, 阵营与归属保持不变 */
+        RuinRout.rout(level, site);
         RuinLoot.placeChest(level, site, level.getRandom());
         RuinLoot.grantExperience(level, site);
         tell(inside, "tacz_enhanced_patch.ruin.capture_success");

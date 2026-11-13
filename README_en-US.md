@@ -57,9 +57,9 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Chest and spawner | Placed automatically at a covered spot inside the building, falling back to the center |
 | Banner and factions | A vanilla banner marks the building center and its color is the faction, so same-colored ruins are allied while different colors may ally or turn hostile |
 | Territory and reinforcement | A cylinder around the banner with a radius fitted to the building; the garrison is reinforced at a fixed interval until it reaches the threshold |
-| Capture | Players inside the core area start a shared countdown while the garrison is thin, leaving the core aborts it, and the garrison strength decides the outcome |
+| Capture | Players inside the core area start a shared countdown while the garrison is thin, leaving the core aborts it, and the garrison strength decides the outcome; surviving guards become routed troops with reduced combat power |
 | Capture loot | A supply chest appears in the core area, with ammo and weapons converted from the kill tally plus experience for each participant |
-| Banner souvenir | After a successful capture the banner can be broken and dropped, and its tooltip lists every participant |
+| Banner souvenir | After a successful capture the banner can be broken and dropped, named after its color and coordinates, and its tooltip records the ruin coordinates plus every participant |
 | Ruin compass | Crafted from an emerald next to a compass; right-click records the nearest ruin and the needle keeps pointing at it with the distance shown |
 
 ### Tank elite

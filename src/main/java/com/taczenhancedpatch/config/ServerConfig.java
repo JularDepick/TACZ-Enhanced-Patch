@@ -29,6 +29,7 @@ public final class ServerConfig {
     private static final ForgeConfigSpec.DoubleValue RUIN_XP_SCALE;
     private static final ForgeConfigSpec.IntValue RUIN_XP_PER_KILL;
     private static final ForgeConfigSpec.IntValue RUIN_XP_DAMAGE_POOL;
+    private static final ForgeConfigSpec.IntValue RUIN_ROUTED_FACTOR;
 
     private static final ForgeConfigSpec.BooleanValue DEBUG_EVENTS = BUILDER
             .comment("是否把 TACZ API 事件写入日志, 用于补丁开发期的接入诊断")
@@ -287,6 +288,9 @@ public final class ServerConfig {
         RUIN_XP_DAMAGE_POOL = BUILDER
                 .comment("按伤害占比分配的额外经验池, 单位经验")
                 .defineInRange("xpDamagePool", 100, 0, 1000);
+        RUIN_ROUTED_FACTOR = BUILDER
+                .comment("溃军战力系数, 单位百分比, 表示夺旗后残余守军单体战力与原单体战力的比值")
+                .defineInRange("routedCombatFactor", 50, 10, 90);
         BUILDER.pop();
 
         SPEC = BUILDER.build();
@@ -527,6 +531,10 @@ public final class ServerConfig {
         return value(RUIN_XP_DAMAGE_POOL, 100);
     }
 
+    public static int ruinRoutedFactor() {
+        return value(RUIN_ROUTED_FACTOR, 50);
+    }
+
     public static List<ConfigOptionGroup> groups() {
         return List.of(
                 new ConfigOptionGroup(GROUP_UI, List.of(
@@ -547,7 +555,8 @@ public final class ServerConfig {
                         new ConfigOption.DoubleOption("opt.loot_scale", RUIN_LOOT_SCALE, 0.0D, 3.0D, 0.05D),
                         new ConfigOption.DoubleOption("opt.xp_scale", RUIN_XP_SCALE, 0.0D, 10.0D, 0.1D),
                         new ConfigOption.IntOption("opt.xp_per_kill", RUIN_XP_PER_KILL, 0, 200),
-                        new ConfigOption.IntOption("opt.xp_damage_pool", RUIN_XP_DAMAGE_POOL, 0, 1000))),
+                        new ConfigOption.IntOption("opt.xp_damage_pool", RUIN_XP_DAMAGE_POOL, 0, 1000),
+                        new ConfigOption.IntOption("opt.routed_factor", RUIN_ROUTED_FACTOR, 10, 90))),
                 new ConfigOptionGroup("group.basic", List.of(
                         new ConfigOption.ToggleOption("opt.enabled", GUNNER_ENABLED),
                         new ConfigOption.ToggleOption("opt.difficulty", GUNNER_DIFFICULTY_SCALING))),

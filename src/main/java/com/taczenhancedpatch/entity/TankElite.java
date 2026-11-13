@@ -8,6 +8,7 @@ import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.damagesource.DamageSource;
 import com.taczenhancedpatch.faction.FactionData;
 import com.taczenhancedpatch.faction.RuinBehavior;
+import com.taczenhancedpatch.faction.RuinRout;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
@@ -243,8 +244,12 @@ public class TankElite extends Monster {
         }
         Vec3 muzzle = position().add(0.0D, 2.1D, 0.0D).add(getLookAngle().scale(2.2D));
         Vec3 direction = target.getEyePosition().subtract(muzzle).normalize().scale(SHELL_SPEED);
-        LargeFireball shell = new LargeFireball(level(), this, direction.x, direction.y, direction.z,
-                CombatPreset.tankExplosionPower(level().getDifficulty()));
+        int power = CombatPreset.tankExplosionPower(level().getDifficulty());
+        float factor = RuinRout.factor(this);
+        if (factor < 1.0F) {
+            power = Math.max(1, Math.round(power * factor));
+        }
+        LargeFireball shell = new LargeFireball(level(), this, direction.x, direction.y, direction.z, power);
         shell.setPos(muzzle.x, muzzle.y, muzzle.z);
         level().addFreshEntity(shell);
         playSound(SoundEvents.GHAST_SHOOT, 4.0F, 0.5F);
