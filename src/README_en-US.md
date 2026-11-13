@@ -100,6 +100,11 @@ src/main/
 │   │   └── PowerTracker.java              # Peak combat power recording
 │   ├── util/
 │   │   └── UiText.java                   # UI text wrapper
+│   ├── villager/
+│   │   ├── ArmedVillager.java            # Armed villager state and trade data
+│   │   ├── VillagerArmingHandler.java    # Spawn roll and bonus experience
+│   │   ├── VillagerRetaliation.java      # Retaliation rules for players and mobs
+│   │   └── VillagerTradeHandler.java     # Trade settlement and offer rebuild
 │   └── world/
 │       ├── ModFeatures.java              # World generation feature registration
 │       ├── RuinedOutpostFeature.java     # Ruined outpost generation

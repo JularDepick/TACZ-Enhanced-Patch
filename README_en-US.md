@@ -72,6 +72,16 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Loot | Drops iron, copper and gunpowder; cooldown and cannon range are configurable while health and power follow difficulty presets |
 | Combined unit | Up to four grunts ride on the shoulders, members share a health and armor bonus derived from their total health, and a faction tank revives factionless up to three times |
 | Player driving | A factionless tank can be mounted, aimed with the crosshair, driven with WASD and fired with the space bar |
+### Armed neutral villagers
+
+| Mechanic | Description |
+|:---:|:---|
+| Spawning | Villagers roll for a gun on spawn, fifty percent by default, covering natural spawns, breeding and curing, with wandering traders excluded |
+| Stance | Never attacks first; retaliates against a player only when the health crosses the threshold, and against mobs once health drops below ninety percent |
+| Trading | Uses the vanilla trade screen with emeralds; goods come from the guns and ammo it carries, with a total of twice the carried amount |
+| Discount | Once the backpack is empty the remaining quota sells at half price and is conjured by the system |
+| Degrading | An empty backpack turns the villager back into a vanilla villager and voids the discounted quota |
+
 ### Fast extended magazines
 
 | Mechanic | Description |
@@ -98,7 +108,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Item | Description |
 |:---:|:---|
 | Client configuration | Local preferences such as automatic reload, the incoming fire indicator, the heading ruler and its color, stored per player |
-| Server configuration | 57 parameters grouped into debug, ruins, basics, retaliation, spawning, targeting, ammo, toughness, loot, armed grunt and tank elite, with pure-button and switch groups listed before numeric ones and synced from the server |
+| Server configuration | 61 parameters grouped into debug, ruins, basics, retaliation, spawning, targeting, ammo, toughness, loot, armed grunt and tank elite, with pure-button and switch groups listed before numeric ones and synced from the server |
 | Configuration screen | Opens the config screen directly, with tabs at the top to switch between client and server; the server tab only appears for the world owner |
 | Shortcut | C opens the config screen directly by default; it is a standard key binding, so it can be rebound or cleared in the vanilla controls |
 | Mob arming config | The first row of the server page scans every mob into one switchable list, shows each mob's name and entity ID, and lets group toggles flip those switches in bulk |

@@ -100,6 +100,11 @@ src/main/
 │   │   └── PowerTracker.java              # 战斗峰值战力记录
 │   ├── util/
 │   │   └── UiText.java                   # 界面文本包装
+│   ├── villager/
+│   │   ├── ArmedVillager.java            # 中立持械村民状态与交易数据
+│   │   ├── VillagerArmingHandler.java    # 生成判定与额外经验
+│   │   ├── VillagerRetaliation.java      # 玩家与生物的反击判定
+│   │   └── VillagerTradeHandler.java     # 交易结算与商品重建
 │   └── world/
 │       ├── ModFeatures.java              # 世界生成特性注册
 │       ├── RuinedOutpostFeature.java     # 废弃前哨遗迹生成
