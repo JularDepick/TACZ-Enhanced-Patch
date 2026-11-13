@@ -162,4 +162,4 @@ This repository is licensed under the [Apache-2.0 License](./LICENSE)
 - CurseForge mod page: https://www.curseforge.com/minecraft/mc-mods/TACZ-Enhanced-Patch
 - Modrinth mod page: https://modrinth.com/mod/TACZ-Enhanced-Patch
 - TACZ mod: https://www.curseforge.com/minecraft/mc-mods/timeless-and-classics-zero
-- Building model import support: https://github.com/EngineHub/WorldEdit
+- Building model format reference: https://github.com/EngineHub/WorldEdit

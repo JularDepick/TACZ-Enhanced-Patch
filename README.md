@@ -162,4 +162,4 @@ Copyright &copy; 2026 JularDepick
 - CurseForge模组链接: https://www.curseforge.com/minecraft/mc-mods/TACZ-Enhanced-Patch
 - Modrinth模组链接: https://modrinth.com/mod/TACZ-Enhanced-Patch
 - TACZ原模组: https://www.curseforge.com/minecraft/mc-mods/timeless-and-classics-zero
-- 建筑模型导入支持: https://github.com/EngineHub/WorldEdit
+- 建筑模型格式参考: https://github.com/EngineHub/WorldEdit

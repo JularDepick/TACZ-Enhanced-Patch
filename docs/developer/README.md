@@ -37,6 +37,7 @@
 - 运行期由 `SchematicCatalog` 扫描目录并随机选取, `SchematicReader` 解析, `RuinPasteHandler` 在服务端 tick 分帧粘贴
 - 新增或替换建筑只需要放文件后重新构建, 不需要改 Java, 也不需要登记清单
 - 旧版数字方块 ID 由 `LegacyBlocks` 映射, 未收录的 ID 退回石头并记一条调试日志
+- 格式与流程参考了 WorldEdit 的 .schematic 读写思路, 解析与粘贴均为本模组自行实现, 不包含其代码也不引入其依赖
 
 ## 开发者文档清单
 
