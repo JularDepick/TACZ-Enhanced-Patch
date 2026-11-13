@@ -34,6 +34,8 @@
 
 - 建筑源文件放在 `src/main/ruins/`, 只接受 WorldEdit 的 .schematic 格式, 文件名随意, 中文名同样可用
 - 构建时 `processResources` 把它们原样并入资源包的 `assets/tacz_enhanced_patch/ruins/`, 不做转换
+- 另有外部目录: 存档服务端配置目录下的 `tacz_enhanced_patch_ruins/`, 递归扫描深度上限四层, 与内置模型在选择时平权; 服务端配置项 `worldgen.builtinModels` 关闭后只取外部目录
+- 站点保存生成时选定的建筑名, 外部来源带 `external:` 前缀; 建筑被删除或格式不合法时弃用该文件并换一座可用的建筑, 记一条运行日志
 - 运行期由 `SchematicCatalog` 扫描目录并随机选取, `SchematicReader` 解析, `RuinPasteHandler` 在服务端 tick 分帧粘贴
 - 新增或替换建筑只需要放文件后重新构建, 不需要改 Java, 也不需要登记清单
 - 旧版数字方块 ID 由 `LegacyBlocks` 映射, 未收录的 ID 退回石头并记一条调试日志

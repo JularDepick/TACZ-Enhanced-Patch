@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * 遗迹建筑的分帧粘贴调度。
@@ -107,24 +108,41 @@ public final class RuinPasteHandler {
     }
 
     private static Job createJob(ServerLevel level, RuinSites.Site site, RuinSites data) {
-        if (site.schematic().isEmpty()) {
-            site.setPasted(true);
-            data.setDirty();
+        String name = site.schematic();
+        RuinSchematic schematic = name.isEmpty() ? null : SchematicCatalog.load(name);
+        if (schematic == null && !name.isEmpty() && SchematicCatalog.isPending(name)) {
+            /* 后台还在解析, 下一 tick 再取 */
             return null;
         }
-        RuinSchematic schematic = SchematicCatalog.load(site.schematic());
         if (schematic == null) {
-            if (SchematicCatalog.isPending(site.schematic())) {
-                /* 后台还在解析, 下一 tick 再取 */
-                return null;
+            /*
+             * 站点登记的建筑不可用: 文件被删除, 或文件格式不合法。
+             * 弃用该文件并换一座可用的建筑, 下一 tick 再取替代文件; 连替代都没有时才放弃本座遗迹。
+             */
+            if (!replace(level, site, data, name)) {
+                site.setPasted(true);
+                data.setDirty();
             }
-            site.setPasted(true);
-            data.setDirty();
             return null;
         }
         int minX = site.origin().getX() - schematic.width() / 2;
         int minZ = site.origin().getZ() - schematic.depth() / 2;
         return new Job(schematic, new BlockPos(minX, site.baseY(), minZ), site.baseY());
+    }
+
+    /* 把站点换成另一座可用的建筑, 返回是否换成功 */
+    private static boolean replace(ServerLevel level, RuinSites.Site site, RuinSites data, String failed) {
+        Optional<String> picked = SchematicCatalog.pickOther(failed, level.getRandom());
+        if (picked.isEmpty()) {
+            TACZEnhancedPatch.LOGGER.error("[ruin] no usable schematic for site at {}, ruin skipped",
+                    site.origin());
+            return false;
+        }
+        site.setSchematic(picked.get());
+        data.setDirty();
+        TACZEnhancedPatch.LOGGER.warn("[ruin] schematic {} unusable at {}, replaced by {}",
+                failed, site.origin(), picked.get());
+        return true;
     }
 
     private static int advance(ServerLevel level, RuinSites.Site site, Job job, RuinSites data, int budget) {

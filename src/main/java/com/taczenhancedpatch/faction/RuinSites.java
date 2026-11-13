@@ -69,6 +69,11 @@ public final class RuinSites extends SavedData {
             return schematic;
         }
 
+        /* 站点登记的建筑被弃用时换成另一座, 名字随存档一起保存 */
+        public void setSchematic(String schematic) {
+            this.schematic = schematic == null ? "" : schematic;
+        }
+
         public int baseY() {
             return baseY;
         }

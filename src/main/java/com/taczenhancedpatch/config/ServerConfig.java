@@ -75,6 +75,7 @@ public final class ServerConfig {
     private static final ForgeConfigSpec.DoubleValue GUNNER_ATTACHMENT_DROP_CHANCE;
     private static final ForgeConfigSpec.DoubleValue GUNNER_ARMED_DROP_CAP;
     private static final ForgeConfigSpec.BooleanValue RUINS_ENABLED;
+    private static final ForgeConfigSpec.BooleanValue RUINS_BUILTIN_MODELS;
     private static final ForgeConfigSpec.DoubleValue GRUNT_AMMO_DROP_MULTIPLIER;
     private static final ForgeConfigSpec.DoubleValue GRUNT_HIGH_TIER_AMMO_CHANCE;
     private static final ForgeConfigSpec.DoubleValue GRUNT_GUN_DROP_CHANCE;
@@ -250,6 +251,12 @@ public final class ServerConfig {
         RUINS_ENABLED = BUILDER
                 .comment("是否生成废弃前哨遗迹, 关闭后不再新增遗迹但已生成的保留")
                 .define("ruinsEnabled", true);
+        RUINS_BUILTIN_MODELS = BUILDER
+                .comment("是否把模组内置的遗迹建筑纳入随机选择",
+                        "关闭后只从存档服务端配置目录下的 tacz_enhanced_patch_ruins 目录取模型",
+                        "外部目录与内置模型在选择时平权, 本项只决定内置模型是否参与",
+                        "只影响之后新生成的遗迹, 已生成的遗迹沿用生成时选定的模型")
+                .define("builtinModels", true);
         BUILDER.pop();
 
         BUILDER.comment("遗迹守军与夺旗").push("ruin");
@@ -382,6 +389,11 @@ public final class ServerConfig {
 
     public static boolean ruinsEnabled() {
         return value(RUINS_ENABLED, true);
+    }
+
+    /* 内置遗迹建筑是否参与随机选择 */
+    public static boolean ruinsBuiltinModels() {
+        return value(RUINS_BUILTIN_MODELS, true);
     }
 
     public static boolean gunnerDifficultyScaling() {
@@ -586,6 +598,7 @@ public final class ServerConfig {
                         new ConfigOption.ToggleOption("opt.debug", DEBUG_EVENTS))),
                 new ConfigOptionGroup("group.ruins", List.of(
                         new ConfigOption.ToggleOption("opt.ruins", RUINS_ENABLED),
+                        new ConfigOption.ToggleOption("opt.builtin_models", RUINS_BUILTIN_MODELS),
                         new ConfigOption.IntOption("opt.garrison_base", RUIN_GARRISON_BASE, 1, 32),
                         new ConfigOption.IntOption("opt.reinforce_percent_min", RUIN_REINFORCE_PERCENT_MIN, 10, 89),
                         new ConfigOption.IntOption("opt.reinforce_percent_max", RUIN_REINFORCE_PERCENT_MAX, 11, 90),

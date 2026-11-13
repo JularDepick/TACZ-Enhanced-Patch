@@ -1,6 +1,7 @@
 package com.taczenhancedpatch.config;
 
 import com.taczenhancedpatch.TACZEnhancedPatch;
+import com.taczenhancedpatch.world.schematic.SchematicCatalog;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
@@ -30,6 +31,8 @@ public final class ConfigEvents {
             clientConfig = config;
         } else if (config.getSpec() == ServerConfig.SPEC) {
             serverConfig = config;
+            /* 配置重新读取时重扫外部模型目录, 内置名单来自模组文件不需要重扫 */
+            SchematicCatalog.refresh();
         }
     }
 

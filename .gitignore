@@ -38,6 +38,7 @@ logs/
 # temp
 temp/
 tmp/
+javac.*.args
 
 # docs for some versions
 v*-*.md

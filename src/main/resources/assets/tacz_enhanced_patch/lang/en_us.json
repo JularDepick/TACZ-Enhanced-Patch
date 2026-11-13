@@ -121,6 +121,7 @@
   "tacz_enhanced_patch.opt.tank_explosion": "Explosion power",
   "tacz_enhanced_patch.opt.tank_range": "Cannon range",
   "tacz_enhanced_patch.opt.ruins": "Enable ruins",
+  "tacz_enhanced_patch.opt.builtin_models": "Enable built-in building models",
   "tacz_enhanced_patch.opt.debug": "Debug logging",
   "tacz_enhanced_patch.opt.auto_reload": "Automatic reload",
   "tacz_enhanced_patch.opt.hit_indicator": "Incoming fire indicator",
