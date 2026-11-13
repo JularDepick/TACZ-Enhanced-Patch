@@ -15,6 +15,21 @@
 
 配置界面从模组列表的配置按钮进入, 不属于快捷键入口
 
+## 环境要求
+
+| 项 | 要求 | 说明 |
+|:---:|:---:|:---|
+| JDK | 17 | 构建脚本把工具链声明为 17, 本机必须能找到该版本 |
+| Gradle | 8.14.3 | 随 gradlew 包装器提供, 无需单独安装 |
+| 网络 | 可访问镜像 | 首次构建需要解析 ForgeGradle 与上游模组依赖 |
+
+只装了更高版本 JDK 时, 构建会在配置阶段之后失败, 报错形如 `Cannot find a Java installation on your machine matching: {languageVersion=17}`。两种处理方式:
+
+- 安装一个 JDK 17, Gradle 会自动发现
+- 或在 `gradle.properties` 增加 `org.gradle.java.installations.paths` 指向已有的 JDK 17 目录
+
+开发运行与产物构建都需要 JDK 17; 只用 `javac` 做语法校验不产生可运行产物
+
 ## 遗迹建筑模型
 
 - 建筑源文件放在 `src/main/ruins/`, 只接受 WorldEdit 的 .schematic 格式, 文件名随意, 中文名同样可用

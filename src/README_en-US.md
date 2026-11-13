@@ -27,6 +27,8 @@ src/main/
 │   │   ├── hud/
 │   │   │   └── HeadingRulerOverlay.java  # Heading ruler rendering
 │   │   └── render/
+│   │       ├── ArmedHumanoidLayer.java    # Humanoid skeleton layer for non-humanoid armed mobs
+│   │       ├── ArmedShapeAttach.java      # Attaches the layer to vanilla renderers
 │   │       ├── GruntRenderer.java        # Armed grunt renderer
 │   │       ├── TankModel.java            # Tank model
 │   │       └── TankRenderer.java         # Tank elite renderer

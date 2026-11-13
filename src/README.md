@@ -27,6 +27,8 @@ src/main/
 │   │   ├── hud/
 │   │   │   └── HeadingRulerOverlay.java  # 方向标尺绘制
 │   │   └── render/
+│   │       ├── ArmedHumanoidLayer.java    # 非人形持械的人形骨架图层
+│   │       ├── ArmedShapeAttach.java      # 给原版渲染器挂载该图层
 │   │       ├── GruntRenderer.java        # 持枪小兵渲染
 │   │       ├── TankModel.java            # 坦克模型
 │   │       └── TankRenderer.java         # 坦克精英怪渲染

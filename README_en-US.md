@@ -2,7 +2,7 @@
 
 # TACZ-Enhanced-Patch
 
-[![Version](https://img.shields.io/badge/Version-0.1.0-green)](https://github.com/JularDepick/TACZ-Enhanced-Patch/tree/v0.1.0)
+[![Version](https://img.shields.io/badge/Version-0.2.0-green)](https://github.com/JularDepick/TACZ-Enhanced-Patch/tree/v0.2.0)
 [![Copyright](https://img.shields.io/badge/Copyright-JularDepick-0066AA)](./COPYRIGHT)
 [![License](https://img.shields.io/badge/License-Apache--2.0-red)](./LICENSE)
 
@@ -22,6 +22,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Minecraft | 1.20.1 |
 | Mod loader | Forge 47.4.23 or newer |
 | Upstream mod | TACZ 1.1.8 or newer |
+| Java | 17 or newer, required to run the game |
 | Installation | Required on both client and server |
 
 ## Contents
@@ -31,6 +32,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Mechanic | Description |
 |:---:|:---|
 | Armed spawning | Hostile mobs may carry TACZ guns based on difficulty, non-humanoid ones such as creepers included, with no new entity types |
+| Armed appearance | Non-humanoid mobs gain a humanoid skeleton layer with the gun drawn in its hand, so an armed one is obvious at a glance |
 | Return fire | Any armed mob that gets hit locks onto the attacker, and can be limited to hostile targets so allies do not fight each other |
 | Improvised arming | Passive, neutral and friendly mobs may grab a random gun below the configured health threshold and turn on whatever hurt them; humanoid and non-humanoid chances are configured separately |
 | Ammo and attachments | Every gun rolls its own attachments and limited ammo, then falls back to its vanilla weapon once dry to give players a window |
@@ -60,6 +62,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Territory and reinforcement | A cylinder around the banner with a radius fitted to the building; the garrison is reinforced at a fixed interval until it reaches the threshold |
 | Capture | Players inside the core area start a shared countdown while the garrison is thin, leaving the core aborts it, and the garrison strength decides the outcome; surviving guards become routed troops with reduced combat power |
 | Capture loot | A supply chest appears in the core area, with ammo and weapons converted from the kill tally plus experience for each participant |
+| Reward chest | Always holds a matching armor set and a sword, each piece has a fifty percent chance of strength-scaled enchantments, plus ender pearls, a chance at eyes of ender and bread |
 | Banner souvenir | After a successful capture the banner can be broken and dropped, named after its color and coordinates, and its tooltip records the ruin coordinates plus every participant |
 | Ruin compass | Crafted from an emerald next to a compass; right-click records the nearest ruin and the needle keeps pointing at it with the distance shown |
 
@@ -108,7 +111,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Item | Description |
 |:---:|:---|
 | Client configuration | Local preferences such as automatic reload, the incoming fire indicator, the heading ruler and its color, stored per player |
-| Server configuration | 61 parameters grouped into debug, ruins, basics, retaliation, spawning, targeting, ammo, toughness, loot, armed grunt and tank elite, with pure-button and switch groups listed before numeric ones and synced from the server |
+| Server configuration | 61 parameters grouped into debug, ruins, armed neutral villagers, basics, retaliation, spawning, targeting, ammo, toughness, loot, armed grunt and tank elite, with pure-button and switch groups listed before numeric ones and synced from the server |
 | Configuration screen | Opens the config screen directly, with tabs at the top to switch between client and server; the server tab only appears for the world owner |
 | Shortcut | C opens the config screen directly by default; it is a standard key binding, so it can be rebound or cleared in the vanilla controls |
 | Mob arming config | The first row of the server page scans every mob into one switchable list, shows each mob's name and entity ID, and lets group toggles flip those switches in bulk |
