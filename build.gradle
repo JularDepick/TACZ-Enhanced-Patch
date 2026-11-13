@@ -26,12 +26,15 @@ processResources {
                'forgeMajor': forgeMajor,
                'taczMinVersion': taczMinVersion
     }
+    /* 遗迹建筑模型: 作者把 .schematic 放在 src/main/ruins, 构建时原样并入资源包, 运行期由模组文件系统扫描并随机选取 */
+    inputs.dir file('src/main/ruins')
+    from('src/main/ruins') {
+        include '*.schematic'
+        into 'assets/tacz_enhanced_patch/ruins'
+    }
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
-
-/* 遗迹布局: 构建期把 src/main/ruins 下的 JSON 编译成 Java 数据类 */
-apply from: 'gradle/ruin_layout.gradle'
 
 repositories {
     maven {

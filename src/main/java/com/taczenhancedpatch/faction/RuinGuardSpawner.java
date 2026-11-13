@@ -58,7 +58,7 @@ public final class RuinGuardSpawner {
             return;
         }
         for (RuinSites.Site site : data.sites()) {
-            if (site.seeded() || !level.isLoaded(site.origin())) {
+            if (site.seeded() || !site.pasted() || !level.isLoaded(site.origin())) {
                 continue;
             }
             boolean near = level.players().stream()
