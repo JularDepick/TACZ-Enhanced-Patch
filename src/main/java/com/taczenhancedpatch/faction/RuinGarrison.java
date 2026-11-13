@@ -30,6 +30,8 @@ import java.util.List;
 @Mod.EventBusSubscriber(modid = TACZEnhancedPatch.MOD_ID)
 public final class RuinGarrison {
     private static final int CHECK_INTERVAL = 20;
+    /* 玩家进入该距离内才跑补兵与夺旗调度, 单位方块 */
+    private static final double ACTIVE_DISTANCE = 128.0D;
     /* 坦克在补兵里的权重: 每四只补兵出一辆坦克 */
     private static final int TANK_ONE_IN = 4;
     private static int tick;
@@ -60,6 +62,10 @@ public final class RuinGarrison {
             if (!site.pasted() || site.banner() == null) {
                 continue;
             }
+            /* 没有玩家在附近时整座遗迹休眠, 不做任何实体查询 */
+            if (!hasPlayerNear(level, site)) {
+                continue;
+            }
             /* 夺旗前旗帜不可破坏, 任何非正常途径抹掉都在这里还原 */
             RuinBanner.restore(level, site);
             List<ServerPlayer> inside = RuinTerritory.playersInside(level, site);
@@ -67,9 +73,22 @@ public final class RuinGarrison {
             if (site.captured()) {
                 continue;
             }
-            reinforce(level, site, now, data);
-            capture(level, site, inside, now, data);
+            /* 兵力只统计一次, 补兵与夺旗共用, 避免同一 tick 反复扫描实体 */
+            int count = RuinTerritory.countMobs(level, site);
+            reinforce(level, site, count, now, data);
+            capture(level, site, inside, count, now, data);
         }
+    }
+
+    /* 玩家是否在遗迹附近, 用于决定这座遗迹要不要跑调度 */
+    private static boolean hasPlayerNear(ServerLevel level, RuinSites.Site site) {
+        double limit = ACTIVE_DISTANCE * ACTIVE_DISTANCE;
+        for (ServerPlayer player : level.players()) {
+            if (player.blockPosition().distSqr(site.origin()) <= limit) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /* 建筑落地后初始化: 领地半径, 四个随机参数与旗帜 */
@@ -88,9 +107,8 @@ public final class RuinGarrison {
         data.setDirty();
     }
 
-    private static void reinforce(ServerLevel level, RuinSites.Site site, int now, RuinSites data) {
+    private static void reinforce(ServerLevel level, RuinSites.Site site, int count, int now, RuinSites data) {
         int base = ServerConfig.ruinGarrisonBase();
-        int count = RuinTerritory.countMobs(level, site);
         if (count >= base * site.reinforcePercent()) {
             return;
         }
@@ -123,7 +141,7 @@ public final class RuinGarrison {
     }
 
     private static void capture(ServerLevel level, RuinSites.Site site, List<ServerPlayer> inside,
-                                int now, RuinSites data) {
+                                int count, int now, RuinSites data) {
         List<ServerPlayer> core = RuinTerritory.playersInCore(level, site);
         int base = ServerConfig.ruinGarrisonBase();
         if (site.capturing()) {
@@ -136,7 +154,7 @@ public final class RuinGarrison {
             }
             int remaining = site.captureEndTick() - now;
             if (remaining <= 0) {
-                judge(level, site, base, inside, now, data);
+                judge(level, site, base, count, inside, now, data);
                 return;
             }
             showTitle(core, site, remaining / 20);
@@ -145,7 +163,6 @@ public final class RuinGarrison {
         if (now < site.cooldownEndTick() || core.isEmpty()) {
             return;
         }
-        int count = RuinTerritory.countMobs(level, site);
         if (count >= base * site.capturePercent()) {
             return;
         }
@@ -156,9 +173,8 @@ public final class RuinGarrison {
         data.setDirty();
     }
 
-    private static void judge(ServerLevel level, RuinSites.Site site, int base, List<ServerPlayer> inside,
-                              int now, RuinSites data) {
-        int count = RuinTerritory.countMobs(level, site);
+    private static void judge(ServerLevel level, RuinSites.Site site, int base, int count,
+                              List<ServerPlayer> inside, int now, RuinSites data) {
         site.setCaptureEndTick(0);
         site.setTitleSecond(-1);
         if (count >= base) {

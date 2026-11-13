@@ -8,13 +8,12 @@ import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
-import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -31,16 +30,23 @@ import java.util.Objects;
 
 /**
  * 遗迹建筑的分帧粘贴调度。
- * 世界生成线程只登记站点与选中的建筑, 真正的方块写入放到服务端 tick:
- * 每个 tick 只处理若干个已加载的区块, 因此跨区块的大建筑不会撞上世界生成的区块边界,
- * 也不会因为一次性写入几十万方块造成卡顿。
+ * 世界生成线程只登记站点, 真正的方块写入放在服务端 tick:
+ * 玩家靠近到设定距离内才开始粘贴, 离开就暂停; 每个 tick 按固定的方块预算推进,
+ * 因此大建筑不会在单帧里灌入上万方块, 也不会在没人看的时候占用算力。
  */
 @Mod.EventBusSubscriber(modid = TACZEnhancedPatch.MOD_ID)
 public final class RuinPasteHandler {
-    private static final int CHUNKS_PER_TICK = 3;
+    /* 每个 tick 最多写入的方块数, 覆盖式粘贴连空气一起处理 */
+    private static final int BLOCKS_PER_TICK = 6000;
+    /* 玩家进入该距离内才开始粘贴, 单位方块 */
+    private static final double PASTE_DISTANCE = 128.0D;
     /* 地基补齐的最大深度, 超过部分留空, 避免在悬崖边上灌出石柱 */
     private static final int MAX_FOUNDATION = 24;
     private static final int MAX_JOBS = 8;
+    /* 单个区块的处理阶段 */
+    private static final int STAGE_START = 0;
+    private static final int STAGE_CLEAR = 1;
+    private static final int STAGE_PASTE = 2;
     private static final ResourceLocation LOOT_TABLE =
             Objects.requireNonNull(ResourceLocation.tryParse("tacz_enhanced_patch:chests/ruined_outpost"));
     private static final BlockState[] FOUNDATION = {
@@ -69,10 +75,10 @@ public final class RuinPasteHandler {
         if (sites.isEmpty()) {
             return;
         }
-        int budget = CHUNKS_PER_TICK;
+        int budget = BLOCKS_PER_TICK;
         for (int i = 0; i < sites.size() && budget > 0; i++) {
             RuinSites.Site site = sites.get(i);
-            if (site.pasted()) {
+            if (site.pasted() || !hasPlayerNear(level, site, PASTE_DISTANCE)) {
                 continue;
             }
             Job job = JOBS.get(site.origin());
@@ -90,7 +96,16 @@ public final class RuinPasteHandler {
         }
     }
 
-    /* 站点里的建筑名在生成时已经定下, 这里只负责加载与摆放原点换算 */
+    private static boolean hasPlayerNear(ServerLevel level, RuinSites.Site site, double distance) {
+        double limit = distance * distance;
+        for (ServerPlayer player : level.players()) {
+            if (player.blockPosition().distSqr(site.origin()) <= limit) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static Job createJob(ServerLevel level, RuinSites.Site site, RuinSites data) {
         if (site.schematic().isEmpty()) {
             site.setPasted(true);
@@ -99,6 +114,10 @@ public final class RuinPasteHandler {
         }
         RuinSchematic schematic = SchematicCatalog.load(site.schematic());
         if (schematic == null) {
+            if (SchematicCatalog.isPending(site.schematic())) {
+                /* 后台还在解析, 下一 tick 再取 */
+                return null;
+            }
             site.setPasted(true);
             data.setDirty();
             return null;
@@ -110,22 +129,48 @@ public final class RuinPasteHandler {
 
     private static int advance(ServerLevel level, RuinSites.Site site, Job job, RuinSites data, int budget) {
         ServerChunkCache chunks = level.getChunkSource();
-        int processed = 0;
-        for (int slot = job.pending.nextSetBit(0); slot >= 0 && processed < budget;
-             slot = job.pending.nextSetBit(slot + 1)) {
+        int remaining = budget;
+        while (remaining > 0 && !job.pending.isEmpty()) {
+            int slot = job.pending.nextSetBit(0);
             int chunkX = job.chunkMinX + slot % job.chunkWidth;
             int chunkZ = job.chunkMinZ + slot / job.chunkWidth;
             if (chunks.getChunk(chunkX, chunkZ, ChunkStatus.FULL, false) == null) {
+                /* 区块还没加载, 留到下一 tick, 不阻塞其他站点 */
+                break;
+            }
+            SchematicPaster.Slice slice = SchematicPaster.slice(job.schematic, job.min, chunkX, chunkZ);
+            if (slice.total() <= 0) {
+                job.pending.clear(slot);
+                job.chunkCursor = 0;
                 continue;
             }
-            /* 先补地基再贴建筑, 否则高度图会把新墙顶当成地表, 漏掉墙下的空洞 */
-            fillFoundation(level, job, chunkX, chunkZ);
-            SchematicPaster.pasteChunk(level, job.schematic, job.min, chunkX, chunkZ);
-            job.pending.clear(slot);
-            processed++;
+            if (job.chunkStage == STAGE_START) {
+                /* 先补地基再清空: 清空会拉低高度图, 之后就没法判断哪里需要补地基 */
+                fillFoundation(level, job, chunkX, chunkZ);
+                job.chunkStage = STAGE_CLEAR;
+                job.chunkCursor = 0;
+            }
+            if (job.chunkStage == STAGE_CLEAR) {
+                int cleared = SchematicPaster.clear(level, job.schematic, job.min, slice, job.chunkCursor, remaining);
+                remaining -= cleared - job.chunkCursor;
+                job.chunkCursor = cleared;
+                if (cleared < slice.total()) {
+                    break;
+                }
+                job.chunkStage = STAGE_PASTE;
+                job.chunkCursor = 0;
+            }
+            int pasted = SchematicPaster.paste(level, job.schematic, job.min, slice, job.chunkCursor, remaining);
+            remaining -= pasted - job.chunkCursor;
+            job.chunkCursor = pasted;
+            if (pasted >= slice.total()) {
+                job.pending.clear(slot);
+                job.chunkStage = STAGE_START;
+                job.chunkCursor = 0;
+            }
         }
         if (!job.pending.isEmpty()) {
-            return budget - processed;
+            return remaining;
         }
         RandomSource random = level.getRandom();
         placeMarkers(level, job, random);
@@ -134,7 +179,7 @@ public final class RuinPasteHandler {
                 job.schematic.depth(), job.min, job.baseY);
         JOBS.remove(site.origin());
         TACZEnhancedPatch.LOGGER.info("[ruin] pasted {} at {}", job.schematic.id(), job.min);
-        return budget - processed;
+        return remaining;
     }
 
     /* 地基补齐: 建筑底面以下的空洞填成石头系方块, 避免建筑悬空 */
@@ -164,7 +209,7 @@ public final class RuinPasteHandler {
         }
     }
 
-    /* 宝箱与刷怪笼: 在建筑内部找有地有顶的空位, 找不到时退回中心点 */
+    /* 宝箱: 在建筑内部找有地有顶的空位, 找不到时退回中心点 */
     private static void placeMarkers(ServerLevel level, Job job, RandomSource random) {
         BlockPos center = job.min.offset(job.schematic.width() / 2, 0, job.schematic.depth() / 2);
         BlockPos chestPos = findInterior(level, center, 12, job.baseY);
@@ -174,15 +219,6 @@ public final class RuinPasteHandler {
         level.setBlock(chestPos, Blocks.CHEST.defaultBlockState().setValue(ChestBlock.FACING, Direction.SOUTH), 3);
         if (level.getBlockEntity(chestPos) instanceof RandomizableContainerBlockEntity container) {
             container.setLootTable(LOOT_TABLE, random.nextLong());
-        }
-
-        BlockPos spawnerPos = findInterior(level, center.offset(0, 0, 4), 10, job.baseY);
-        if (spawnerPos == null || spawnerPos.equals(chestPos)) {
-            spawnerPos = chestPos.offset(3, 0, 0);
-        }
-        level.setBlock(spawnerPos, Blocks.SPAWNER.defaultBlockState(), 3);
-        if (level.getBlockEntity(spawnerPos) instanceof SpawnerBlockEntity spawner) {
-            spawner.setEntityId(EntityType.ZOMBIE, random);
         }
     }
 
@@ -196,7 +232,6 @@ public final class RuinPasteHandler {
                     }
                     int x = center.getX() + dx;
                     int z = center.getZ() + dz;
-                    /* 建筑可能自带地板, 因此从底面往上试几层, 取第一个有地有顶的空位 */
                     for (int y = baseY; y <= baseY + 3; y++) {
                         cursor.set(x, y - 1, z);
                         if (!level.getBlockState(cursor).isSolidRender(level, cursor)) {
@@ -263,6 +298,10 @@ public final class RuinPasteHandler {
         private final int chunkMinZ;
         private final int chunkWidth;
         private final BitSet pending = new BitSet();
+        /* 当前区块的处理阶段: 起步, 清空, 粘贴 */
+        private int chunkStage = STAGE_START;
+        /* 当前阶段已经处理到的游标, 换阶段或换区块时归零 */
+        private int chunkCursor;
 
         private Job(RuinSchematic schematic, BlockPos min, int baseY) {
             this.schematic = schematic;

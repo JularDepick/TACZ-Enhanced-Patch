@@ -11,19 +11,29 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Stream;
 
 /**
  * 遗迹建筑目录。
- * 直接扫描模组自身文件里的 assets/tacz_enhanced_patch/ruins 目录, 因此文件名可以随意使用,
- * 不受资源路径命名规则限制; 解析结果按文件名缓存, 同一座建筑只读一次。
+ * 直接扫描模组自身文件里的 assets/tacz_enhanced_patch/ruins 目录, 因此文件名可以随意使用;
+ * 解析在后台单线程进行, 服务端线程只取缓存, 避免百万方块级的解析卡住主线程。
  */
 public final class SchematicCatalog {
     private static final String[] FOLDER = {"assets", TACZEnhancedPatch.MOD_ID, "ruins"};
     private static final String PREFIX = "assets/" + TACZEnhancedPatch.MOD_ID + "/ruins/";
     private static final String SUFFIX = ".schematic";
     private static final ConcurrentHashMap<String, RuinSchematic> CACHE = new ConcurrentHashMap<>();
+    private static final Set<String> LOADING = ConcurrentHashMap.newKeySet();
+    private static final Set<String> FAILED = ConcurrentHashMap.newKeySet();
+    private static final ExecutorService PARSER = Executors.newSingleThreadExecutor(task -> {
+        Thread thread = new Thread(task, "tacz-enhanced-patch-ruin-parser");
+        thread.setDaemon(true);
+        return thread;
+    });
     private static volatile List<String> files;
 
     private SchematicCatalog() {
@@ -67,12 +77,36 @@ public final class SchematicCatalog {
         return Optional.of(all.get(random.nextInt(all.size())));
     }
 
-    /* 读取并缓存一座建筑, 失败时返回空并记错误日志 */
+    /* 已缓存则直接返回; 未缓存时丢给后台线程, 本次返回空, 由调用方下一 tick 再取 */
     public static RuinSchematic load(String name) {
         RuinSchematic cached = CACHE.get(name);
         if (cached != null) {
             return cached;
         }
+        if (FAILED.contains(name) || !LOADING.add(name)) {
+            return null;
+        }
+        PARSER.execute(() -> {
+            try {
+                RuinSchematic parsed = read(name);
+                if (parsed != null) {
+                    CACHE.put(name, parsed);
+                } else {
+                    FAILED.add(name);
+                }
+            } finally {
+                LOADING.remove(name);
+            }
+        });
+        return null;
+    }
+
+    /* 是否仍在后台解析, 调用方据此区分"再等等"和"这个文件坏了" */
+    public static boolean isPending(String name) {
+        return LOADING.contains(name);
+    }
+
+    private static RuinSchematic read(String name) {
         try {
             var modFileInfo = ModList.get().getModFileById(TACZEnhancedPatch.MOD_ID);
             if (modFileInfo == null) {
@@ -84,9 +118,7 @@ public final class SchematicCatalog {
                 return null;
             }
             try (InputStream stream = Files.newInputStream(path)) {
-                RuinSchematic schematic = SchematicReader.read(name, stream);
-                CACHE.put(name, schematic);
-                return schematic;
+                return SchematicReader.read(name, stream);
             }
         } catch (IOException | RuntimeException exception) {
             TACZEnhancedPatch.LOGGER.error("[ruin] failed to read schematic {}", name, exception);
@@ -98,5 +130,6 @@ public final class SchematicCatalog {
     public static void invalidate() {
         files = null;
         CACHE.clear();
+        FAILED.clear();
     }
 }
