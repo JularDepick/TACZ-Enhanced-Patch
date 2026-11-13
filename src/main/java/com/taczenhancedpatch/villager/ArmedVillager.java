@@ -64,7 +64,8 @@ public final class ArmedVillager {
 
     /* 生成时武装: 给一把枪与一份弹药, 主手装备一把可射击的枪, 并按持有量初始化额度 */
     public static void arm(Villager villager, RandomSource random) {
-        Difficulty difficulty = villager.level().getCurrentDifficultyAt(villager.blockPosition()).getDifficulty();
+        /* 村民在区块加载过程中进入世界, 此时不能查群系, 只读世界难度 */
+        Difficulty difficulty = villager.level().getDifficulty();
         GunnerArming.Arming arming = GunnerArming.roll(random, difficulty);
         if (arming == null) {
             return;

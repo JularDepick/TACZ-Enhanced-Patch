@@ -103,8 +103,13 @@ public final class VillagerRetaliation {
             retaliateWithGun(villager, attacker);
             return;
         }
-        float damage = Math.max(MIN_MELEE_DAMAGE,
-                (float) villager.getAttributeValue(Attributes.ATTACK_DAMAGE));
+        /* 村民没有攻击力属性, 直接取会抛异常, 这里按缺失处理 */
+        float damage = MIN_MELEE_DAMAGE;
+        net.minecraft.world.entity.ai.attributes.AttributeInstance attack =
+                villager.getAttribute(Attributes.ATTACK_DAMAGE);
+        if (attack != null) {
+            damage = Math.max(MIN_MELEE_DAMAGE, (float) attack.getValue());
+        }
         attacker.hurt(villager.damageSources().mobAttack(villager), damage);
     }
 

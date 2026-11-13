@@ -55,9 +55,11 @@ public class GunnerGrunt extends Animal {
     }
 
     public static AttributeSupplier.Builder createAttributes() {
+        /* 小兵会挂近战目标, 必须带攻击力属性, 否则近战结算时取属性会抛异常 */
         return Mob.createMobAttributes()
                 .add(Attributes.MAX_HEALTH, 20.0D)
                 .add(Attributes.MOVEMENT_SPEED, 0.25D)
+                .add(Attributes.ATTACK_DAMAGE, 3.0D)
                 .add(Attributes.FOLLOW_RANGE, 16.0D);
     }
 

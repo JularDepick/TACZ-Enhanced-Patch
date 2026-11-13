@@ -50,7 +50,8 @@ public final class GunnerSpawnHandler {
         if (!event.loadedFromDisk() && !GunnerMarker.isSpawnEvaluated(mob)) {
             /* 绕过 finalizeSpawn 的生成路径, 例如 /summon 与部分模组的直接添加 */
             GunnerMarker.markSpawnEvaluated(mob);
-            Difficulty difficulty = event.getLevel().getCurrentDifficultyAt(mob.blockPosition()).getDifficulty();
+            /* 实体加入世界时不能查群系, 只读世界难度, 避免与区块加载死锁 */
+            Difficulty difficulty = mob.level().getDifficulty();
             tryArm(mob, difficulty, false);
         }
         GunnerMarker.Loadout loadout = GunnerMarker.loadout(mob);

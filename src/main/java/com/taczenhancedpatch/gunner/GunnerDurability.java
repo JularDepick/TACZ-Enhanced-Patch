@@ -77,7 +77,8 @@ public final class GunnerDurability {
      */
     private static void equipRandomArmor(Mob mob) {
         RandomSource random = mob.getRandom();
-        Difficulty difficulty = mob.level().getCurrentDifficultyAt(mob.blockPosition()).getDifficulty();
+        /* 实体加入世界时不能查群系, 那会同步加载区块并与区块加载互相等待, 这里只读世界难度 */
+        Difficulty difficulty = mob.level().getDifficulty();
         double chance = GunnerSpawnHandler.spawnChance(difficulty);
         float dropChance = (float) ServerConfig.gunnerArmorDropChance();
         for (EquipmentSlot slot : ARMOR_SLOTS) {
