@@ -5,17 +5,21 @@ import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.gunner.GunnerArsenal;
 import com.taczenhancedpatch.gunner.GunnerMarker;
 import com.taczenhancedpatch.integration.TaczApi;
+import com.taczenhancedpatch.power.CombatPower;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.entity.living.LivingDropsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -44,6 +48,8 @@ public final class BattleLootHandler {
         if (loadout == null) {
             return;
         }
+        /* 持械生物的掉落按战力比放大, 先放大原版掉落, 再追加本模组的弹药与枪械 */
+        scaleVanillaDrops(event, dead);
         RandomSource random = dead.getRandom();
         ItemStack held = dead.getMainHandItem();
         /* 弹尽后枪械已收起, 结算使用登记过的那把枪 */
@@ -84,6 +90,37 @@ public final class BattleLootHandler {
         if (ServerConfig.debugEvents()) {
             TACZEnhancedPatch.LOGGER.info("[gunner] loot from {}: ammo {} (reserve {})", dead.getType(), loadout.ammoId(), reserve);
         }
+    }
+
+    /* 原版掉落按 一加 持械生物战力 除以 击杀者战力 放大, 拆成多份直到达到目标数量 */
+    private static void scaleVanillaDrops(LivingDropsEvent event, LivingEntity dead) {
+        Player killer = event.getSource().getEntity() instanceof Player player ? player : null;
+        if (killer == null) {
+            return;
+        }
+        double multiplier = CombatPower.dropMultiplier(dead, killer);
+        if (multiplier <= 1.0D) {
+            return;
+        }
+        List<ItemEntity> extra = new ArrayList<>();
+        for (ItemEntity drop : event.getDrops()) {
+            ItemStack stack = drop.getItem();
+            if (stack.isEmpty()) {
+                continue;
+            }
+            int target = (int) Math.round(stack.getCount() * multiplier);
+            int remaining = target - stack.getCount();
+            while (remaining > 0) {
+                int size = Math.min(remaining, stack.getMaxStackSize());
+                ItemStack copy = stack.copy();
+                copy.setCount(size);
+                ItemEntity item = new ItemEntity(dead.level(), dead.getX(), dead.getY() + 0.5D, dead.getZ(), copy);
+                item.setDefaultPickUpDelay();
+                extra.add(item);
+                remaining -= size;
+            }
+        }
+        event.getDrops().addAll(extra);
     }
 
     /* 掉落实际使用的那把枪, 随机配件随枪转移, 剩余备弹由弹药掉落接管 */

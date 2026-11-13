@@ -101,6 +101,7 @@
   "tacz_enhanced_patch.opt.ammo_drop_mult": "Ammo drop multiplier",
   "tacz_enhanced_patch.opt.high_tier_chance": "High-tier ammo drop chance",
   "tacz_enhanced_patch.opt.gun_drop": "Gun drop chance",
+  "tacz_enhanced_patch.opt.armed_drop_cap": "Armed drop multiplier cap",
   "tacz_enhanced_patch.opt.attachment_drop": "Attachment drop chance",
   "tacz_enhanced_patch.opt.grunt_ammo_mult": "Ammo drop multiplier",
   "tacz_enhanced_patch.opt.grunt_high_tier": "High-tier ammo drop chance",

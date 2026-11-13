@@ -68,6 +68,7 @@ public final class ServerConfig {
     private static final ForgeConfigSpec.DoubleValue GUNNER_AMMO_DROP_MULTIPLIER;
     private static final ForgeConfigSpec.DoubleValue GUNNER_GUN_DROP_CHANCE;
     private static final ForgeConfigSpec.DoubleValue GUNNER_ATTACHMENT_DROP_CHANCE;
+    private static final ForgeConfigSpec.DoubleValue GUNNER_ARMED_DROP_CAP;
     private static final ForgeConfigSpec.BooleanValue RUINS_ENABLED;
     private static final ForgeConfigSpec.DoubleValue GRUNT_AMMO_DROP_MULTIPLIER;
     private static final ForgeConfigSpec.DoubleValue GRUNT_HIGH_TIER_AMMO_CHANCE;
@@ -192,6 +193,10 @@ public final class ServerConfig {
         GUNNER_ATTACHMENT_DROP_CHANCE = BUILDER
                 .comment("枪手死亡时掉落随机 TACZ 配件的概率")
                 .defineInRange("attachmentDropChance", 0.08D, 0.0D, 1.0D);
+        GUNNER_ARMED_DROP_CAP = BUILDER
+                .comment("持械生物原版掉落翻倍系数的上限",
+                        "系数等于 一加 持械生物战力除以击杀者战力, 超过上限时按上限结算")
+                .defineInRange("armedDropCap", 4.0D, 1.0D, 10.0D);
         BUILDER.pop();
 
         BUILDER.comment("持枪小兵").push("grunt");
@@ -535,6 +540,10 @@ public final class ServerConfig {
         return value(RUIN_ROUTED_FACTOR, 50);
     }
 
+    public static double gunnerArmedDropCap() {
+        return value(GUNNER_ARMED_DROP_CAP, 4.0D);
+    }
+
     public static List<ConfigOptionGroup> groups() {
         return List.of(
                 new ConfigOptionGroup(GROUP_UI, List.of(
@@ -591,7 +600,8 @@ public final class ServerConfig {
                         new ConfigOption.DoubleOption("opt.ammo_drop_mult", GUNNER_AMMO_DROP_MULTIPLIER, 0.0D, 5.0D, 0.1D),
                         new ConfigOption.DoubleOption("opt.high_tier_chance", GUNNER_HIGH_TIER_AMMO_CHANCE, 0.0D, 1.0D, 0.01D),
                         new ConfigOption.DoubleOption("opt.gun_drop", GUNNER_GUN_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
-                        new ConfigOption.DoubleOption("opt.attachment_drop", GUNNER_ATTACHMENT_DROP_CHANCE, 0.0D, 1.0D, 0.01D))),
+                        new ConfigOption.DoubleOption("opt.attachment_drop", GUNNER_ATTACHMENT_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
+                        new ConfigOption.DoubleOption("opt.armed_drop_cap", GUNNER_ARMED_DROP_CAP, 1.0D, 10.0D, 0.1D))),
                 new ConfigOptionGroup("group.grunt", List.of(
                         new ConfigOption.DoubleOption("opt.grunt_ammo_mult", GRUNT_AMMO_DROP_MULTIPLIER, 0.0D, 5.0D, 0.1D),
                         new ConfigOption.DoubleOption("opt.grunt_high_tier", GRUNT_HIGH_TIER_AMMO_CHANCE, 0.0D, 1.0D, 0.01D),

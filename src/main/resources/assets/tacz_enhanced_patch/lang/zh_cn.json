@@ -101,6 +101,7 @@
   "tacz_enhanced_patch.opt.ammo_drop_mult": "弹药掉落倍率",
   "tacz_enhanced_patch.opt.high_tier_chance": "高级弹药掉落概率",
   "tacz_enhanced_patch.opt.gun_drop": "枪械掉落概率",
+  "tacz_enhanced_patch.opt.armed_drop_cap": "持械掉落翻倍上限",
   "tacz_enhanced_patch.opt.attachment_drop": "配件掉落概率",
   "tacz_enhanced_patch.opt.grunt_ammo_mult": "弹药掉落倍率",
   "tacz_enhanced_patch.opt.grunt_high_tier": "高级弹药掉落概率",
