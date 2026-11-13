@@ -60,6 +60,8 @@ public final class RuinGarrison {
             if (!site.pasted() || site.banner() == null) {
                 continue;
             }
+            /* 夺旗前旗帜不可破坏, 任何非正常途径抹掉都在这里还原 */
+            RuinBanner.restore(level, site);
             List<ServerPlayer> inside = RuinTerritory.playersInside(level, site);
             trackStats(level, site, inside, data);
             if (site.captured()) {

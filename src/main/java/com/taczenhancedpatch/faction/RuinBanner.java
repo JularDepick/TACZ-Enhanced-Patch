@@ -18,6 +18,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.Containers;
+import net.minecraftforge.event.entity.living.LivingDestroyBlockEvent;
 import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.event.level.ExplosionEvent;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
@@ -117,7 +118,19 @@ public final class RuinBanner {
         Containers.dropItemStack(level, pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D, stack);
     }
 
-    /* 未夺旗的旗帜不会被爆炸炸掉, 保持领地中心稳定 */
+    /* 生物搬走方块的机制同样拦截, 例如末影人一类会主动取方块的存在 */
+    @SubscribeEvent
+    public static void onLivingDestroy(LivingDestroyBlockEvent event) {
+        if (!(event.getEntity().level() instanceof ServerLevel level)) {
+            return;
+        }
+        RuinSites.Site site = siteAt(level, event.getPos());
+        if (site != null && !site.captured()) {
+            event.setCanceled(true);
+        }
+    }
+
+    /* 未夺旗的旗帜与它脚下的支撑块都不会被爆炸移除, 支撑块没了旗帜会自行掉落 */
     @SubscribeEvent
     public static void onExplosion(ExplosionEvent.Detonate event) {
         if (!(event.getLevel() instanceof ServerLevel level)) {
@@ -125,8 +138,40 @@ public final class RuinBanner {
         }
         event.getAffectedBlocks().removeIf(pos -> {
             RuinSites.Site site = siteAt(level, pos);
-            return site != null && !site.captured();
+            if (site != null && !site.captured()) {
+                return true;
+            }
+            RuinSites.Site support = siteAt(level, pos.above());
+            return support != null && !support.captured();
         });
+    }
+
+    /* 兜底还原: 命令, 其他模组的直接写方块, 支撑块被移除导致旗帜掉落等途径都在这里收口 */
+    public static void restore(ServerLevel level, RuinSites.Site site) {
+        BlockPos banner = site.banner();
+        if (banner == null || site.captured() || !level.isLoaded(banner)) {
+            return;
+        }
+        BlockPos support = banner.below();
+        if (level.isLoaded(support) && !level.getBlockState(support).isSolidRender(level, support)) {
+            level.setBlock(support, Blocks.STONE_BRICKS.defaultBlockState(), 2);
+        }
+        /* 连颜色一起校验, 防止别人在原位塞一面别的旗子冒充 */
+        if (level.getBlockState(banner).getBlock() == blockFor(site.bannerColor())) {
+            return;
+        }
+        level.setBlock(banner, blockFor(site.bannerColor()).defaultBlockState(), 3);
+        TACZEnhancedPatch.LOGGER.warn("[ruin] banner restored at {}", banner);
+    }
+
+    /* 颜色名到旗帜方块的映射, 记录里存的是原版染料序列名 */
+    public static Block blockFor(String colorName) {
+        for (DyeColor color : DyeColor.values()) {
+            if (color.getSerializedName().equals(colorName)) {
+                return BANNERS[color.getId()];
+            }
+        }
+        return BANNERS[0];
     }
 
     @SubscribeEvent
