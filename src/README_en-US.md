@@ -47,6 +47,20 @@ src/main/
 │   │   ├── TankElite.java                # Tank elite entity and shelling
 │   │   ├── TankRegistration.java         # Attributes, spawn rules and spawn egg
 │   │   └── TankRegistry.java             # Entity and item registration
+│   ├── faction/
+│   │   ├── FactionCombat.java             # Shared hostility and damage immunity
+│   │   ├── FactionData.java               # Faction and home persistence
+│   │   ├── Factions.java                  # Faction relations and banner colors
+│   │   ├── RuinBanner.java                # Banner placement, protection and souvenir
+│   │   ├── RuinBehavior.java              # Territory behaviour
+│   │   ├── RuinCombatStats.java           # Kill and damage statistics
+│   │   ├── RuinExperience.java            # Offline experience delivery
+│   │   ├── RuinGarrison.java              # Reinforcement and capture state machine
+│   │   ├── RuinLoot.java                  # Capture loot and experience conversion
+│   │   ├── RuinRout.java                  # Routed marking and combat scaling
+│   │   ├── RuinSites.java                 # Ruin sites, banners and statistics
+│   │   ├── RuinStats.java                 # Combat statistics persistence
+│   │   └── RuinTerritory.java             # Territory geometry and counting
 │   ├── fastmag/
 │   │   ├── FastMag.java                  # Fast mag marker, name suffix and reload ratios
 │   │   ├── FastMagCreativeTab.java       # Fast mag creative tab
@@ -81,6 +95,9 @@ src/main/
 │   ├── network/
 │   │   ├── HitDirectionMessage.java      # Hit direction sync packet
 │   │   └── PatchNetwork.java             # Network channel registration
+│   ├── power/
+│   │   ├── CombatPower.java               # Combat power scoring and drop multiplier
+│   │   └── PowerTracker.java              # Peak combat power recording
 │   ├── util/
 │   │   └── UiText.java                   # UI text wrapper
 │   └── world/

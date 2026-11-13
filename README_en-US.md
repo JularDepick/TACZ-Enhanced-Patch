@@ -36,6 +36,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Ammo and attachments | Every gun rolls its own attachments and limited ammo, then falls back to its vanilla weapon once dry to give players a window |
 | Toughness | Regular gunners gain tiered health and roll each of the four armor pieces independently from leather up to netherite, while improvised mobs only get the gun |
 | Loot | Kills always drop matching ammunition scaled by the reserve left, plus a chance at the exact gun, a random attachment and high tier ammo |
+| Power and drops | Killing any armed mob multiplies its vanilla drops by one plus the mob power over the killer power, using the peak power of the fight and capped by config |
 
 ### Armed grunts
 
@@ -97,7 +98,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Item | Description |
 |:---:|:---|
 | Client configuration | Local preferences such as automatic reload, the incoming fire indicator, the heading ruler and its color, stored per player |
-| Server configuration | 40 parameters grouped into debug, ruins, basics, retaliation, spawning, targeting, ammo, toughness, loot, armed grunt and tank elite, with pure-button and switch groups listed before numeric ones and synced from the server |
+| Server configuration | 57 parameters grouped into debug, ruins, basics, retaliation, spawning, targeting, ammo, toughness, loot, armed grunt and tank elite, with pure-button and switch groups listed before numeric ones and synced from the server |
 | Configuration screen | Opens the config screen directly, with tabs at the top to switch between client and server; the server tab only appears for the world owner |
 | Shortcut | C opens the config screen directly by default; it is a standard key binding, so it can be rebound or cleared in the vanilla controls |
 | Mob arming config | The first row of the server page scans every mob into one switchable list, shows each mob's name and entity ID, and lets group toggles flip those switches in bulk |
