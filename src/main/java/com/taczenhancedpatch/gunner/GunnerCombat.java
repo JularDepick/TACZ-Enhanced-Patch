@@ -73,6 +73,10 @@ public final class GunnerCombat {
         if (!ServerConfig.gunnerEnabled() || !GunnerMarker.isGunner(mob)) {
             return;
         }
+        /* 中立持械村民的反击由村民规则接管, 不走无条件受击反击 */
+        if (mob instanceof net.minecraft.world.entity.npc.Villager) {
+            return;
+        }
         if (!(event.getSource().getEntity() instanceof LivingEntity attacker) || attacker == mob) {
             return;
         }

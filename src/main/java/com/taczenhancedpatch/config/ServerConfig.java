@@ -31,6 +31,11 @@ public final class ServerConfig {
     private static final ForgeConfigSpec.IntValue RUIN_XP_DAMAGE_POOL;
     private static final ForgeConfigSpec.IntValue RUIN_ROUTED_FACTOR;
 
+    private static final ForgeConfigSpec.DoubleValue VILLAGER_ARM_CHANCE;
+    private static final ForgeConfigSpec.DoubleValue VILLAGER_PLAYER_THRESHOLD;
+    private static final ForgeConfigSpec.DoubleValue VILLAGER_MOB_THRESHOLD;
+    private static final ForgeConfigSpec.DoubleValue VILLAGER_GUN_DAMAGE;
+
     private static final ForgeConfigSpec.BooleanValue DEBUG_EVENTS = BUILDER
             .comment("是否把 TACZ API 事件写入日志, 用于补丁开发期的接入诊断")
             .define("debugEvents", false);
@@ -298,6 +303,21 @@ public final class ServerConfig {
                 .defineInRange("routedCombatFactor", 50, 10, 90);
         BUILDER.pop();
 
+        BUILDER.comment("中立持械村民").push("villager");
+        VILLAGER_ARM_CHANCE = BUILDER
+                .comment("村民生成时持械的概率, 与怪物持械概率同范围")
+                .defineInRange("armChance", 0.5D, 0.0D, 1.0D);
+        VILLAGER_PLAYER_THRESHOLD = BUILDER
+                .comment("玩家攻击导致生命值跨过该比例时反击, 已低于该比例时再被打不反击")
+                .defineInRange("playerThreshold", 0.5D, 0.3D, 0.9D);
+        VILLAGER_MOB_THRESHOLD = BUILDER
+                .comment("受到生物攻击后生命值不高于该比例时立即反击")
+                .defineInRange("mobThreshold", 0.9D, 0.5D, 1.0D);
+        VILLAGER_GUN_DAMAGE = BUILDER
+                .comment("持械村民射击的伤害比例, 只作用于村民")
+                .defineInRange("gunDamage", 0.5D, 0.1D, 1.0D);
+        BUILDER.pop();
+
         SPEC = BUILDER.build();
     }
 
@@ -544,6 +564,22 @@ public final class ServerConfig {
         return value(GUNNER_ARMED_DROP_CAP, 4.0D);
     }
 
+    public static double villagerArmChance() {
+        return value(VILLAGER_ARM_CHANCE, 0.5D);
+    }
+
+    public static double villagerPlayerThreshold() {
+        return value(VILLAGER_PLAYER_THRESHOLD, 0.5D);
+    }
+
+    public static double villagerMobThreshold() {
+        return value(VILLAGER_MOB_THRESHOLD, 0.9D);
+    }
+
+    public static double villagerGunDamage() {
+        return value(VILLAGER_GUN_DAMAGE, 0.5D);
+    }
+
     public static List<ConfigOptionGroup> groups() {
         return List.of(
                 new ConfigOptionGroup(GROUP_UI, List.of(
@@ -566,6 +602,11 @@ public final class ServerConfig {
                         new ConfigOption.IntOption("opt.xp_per_kill", RUIN_XP_PER_KILL, 0, 200),
                         new ConfigOption.IntOption("opt.xp_damage_pool", RUIN_XP_DAMAGE_POOL, 0, 1000),
                         new ConfigOption.IntOption("opt.routed_factor", RUIN_ROUTED_FACTOR, 10, 90))),
+                new ConfigOptionGroup("group.villager", List.of(
+                        new ConfigOption.DoubleOption("opt.villager_arm_chance", VILLAGER_ARM_CHANCE, 0.0D, 1.0D, 0.01D),
+                        new ConfigOption.DoubleOption("opt.villager_player_threshold", VILLAGER_PLAYER_THRESHOLD, 0.3D, 0.9D, 0.05D),
+                        new ConfigOption.DoubleOption("opt.villager_mob_threshold", VILLAGER_MOB_THRESHOLD, 0.5D, 1.0D, 0.05D),
+                        new ConfigOption.DoubleOption("opt.villager_gun_damage", VILLAGER_GUN_DAMAGE, 0.1D, 1.0D, 0.05D))),
                 new ConfigOptionGroup("group.basic", List.of(
                         new ConfigOption.ToggleOption("opt.enabled", GUNNER_ENABLED),
                         new ConfigOption.ToggleOption("opt.difficulty", GUNNER_DIFFICULTY_SCALING))),

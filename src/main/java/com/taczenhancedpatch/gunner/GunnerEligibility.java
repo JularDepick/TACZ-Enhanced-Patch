@@ -22,9 +22,10 @@ public final class GunnerEligibility {
         if (isBlacklisted(mob) || mob instanceof WitherBoss) {
             return false;
         }
-        /* 持枪小兵自带枪械, 坦克精英怪不属于持枪类生物, 都不进入枪手系统 */
+        /* 持枪小兵自带枪械, 坦克精英怪不属于持枪类生物, 村民走独立的中立持械路径, 都不进入枪手系统 */
         if (mob instanceof com.taczenhancedpatch.entity.GunnerGrunt
-                || mob instanceof com.taczenhancedpatch.entity.TankElite) {
+                || mob instanceof com.taczenhancedpatch.entity.TankElite
+                || mob instanceof net.minecraft.world.entity.npc.Villager) {
             return false;
         }
         if (!GunnerMobRegistry.isEmpty()) {

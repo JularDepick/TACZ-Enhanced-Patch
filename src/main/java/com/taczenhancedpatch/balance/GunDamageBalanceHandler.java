@@ -30,7 +30,10 @@ public final class GunDamageBalanceHandler {
         if (attacker == null || attacker instanceof Player || !GunnerMarker.isGunner(attacker)) {
             return;
         }
-        float multiplier = (float) ServerConfig.gunnerDamageMultiplier();
+        /* 持械村民用独立比例, 其余枪手用通用倍率 */
+        float multiplier = attacker instanceof net.minecraft.world.entity.npc.Villager
+                ? (float) ServerConfig.villagerGunDamage()
+                : (float) ServerConfig.gunnerDamageMultiplier();
         if (multiplier > 0.0F) {
             event.setBaseAmount(event.getBaseAmount() * multiplier);
         }
