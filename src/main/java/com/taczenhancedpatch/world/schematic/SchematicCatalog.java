@@ -2,6 +2,7 @@ package com.taczenhancedpatch.world.schematic;
 
 import com.taczenhancedpatch.TACZEnhancedPatch;
 import com.taczenhancedpatch.config.ConfigEvents;
+import com.taczenhancedpatch.config.RuinModelSource;
 import com.taczenhancedpatch.config.ServerConfig;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.RandomSource;
@@ -56,15 +57,16 @@ public final class SchematicCatalog {
     private SchematicCatalog() {
     }
 
-    /* 合并两个来源: 内置模型关闭时只取外部目录, 否则两者平权参与随机 */
+    /* 按遗迹模型源合并两个来源: 只取一侧时直接返回该侧, 两侧都取时平权参与随机 */
     public static List<String> files() {
-        List<String> outside = externalFiles();
-        if (!ServerConfig.ruinsBuiltinModels()) {
-            return outside;
-        }
-        List<String> inside = builtinFiles();
+        RuinModelSource source = ServerConfig.ruinModelSource();
+        List<String> inside = source.allowsBuiltin() ? builtinFiles() : List.of();
+        List<String> outside = source.allowsExternal() ? externalFiles() : List.of();
         if (outside.isEmpty()) {
             return inside;
+        }
+        if (inside.isEmpty()) {
+            return outside;
         }
         List<String> combined = new ArrayList<>(inside.size() + outside.size());
         combined.addAll(inside);

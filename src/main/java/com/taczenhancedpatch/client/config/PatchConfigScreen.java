@@ -372,6 +372,12 @@ public final class PatchConfigScreen extends Screen {
                 button.setMessage(toggleText(toggle));
             }).bounds(0, 0, WIDGET_WIDTH, 20).build();
         }
+        if (option instanceof ConfigOption.EnumOption<?> enumOption) {
+            return Button.builder(enumText(enumOption), button -> {
+                cycleEnum(enumOption);
+                button.setMessage(enumText(enumOption));
+            }).bounds(0, 0, WIDGET_WIDTH, 20).build();
+        }
         if (option instanceof ConfigOption.DoubleOption doubleOption) {
             double current = Mth.clamp(doubleOption.value().get(), doubleOption.min(), doubleOption.max());
             double fraction = (current - doubleOption.min()) / (doubleOption.max() - doubleOption.min());
@@ -420,9 +426,45 @@ public final class PatchConfigScreen extends Screen {
         return UiText.of(Boolean.TRUE.equals(option.value().get()) ? "screen.on" : "screen.off");
     }
 
+    /* 枚举项: 按钮文本取当前取值的界面键, 点击按声明顺序切到下一个 */
+    private static <E extends Enum<E> & ConfigOption.Labeled> Component enumText(ConfigOption.EnumOption<E> option) {
+        return UiText.of(readEnum(option).labelKey());
+    }
+
+    private static <E extends Enum<E> & ConfigOption.Labeled> E readEnum(ConfigOption.EnumOption<E> option) {
+        try {
+            return option.value().get();
+        } catch (IllegalStateException ignored) {
+            return option.value().getDefault();
+        }
+    }
+
+    private static <E extends Enum<E> & ConfigOption.Labeled> void cycleEnum(ConfigOption.EnumOption<E> option) {
+        E current = readEnum(option);
+        E[] all = current.getDeclaringClass().getEnumConstants();
+        if (all == null || all.length == 0) {
+            return;
+        }
+        option.value().set(all[(current.ordinal() + 1) % all.length]);
+    }
+
+    private static <E extends Enum<E> & ConfigOption.Labeled> void writeEnum(ConfigOption.EnumOption<E> option, Object value) {
+        if (value instanceof Enum<?> raw) {
+            option.value().set(castEnum(raw));
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <E extends Enum<E>> E castEnum(Enum<?> value) {
+        return (E) value;
+    }
+
     private static Object read(ConfigOption option) {
         if (option instanceof ConfigOption.ToggleOption toggle) {
             return toggle.value().get();
+        }
+        if (option instanceof ConfigOption.EnumOption<?> enumOption) {
+            return readEnum(enumOption);
         }
         if (option instanceof ConfigOption.DoubleOption doubleOption) {
             return doubleOption.value().get();
@@ -453,6 +495,8 @@ public final class PatchConfigScreen extends Screen {
             textOption.value().set(String.valueOf(value));
         } else if (option instanceof ConfigOption.ColorOption colorOption) {
             colorOption.value().set(String.valueOf(value));
+        } else if (option instanceof ConfigOption.EnumOption<?> enumOption) {
+            writeEnum(enumOption, value);
         }
     }
 

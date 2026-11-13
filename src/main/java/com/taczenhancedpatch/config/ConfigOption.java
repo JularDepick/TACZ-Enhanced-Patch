@@ -25,4 +25,13 @@ public sealed interface ConfigOption {
     /* 六位十六进制颜色项: 界面按颜色格式校验并实时预览 */
     record ColorOption(String label, ForgeConfigSpec.ConfigValue<String> value) implements ConfigOption {
     }
+
+    /* 枚举项: 按钮按枚举声明顺序循环切换, 取值文本由枚举自身提供 */
+    record EnumOption<E extends Enum<E> & Labeled>(String label, ForgeConfigSpec.EnumValue<E> value) implements ConfigOption {
+    }
+
+    /* 枚举取值的界面文本键, 不含模组前缀 */
+    interface Labeled {
+        String labelKey();
+    }
 }
