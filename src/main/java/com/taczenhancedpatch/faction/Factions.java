@@ -22,6 +22,11 @@ public final class Factions {
         return id == null ? NONE : id;
     }
 
+    /* 旗帜颜色即阵营, 十六色各自一个阵营 */
+    public static String ofColor(String color) {
+        return color == null || color.isEmpty() ? NONE : "banner:" + color;
+    }
+
     public static boolean same(String a, String b) {
         return !normalize(a).isEmpty() && normalize(a).equals(normalize(b));
     }

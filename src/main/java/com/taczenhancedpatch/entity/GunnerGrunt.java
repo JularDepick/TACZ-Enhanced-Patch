@@ -4,6 +4,7 @@ import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.gunner.GunnerArming;
 import com.taczenhancedpatch.TACZEnhancedPatch;
 import com.taczenhancedpatch.faction.FactionData;
+import com.taczenhancedpatch.faction.RuinBehavior;
 import com.taczenhancedpatch.gunner.GunnerArsenal;
 import com.taczenhancedpatch.integration.TaczApi;
 import net.minecraft.nbt.CompoundTag;
@@ -44,6 +45,13 @@ import javax.annotation.Nullable;
 public class GunnerGrunt extends Animal {
     public GunnerGrunt(EntityType<? extends GunnerGrunt> type, Level level) {
         super(type, level);
+    }
+
+    /* 领地行为: 非战斗越界走回遗迹, 战斗追出过远放弃目标 */
+    @Override
+    public void tick() {
+        super.tick();
+        RuinBehavior.tick(this);
     }
 
     public static AttributeSupplier.Builder createAttributes() {

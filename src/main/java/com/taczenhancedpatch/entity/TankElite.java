@@ -7,6 +7,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.damagesource.DamageSource;
 import com.taczenhancedpatch.faction.FactionData;
+import com.taczenhancedpatch.faction.RuinBehavior;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
@@ -209,6 +210,7 @@ public class TankElite extends Monster {
             return;
         }
         super.customServerAiStep();
+        RuinBehavior.tick(this);
     }
 
     /* 玩家驾驶时按准星方向开炮, 冷却与威力与其他坦克一致 */

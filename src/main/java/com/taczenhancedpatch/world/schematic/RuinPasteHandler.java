@@ -1,6 +1,7 @@
 package com.taczenhancedpatch.world.schematic;
 
 import com.taczenhancedpatch.TACZEnhancedPatch;
+import com.taczenhancedpatch.faction.RuinGarrison;
 import com.taczenhancedpatch.faction.RuinSites;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -92,12 +93,14 @@ public final class RuinPasteHandler {
     /* 站点里的建筑名在生成时已经定下, 这里只负责加载与摆放原点换算 */
     private static Job createJob(ServerLevel level, RuinSites.Site site, RuinSites data) {
         if (site.schematic().isEmpty()) {
-            data.markPasted(site, site.radius());
+            site.setPasted(true);
+            data.setDirty();
             return null;
         }
         RuinSchematic schematic = SchematicCatalog.load(site.schematic());
         if (schematic == null) {
-            data.markPasted(site, site.radius());
+            site.setPasted(true);
+            data.setDirty();
             return null;
         }
         int minX = site.origin().getX() - schematic.width() / 2;
@@ -127,7 +130,8 @@ public final class RuinPasteHandler {
         RandomSource random = level.getRandom();
         placeMarkers(level, job, random);
         scatterDebris(level, job, random);
-        data.markPasted(site, Math.max(site.radius(), Math.max(job.schematic.width(), job.schematic.depth()) / 2));
+        RuinGarrison.onPasted(level, site, data, job.schematic.width(), job.schematic.height(),
+                job.schematic.depth(), job.min, job.baseY);
         JOBS.remove(site.origin());
         TACZEnhancedPatch.LOGGER.info("[ruin] pasted {} at {}", job.schematic.id(), job.min);
         return budget - processed;

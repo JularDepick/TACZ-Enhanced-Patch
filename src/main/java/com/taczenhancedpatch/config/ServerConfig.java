@@ -14,6 +14,22 @@ import java.util.List;
 public final class ServerConfig {
     private static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
 
+    private static final ForgeConfigSpec.IntValue RUIN_GARRISON_BASE;
+    private static final ForgeConfigSpec.IntValue RUIN_REINFORCE_PERCENT_MIN;
+    private static final ForgeConfigSpec.IntValue RUIN_REINFORCE_PERCENT_MAX;
+    private static final ForgeConfigSpec.IntValue RUIN_REINFORCE_INTERVAL_MIN;
+    private static final ForgeConfigSpec.IntValue RUIN_REINFORCE_INTERVAL_MAX;
+    private static final ForgeConfigSpec.IntValue RUIN_CAPTURE_PERCENT_MIN;
+    private static final ForgeConfigSpec.IntValue RUIN_CAPTURE_PERCENT_MAX;
+    private static final ForgeConfigSpec.IntValue RUIN_CAPTURE_TIME_MIN;
+    private static final ForgeConfigSpec.IntValue RUIN_CAPTURE_TIME_MAX;
+    private static final ForgeConfigSpec.IntValue RUIN_CAPTURE_COOLDOWN;
+    private static final ForgeConfigSpec.IntValue RUIN_STATS_IDLE_TIMEOUT;
+    private static final ForgeConfigSpec.DoubleValue RUIN_LOOT_SCALE;
+    private static final ForgeConfigSpec.DoubleValue RUIN_XP_SCALE;
+    private static final ForgeConfigSpec.IntValue RUIN_XP_PER_KILL;
+    private static final ForgeConfigSpec.IntValue RUIN_XP_DAMAGE_POOL;
+
     private static final ForgeConfigSpec.BooleanValue DEBUG_EVENTS = BUILDER
             .comment("是否把 TACZ API 事件写入日志, 用于补丁开发期的接入诊断")
             .define("debugEvents", false);
@@ -225,6 +241,54 @@ public final class ServerConfig {
                 .define("ruinsEnabled", true);
         BUILDER.pop();
 
+        BUILDER.comment("遗迹守军与夺旗").push("ruin");
+        RUIN_GARRISON_BASE = BUILDER
+                .comment("遗迹生物基数, 领地内守军数量以它为基准")
+                .defineInRange("garrisonBase", 8, 1, 32);
+        RUIN_REINFORCE_PERCENT_MIN = BUILDER
+                .comment("补兵触发比例下限, 单位百分比, 领地内数量低于基数乘该比例时开始补兵")
+                .defineInRange("reinforcePercentMin", 40, 10, 89);
+        RUIN_REINFORCE_PERCENT_MAX = BUILDER
+                .comment("补兵触发比例上限, 必须大于下限, 生成遗迹时在区间内随机取一个")
+                .defineInRange("reinforcePercentMax", 70, 11, 90);
+        RUIN_REINFORCE_INTERVAL_MIN = BUILDER
+                .comment("补兵间隔下限, 单位秒")
+                .defineInRange("reinforceIntervalMin", 10, 3, 60);
+        RUIN_REINFORCE_INTERVAL_MAX = BUILDER
+                .comment("补兵间隔上限, 单位秒, 必须大于下限, 生成遗迹时在区间内随机取一个")
+                .defineInRange("reinforceIntervalMax", 30, 3, 60);
+        RUIN_CAPTURE_PERCENT_MIN = BUILDER
+                .comment("夺旗触发比例下限, 单位百分比, 兵力低于基数乘该比例时允许夺旗")
+                .defineInRange("capturePercentMin", 30, 30, 89);
+        RUIN_CAPTURE_PERCENT_MAX = BUILDER
+                .comment("夺旗触发比例上限, 必须大于下限, 生成遗迹时在区间内随机取一个")
+                .defineInRange("capturePercentMax", 50, 31, 90);
+        RUIN_CAPTURE_TIME_MIN = BUILDER
+                .comment("夺旗倒计时下限, 单位秒")
+                .defineInRange("captureTimeMin", 30, 5, 300);
+        RUIN_CAPTURE_TIME_MAX = BUILDER
+                .comment("夺旗倒计时上限, 单位秒, 必须大于下限, 生成遗迹时在区间内随机取一个")
+                .defineInRange("captureTimeMax", 90, 5, 300);
+        RUIN_CAPTURE_COOLDOWN = BUILDER
+                .comment("夺旗失败后的冷却时间, 单位秒")
+                .defineInRange("captureCooldown", 30, 5, 300);
+        RUIN_STATS_IDLE_TIMEOUT = BUILDER
+                .comment("领地内无玩家多久后清空战斗统计, 单位秒")
+                .defineInRange("statsIdleTimeout", 60, 10, 600);
+        RUIN_LOOT_SCALE = BUILDER
+                .comment("夺旗战利品系数, 控制战利品相对击杀累计与快照总量的比例")
+                .defineInRange("lootScale", 0.6D, 0.0D, 3.0D);
+        RUIN_XP_SCALE = BUILDER
+                .comment("夺旗经验系数")
+                .defineInRange("xpScale", 1.0D, 0.0D, 10.0D);
+        RUIN_XP_PER_KILL = BUILDER
+                .comment("夺旗时每击杀一只遗迹生物的固定经验")
+                .defineInRange("xpPerKill", 25, 0, 200);
+        RUIN_XP_DAMAGE_POOL = BUILDER
+                .comment("按伤害占比分配的额外经验池, 单位经验")
+                .defineInRange("xpDamagePool", 100, 0, 1000);
+        BUILDER.pop();
+
         SPEC = BUILDER.build();
     }
 
@@ -403,12 +467,87 @@ public final class ServerConfig {
      * 纯按钮与开关类条目优先: 界面与调试组提供生物持械配置入口与调试开关, 遗迹组是最常用的开关,
      * 两者排在所有数值组之前, 打开页面即可见, 不需要滚动查找。
      */
+    public static int ruinGarrisonBase() {
+        return value(RUIN_GARRISON_BASE, 8);
+    }
+
+    public static int ruinReinforcePercentMin() {
+        return value(RUIN_REINFORCE_PERCENT_MIN, 40);
+    }
+
+    public static int ruinReinforcePercentMax() {
+        return value(RUIN_REINFORCE_PERCENT_MAX, 70);
+    }
+
+    public static int ruinReinforceIntervalMin() {
+        return value(RUIN_REINFORCE_INTERVAL_MIN, 10);
+    }
+
+    public static int ruinReinforceIntervalMax() {
+        return value(RUIN_REINFORCE_INTERVAL_MAX, 30);
+    }
+
+    public static int ruinCapturePercentMin() {
+        return value(RUIN_CAPTURE_PERCENT_MIN, 30);
+    }
+
+    public static int ruinCapturePercentMax() {
+        return value(RUIN_CAPTURE_PERCENT_MAX, 50);
+    }
+
+    public static int ruinCaptureTimeMin() {
+        return value(RUIN_CAPTURE_TIME_MIN, 30);
+    }
+
+    public static int ruinCaptureTimeMax() {
+        return value(RUIN_CAPTURE_TIME_MAX, 90);
+    }
+
+    public static int ruinCaptureCooldown() {
+        return value(RUIN_CAPTURE_COOLDOWN, 30);
+    }
+
+    public static int ruinStatsIdleTimeout() {
+        return value(RUIN_STATS_IDLE_TIMEOUT, 60);
+    }
+
+    public static double ruinLootScale() {
+        return value(RUIN_LOOT_SCALE, 0.6D);
+    }
+
+    public static double ruinXpScale() {
+        return value(RUIN_XP_SCALE, 1.0D);
+    }
+
+    public static int ruinXpPerKill() {
+        return value(RUIN_XP_PER_KILL, 25);
+    }
+
+    public static int ruinXpDamagePool() {
+        return value(RUIN_XP_DAMAGE_POOL, 100);
+    }
+
     public static List<ConfigOptionGroup> groups() {
         return List.of(
                 new ConfigOptionGroup(GROUP_UI, List.of(
                         new ConfigOption.ToggleOption("opt.debug", DEBUG_EVENTS))),
                 new ConfigOptionGroup("group.ruins", List.of(
-                        new ConfigOption.ToggleOption("opt.ruins", RUINS_ENABLED))),
+                        new ConfigOption.ToggleOption("opt.ruins", RUINS_ENABLED),
+                        new ConfigOption.IntOption("opt.garrison_base", RUIN_GARRISON_BASE, 1, 32),
+                        new ConfigOption.IntOption("opt.reinforce_percent_min", RUIN_REINFORCE_PERCENT_MIN, 10, 89),
+                        new ConfigOption.IntOption("opt.reinforce_percent_max", RUIN_REINFORCE_PERCENT_MAX, 11, 90),
+                        new ConfigOption.IntOption("opt.reinforce_interval_min", RUIN_REINFORCE_INTERVAL_MIN, 3, 60),
+                        new ConfigOption.IntOption("opt.reinforce_interval_max", RUIN_REINFORCE_INTERVAL_MAX, 3, 60),
+                        new ConfigOption.IntOption("opt.capture_percent_min", RUIN_CAPTURE_PERCENT_MIN, 30, 89),
+                        new ConfigOption.IntOption("opt.capture_percent_max", RUIN_CAPTURE_PERCENT_MAX, 31, 90),
+                        new ConfigOption.IntOption("opt.capture_time_min", RUIN_CAPTURE_TIME_MIN, 5, 300),
+                        new ConfigOption.IntOption("opt.capture_time_max", RUIN_CAPTURE_TIME_MAX, 5, 300),
+                        new ConfigOption.IntOption("opt.capture_cooldown", RUIN_CAPTURE_COOLDOWN, 5, 300),
+                        new ConfigOption.IntOption("opt.stats_idle_timeout", RUIN_STATS_IDLE_TIMEOUT, 10, 600),
+                        new ConfigOption.DoubleOption("opt.loot_scale", RUIN_LOOT_SCALE, 0.0D, 3.0D, 0.05D),
+                        new ConfigOption.DoubleOption("opt.xp_scale", RUIN_XP_SCALE, 0.0D, 10.0D, 0.1D),
+                        new ConfigOption.IntOption("opt.xp_per_kill", RUIN_XP_PER_KILL, 0, 200),
+                        new ConfigOption.IntOption("opt.xp_damage_pool", RUIN_XP_DAMAGE_POOL, 0, 1000))),
                 new ConfigOptionGroup("group.basic", List.of(
                         new ConfigOption.ToggleOption("opt.enabled", GUNNER_ENABLED),
                         new ConfigOption.ToggleOption("opt.difficulty", GUNNER_DIFFICULTY_SCALING))),

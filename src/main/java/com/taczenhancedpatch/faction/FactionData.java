@@ -72,8 +72,4 @@ public final class FactionData {
         entity.getPersistentData().putInt(TAG_REVIVE_DEPTH, Math.max(0, depth));
     }
 
-    /* 由遗迹中心生成稳定的阵营 ID */
-    public static String factionOfRuin(BlockPos origin) {
-        return "ruin:" + origin.getX() + ":" + origin.getZ();
-    }
 }
