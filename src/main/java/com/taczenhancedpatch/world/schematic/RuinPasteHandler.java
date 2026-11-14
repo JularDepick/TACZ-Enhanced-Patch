@@ -61,6 +61,11 @@ public final class RuinPasteHandler {
             Blocks.MOSSY_STONE_BRICKS.defaultBlockState()};
     private static final Map<BlockPos, Job> JOBS = new HashMap<>();
 
+    /* 站点是否正在粘贴: 守军调度据此延后刷新, 避免新方块卡住刚生成的守军 */
+    public static boolean isPasting(BlockPos origin) {
+        return JOBS.containsKey(origin);
+    }
+
     private RuinPasteHandler() {
     }
 

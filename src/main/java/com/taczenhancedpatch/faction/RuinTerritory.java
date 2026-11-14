@@ -16,7 +16,8 @@ import java.util.List;
 
 /**
  * 遗迹领地的几何与查询。
- * 领地是以旗帜为圆心的水平圆柱, 不判定高度; 核心区半径固定, 追出上限在领地半径之外再加一段。
+ * 领地与核心区都是以旗帜高度为中心的圆柱, 高与水平直径相同, 因此竖直半高等于水平半径;
+ * 追出上限在领地半径之外再加一段, 只用于战斗追击。
  */
 public final class RuinTerritory {
     /* 核心区半径, 夺旗判定与提示都以它为准 */
@@ -44,15 +45,19 @@ public final class RuinTerritory {
         return Math.sqrt(dx * dx + dz * dz);
     }
 
-    public static boolean inside(BlockPos banner, int radius, double x, double z) {
-        return horizontalDistance(banner, x, z) <= radius;
+    /* 圆柱判定: 水平半径与竖直半高都取 radius, 因此高恰为水平直径 */
+    public static boolean inside(BlockPos banner, double radius, double x, double y, double z) {
+        if (horizontalDistance(banner, x, z) > radius) {
+            return false;
+        }
+        return Math.abs(y - (banner.getY() + 0.5D)) <= radius;
     }
 
-    public static boolean inCore(BlockPos banner, double x, double z) {
-        return horizontalDistance(banner, x, z) <= CORE_RADIUS;
+    public static boolean inCore(BlockPos banner, double x, double y, double z) {
+        return inside(banner, CORE_RADIUS, x, y, z);
     }
 
-    /* 领地内的遗迹生物: 归属该遗迹且水平位置落在领地内 */
+    /* 领地内的遗迹生物: 归属该遗迹且位置落在领地圆柱内 */
     public static List<Mob> mobs(ServerLevel level, RuinSites.Site site) {
         BlockPos banner = site.banner();
         if (banner == null) {
@@ -63,7 +68,7 @@ public final class RuinTerritory {
                 banner.getX() + radius + 1, level.getMaxBuildHeight(), banner.getZ() + radius + 1);
         return level.getEntitiesOfClass(Mob.class, area, mob -> isRuinMob(mob)
                 && site.origin().equals(FactionData.homeOf(mob))
-                && inside(banner, radius, mob.getX(), mob.getZ()));
+                && inside(banner, radius, mob.getX(), mob.getY(), mob.getZ()));
     }
 
     /* 在编守军数量: 战斗追出领地时仍算在编, 否则追击期间会被误判为领地已清空 */
@@ -77,7 +82,7 @@ public final class RuinTerritory {
                 banner.getX() + radius + 1, level.getMaxBuildHeight(), banner.getZ() + radius + 1);
         return level.getEntitiesOfClass(Mob.class, area, mob -> isRuinMob(mob)
                 && site.origin().equals(FactionData.homeOf(mob))
-                && inside(banner, radius, mob.getX(), mob.getZ())).size();
+                && inside(banner, radius, mob.getX(), mob.getY(), mob.getZ())).size();
     }
 
     public static boolean isRuinMob(Mob mob) {
@@ -97,7 +102,7 @@ public final class RuinTerritory {
             return players;
         }
         for (ServerPlayer player : level.players()) {
-            if (participates(player) && inside(banner, site.radius(), player.getX(), player.getZ())) {
+            if (participates(player) && inside(banner, site.radius(), player.getX(), player.getY(), player.getZ())) {
                 players.add(player);
             }
         }
@@ -111,7 +116,7 @@ public final class RuinTerritory {
             return players;
         }
         for (ServerPlayer player : level.players()) {
-            if (participates(player) && inCore(banner, player.getX(), player.getZ())) {
+            if (participates(player) && inCore(banner, player.getX(), player.getY(), player.getZ())) {
                 players.add(player);
             }
         }

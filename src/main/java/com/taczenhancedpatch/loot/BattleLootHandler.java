@@ -44,6 +44,10 @@ public final class BattleLootHandler {
             return;
         }
         LivingEntity dead = event.getEntity();
+        /* 中立持械村民按自建库存掉落, 不走枪手规则, 避免同一份弹药掉两次 */
+        if (dead instanceof net.minecraft.world.entity.npc.Villager) {
+            return;
+        }
         GunnerMarker.Loadout loadout = GunnerMarker.loadout(dead);
         if (loadout == null) {
             return;

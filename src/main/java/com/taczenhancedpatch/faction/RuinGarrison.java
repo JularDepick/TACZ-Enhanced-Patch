@@ -6,6 +6,7 @@ import com.taczenhancedpatch.entity.GruntRegistry;
 import com.taczenhancedpatch.entity.TankRegistry;
 import com.taczenhancedpatch.network.RuinNotice;
 import com.taczenhancedpatch.network.RuinStatus;
+import com.taczenhancedpatch.world.schematic.RuinPasteHandler;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
@@ -79,7 +80,7 @@ public final class RuinGarrison {
         /* 先算出每座活跃遗迹里的参与玩家, 用于判断谁留在这座, 谁已经转到别处 */
         Map<BlockPos, List<ServerPlayer>> insideBySite = new HashMap<>();
         for (RuinSites.Site site : sites) {
-            if (!site.pasted() || site.banner() == null) {
+            if (!site.pasted() || site.banner() == null || RuinPasteHandler.isPasting(site.origin())) {
                 continue;
             }
             /* 没有玩家在附近时整座遗迹休眠, 不做任何实体查询 */
@@ -338,7 +339,8 @@ public final class RuinGarrison {
             }
             BlockPos banner = site.banner();
             for (ServerPlayer player : inside) {
-                boolean inCore = banner != null && RuinTerritory.inCore(banner, player.getX(), player.getZ());
+                boolean inCore = banner != null
+                        && RuinTerritory.inCore(banner, player.getX(), player.getY(), player.getZ());
                 current.put(player.getUUID(), new Presence(site.origin(), inCore));
             }
         }

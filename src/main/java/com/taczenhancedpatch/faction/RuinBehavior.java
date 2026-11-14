@@ -23,13 +23,14 @@ public final class RuinBehavior {
     private static void converge(Mob mob, ServerLevel level, BlockPos banner) {
         LivingEntity target = mob.getTarget();
         if (target instanceof Player player && player.isAlive()
-                && RuinTerritory.inCore(banner, player.getX(), player.getZ())) {
+                && RuinTerritory.inCore(banner, player.getX(), player.getY(), player.getZ())) {
             return;
         }
         ServerPlayer nearest = null;
         double best = Double.MAX_VALUE;
         for (ServerPlayer player : level.players()) {
-            if (!RuinTerritory.participates(player) || !RuinTerritory.inCore(banner, player.getX(), player.getZ())) {
+            if (!RuinTerritory.participates(player)
+                    || !RuinTerritory.inCore(banner, player.getX(), player.getY(), player.getZ())) {
                 continue;
             }
             double distance = player.distanceToSqr(mob);
@@ -65,6 +66,8 @@ public final class RuinBehavior {
             converge(mob, level, banner);
             return;
         }
+        /* 领地是等高圆柱: 水平超出半径或竖直超出半径都算越界 */
+        boolean outside = !RuinTerritory.inside(banner, site.radius(), mob.getX(), mob.getY(), mob.getZ());
         double distance = RuinTerritory.horizontalDistance(banner, mob.getX(), mob.getZ());
         LivingEntity target = mob.getTarget();
         if (target != null) {
@@ -74,7 +77,7 @@ public final class RuinBehavior {
             }
             return;
         }
-        if (distance > site.radius()) {
+        if (outside) {
             mob.getNavigation().moveTo(banner.getX() + 0.5D, banner.getY(), banner.getZ() + 0.5D, 1.0D);
         }
     }

@@ -134,6 +134,12 @@ public final class GunnerCombat {
             if (lost != null) {
                 restoreTargeting(mob, lost);
             }
+            /* 中立持械村民的枪械由村民模块维护, 这里只补回外观, 不清标记也不收枪 */
+            if (mob instanceof net.minecraft.world.entity.npc.Villager villager) {
+                com.taczenhancedpatch.villager.ArmedVillager.repairHand(villager);
+                STATES.remove(mob);
+                return;
+            }
             /* 弹尽收起枪械后保留枪手标记, 战利品仍按枪手规则结算 */
             if (GunnerMarker.isGunner(mob) && GunnerMarker.isDry(mob)) {
                 return;
@@ -163,8 +169,10 @@ public final class GunnerCombat {
                     TACZEnhancedPatch.LOGGER.info("[gunner] {} ran out of ammo", mob.getType());
                 }
             }
-            /* 弹药耗尽即收起枪械, 交回原版武器与近战行为; 重复调用无副作用 */
-            GunnerArming.disarm(mob);
+            /* 村民不收起枪械: 手持枪是它的外观标识, 收起后交易页与外观都会失真 */
+            if (!(mob instanceof net.minecraft.world.entity.npc.Villager)) {
+                GunnerArming.disarm(mob);
+            }
             TaczApi.aim(mob, false);
             return;
         }

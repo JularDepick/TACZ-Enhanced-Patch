@@ -104,6 +104,34 @@ public final class ArmedVillager {
         TACZEnhancedPatch.LOGGER.debug("[villager] armed at {}", villager.blockPosition());
     }
 
+    /* 当前库存的副本, 死亡掉落与感染转换共用 */
+    public static List<ItemStack> stockOf(Villager villager) {
+        CompoundTag data = root(villager);
+        if (data == null) {
+            return List.of();
+        }
+        return readStock(data.getList(STOCK, Tag.TAG_COMPOUND));
+    }
+
+    /*
+     * 手持枪械丢失时按身份标记重建一把。
+     * 村民的枪只用于外观与反击, 重建时带上原来的备弹量, 保证外观与交易页一致。
+     */
+    public static void repairHand(Villager villager) {
+        if (TaczApi.isGun(villager.getMainHandItem())) {
+            return;
+        }
+        GunnerMarker.Loadout loadout = GunnerMarker.loadout(villager);
+        if (loadout == null) {
+            return;
+        }
+        ItemStack gun = TaczApi.createGun(loadout.gunId(), loadout.fireMode(), Math.max(1, loadout.ammoPool()));
+        if (!gun.isEmpty()) {
+            villager.setItemSlot(EquipmentSlot.MAINHAND, gun);
+            GunnerMarker.setStoredGun(villager, gun);
+        }
+    }
+
     /* 交易完成后的账目更新, 返回是否已经退化 */
     public static boolean recordSale(Villager villager, String key, int units) {
         CompoundTag data = root(villager);
@@ -196,7 +224,13 @@ public final class ArmedVillager {
         if (!isArmed(villager)) {
             return;
         }
-        for (Plan plan : plans(villager)) {
+        List<Plan> plans = plans(villager);
+        if (plans.isEmpty()) {
+            /* 库存读不出来时直接退化, 否则交易页会因为没有任何商品而闪退 */
+            degrade(villager);
+            return;
+        }
+        for (Plan plan : plans) {
             ItemStack cost = new ItemStack(Items.EMERALD, Math.max(1, plan.emeralds()));
             offers.add(new MerchantOffer(cost, plan.result(), Math.max(1, plan.maxUses()), 1, 0.0F));
         }
