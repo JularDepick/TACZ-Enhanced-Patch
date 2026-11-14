@@ -9,6 +9,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.util.Mth;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -25,6 +26,16 @@ public class RuinCompassItem extends Item {
     private static final String TAG_X = "RuinX";
     private static final String TAG_Y = "RuinY";
     private static final String TAG_Z = "RuinZ";
+    /* 八方位名称, 与方向标尺同一口径: 北为 0 度, 顺时针递增 */
+    private static final String[] DIRECTIONS = {
+            "item.tacz_enhanced_patch.ruin_compass.dir.n",
+            "item.tacz_enhanced_patch.ruin_compass.dir.ne",
+            "item.tacz_enhanced_patch.ruin_compass.dir.e",
+            "item.tacz_enhanced_patch.ruin_compass.dir.se",
+            "item.tacz_enhanced_patch.ruin_compass.dir.s",
+            "item.tacz_enhanced_patch.ruin_compass.dir.sw",
+            "item.tacz_enhanced_patch.ruin_compass.dir.w",
+            "item.tacz_enhanced_patch.ruin_compass.dir.nw"};
 
     public RuinCompassItem(Properties properties) {
         super(properties);
@@ -44,8 +55,14 @@ public class RuinCompassItem extends Item {
                 tag.putInt(TAG_X, target.getX());
                 tag.putInt(TAG_Y, target.getY());
                 tag.putInt(TAG_Z, target.getZ());
-                int distance = (int) Math.sqrt(target.distSqr(player.blockPosition()));
-                player.displayClientMessage(Component.translatable("item.tacz_enhanced_patch.ruin_compass.found", distance)
+                int distance = (int) Math.round(Math.sqrt(target.distSqr(player.blockPosition())));
+                double dx = target.getX() + 0.5D - player.getX();
+                double dz = target.getZ() + 0.5D - player.getZ();
+                /* 方位角: 北为 0 度, 顺时针递增; 与客户端方向标尺的读数一致 */
+                double bearing = Mth.positiveModulo(Math.toDegrees(Math.atan2(dx, -dz)), 360.0D);
+                Component direction = Component.translatable(DIRECTIONS[(int) Math.round(bearing / 45.0D) % 8]);
+                player.displayClientMessage(Component.translatable("item.tacz_enhanced_patch.ruin_compass.found",
+                                distance, direction, Math.round(bearing))
                         .withStyle(ChatFormatting.GREEN), true);
             }
         }

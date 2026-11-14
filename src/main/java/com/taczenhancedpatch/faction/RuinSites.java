@@ -48,10 +48,15 @@ public final class RuinSites extends SavedData {
         private int reinforceInterval = 20;
         private float capturePercent = 0.4F;
         private int captureSeconds = 60;
+        /* 生成时随机确定的守军基数, 0 表示旧存档没有记录 */
+        private int garrisonBase;
         private boolean captured;
         private int nextReinforceTick;
         private int captureEndTick;
         private int cooldownEndTick;
+        /* 离开核心区后的宽限截止时刻, 0 表示不在宽限中 */
+        private int graceEndTick;
+        /* 最近一次已提示的剩余秒数, 避免同一秒重复下发 */
         private int titleSecond = -1;
         private boolean hadPlayers;
         private RuinStats stats;
@@ -120,6 +125,14 @@ public final class RuinSites extends SavedData {
             return reinforceInterval;
         }
 
+        public int garrisonBase() {
+            return garrisonBase;
+        }
+
+        public void setGarrisonBase(int base) {
+            this.garrisonBase = base;
+        }
+
         public float capturePercent() {
             return capturePercent;
         }
@@ -163,6 +176,14 @@ public final class RuinSites extends SavedData {
 
         public void setCooldownEndTick(int tick) {
             this.cooldownEndTick = tick;
+        }
+
+        public int graceEndTick() {
+            return graceEndTick;
+        }
+
+        public void setGraceEndTick(int tick) {
+            this.graceEndTick = tick;
         }
 
         public int titleSecond() {
@@ -309,6 +330,7 @@ public final class RuinSites extends SavedData {
             entry.putInt("reinforceInterval", site.reinforceInterval());
             entry.putFloat("capturePercent", site.capturePercent());
             entry.putInt("captureSeconds", site.captureSeconds());
+            entry.putInt("garrisonBase", site.garrisonBase());
             entry.putBoolean("captured", site.captured());
             entry.putInt("nextReinforceTick", site.nextReinforceTick());
             entry.putInt("cooldownEndTick", site.cooldownEndTick());
@@ -338,6 +360,7 @@ public final class RuinSites extends SavedData {
             site.reinforceInterval = entry.contains("reinforceInterval") ? entry.getInt("reinforceInterval") : 20;
             site.capturePercent = entry.contains("capturePercent") ? entry.getFloat("capturePercent") : 0.4F;
             site.captureSeconds = entry.contains("captureSeconds") ? entry.getInt("captureSeconds") : 60;
+            site.garrisonBase = entry.contains("garrisonBase") ? entry.getInt("garrisonBase") : 0;
             site.captured = entry.getBoolean("captured");
             site.nextReinforceTick = entry.getInt("nextReinforceTick");
             site.cooldownEndTick = entry.getInt("cooldownEndTick");

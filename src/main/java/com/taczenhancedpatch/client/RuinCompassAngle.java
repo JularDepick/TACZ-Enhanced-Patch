@@ -31,8 +31,12 @@ public final class RuinCompassAngle {
         }
         double dx = target.getX() + 0.5D - entity.getX();
         double dz = target.getZ() + 0.5D - entity.getZ();
-        double direction = Math.atan2(dz, dx) / (Math.PI * 2.0D);
-        double body = entity.getYRot() / 360.0D;
-        return (float) Mth.positiveModulo(direction - body, 1.0D);
+        /* 目标方位角: 北为 0 度, 顺时针递增; 与方向标尺同一口径 */
+        double bearing = Mth.positiveModulo(Math.toDegrees(Math.atan2(dx, -dz)), 360.0D);
+        /* 玩家朝向的方位角: 游戏朝向加半圈 */
+        double facing = Mth.positiveModulo(entity.getYRot() + 180.0D, 360.0D);
+        /* 相对方位决定贴图帧: 目标在正前方时指针朝上 */
+        double relative = Mth.positiveModulo(bearing - facing, 360.0D);
+        return (float) (relative / 360.0D);
     }
 }

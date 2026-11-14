@@ -14,7 +14,9 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.ChestBlock;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -197,6 +199,7 @@ public final class RuinPasteHandler {
         /* 物资箱: 建筑内部各层地面按概率散布, 概率随生成时的难度缩放 */
         RuinLoot.placeSupplyChests(level, job.min, job.schematic.width(), job.schematic.height(),
                 job.schematic.depth(), job.baseY, random, level.getDifficulty());
+        discardTrappedItems(level, job);
         RuinGarrison.onPasted(level, site, data, job.schematic.width(), job.schematic.height(),
                 job.schematic.depth(), job.min, job.baseY);
         JOBS.remove(site.origin());
@@ -227,6 +230,24 @@ public final class RuinPasteHandler {
                     }
                     level.setBlock(cursor, foundation(level.getRandom()), Block.UPDATE_CLIENTS);
                 }
+            }
+        }
+    }
+
+    /*
+     * 清掉被压在建筑方块里的掉落物。
+     * 清空预选区与写入方块都不会产生掉落, 但之前卡在方块中窒息而死的守军会留下战利品,
+     * 这些物品玩家看不到也捡不到, 一并回收, 避免遗迹内部凭空出现物品。
+     */
+    private static void discardTrappedItems(ServerLevel level, Job job) {
+        int minX = job.min.getX();
+        int minZ = job.min.getZ();
+        AABB area = new AABB(minX, job.baseY, minZ,
+                minX + job.schematic.width(), job.baseY + job.schematic.height(),
+                minZ + job.schematic.depth());
+        for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, area)) {
+            if (!level.getBlockState(item.blockPosition()).isAir()) {
+                item.discard();
             }
         }
     }

@@ -20,7 +20,7 @@ import java.util.List;
  */
 public final class RuinTerritory {
     /* 核心区半径, 夺旗判定与提示都以它为准 */
-    public static final double CORE_RADIUS = 6.0D;
+    public static final double CORE_RADIUS = 12.0D;
     /* 战斗时可以越出领地边界的格数 */
     public static final double PURSUIT_MARGIN = 16.0D;
     /* 领地半径的余量, 下限与上限 */

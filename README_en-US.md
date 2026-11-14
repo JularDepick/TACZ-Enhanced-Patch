@@ -64,7 +64,8 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Capture loot | A supply chest appears in the core area, with ammo and weapons converted from the kill tally plus experience for each participant |
 | Reward chest | Always holds a matching armor set and a sword, each piece has a fifty percent chance of strength-scaled enchantments, plus ender pearls, a chance at eyes of ender and bread |
 | Banner souvenir | After a successful capture the banner can be broken and dropped, named after its color and coordinates, and its tooltip records the ruin coordinates plus every participant |
-| Ruin compass | Crafted from an emerald next to a compass; right-click records the nearest ruin and the needle keeps pointing at it with the distance shown |
+| Ruin compass | Crafted from an emerald next to a compass; right-click records the nearest ruin and reports the distance, direction and bearing, while the needle keeps pointing at it |
+| Garrison readout | While inside a ruin the top right of the screen shows the remaining garrison percentage, refreshed every 20 ticks and coloured by how dangerous the number is |
 
 ### Tank elite
 
@@ -111,7 +112,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Item | Description |
 |:---:|:---|
 | Client configuration | Local preferences such as automatic reload, the incoming fire indicator, the heading ruler and its color, stored per player |
-| Server configuration | 65 parameters grouped into debug, ruins, armed neutral villagers, basics, retaliation, spawning, targeting, ammo, toughness, loot, armed grunt and tank elite, with pure-button and switch groups listed before numeric ones and synced from the server |
+| Server configuration | 66 parameters grouped into debug, ruins, armed neutral villagers, basics, retaliation, spawning, targeting, ammo, toughness, loot, armed grunt and tank elite, with pure-button and switch groups listed before numeric ones and synced from the server |
 | Configuration screen | Opens the config screen directly, with tabs at the top to switch between client and server; the server tab only appears for the world owner |
 | Shortcut | Shift + C opens the config screen by default; it is a standard key binding, so it can be rebound or cleared in the vanilla controls |
 | Mob arming config | The first row of the server page scans every mob into one switchable list, shows each mob's name and entity ID, and lets group toggles flip those switches in bulk |

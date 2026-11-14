@@ -2,8 +2,10 @@ package com.taczenhancedpatch.faction;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.player.Player;
 
 /**
  * 遗迹生物的领地行为。
@@ -15,6 +17,34 @@ public final class RuinBehavior {
     private static final int INTERVAL = 10;
 
     private RuinBehavior() {
+    }
+
+    /* 夺旗期间的聚拢: 已经在打核心区内的玩家就继续打, 否则换目标或走向旗帜 */
+    private static void converge(Mob mob, ServerLevel level, BlockPos banner) {
+        LivingEntity target = mob.getTarget();
+        if (target instanceof Player player && player.isAlive()
+                && RuinTerritory.inCore(banner, player.getX(), player.getZ())) {
+            return;
+        }
+        ServerPlayer nearest = null;
+        double best = Double.MAX_VALUE;
+        for (ServerPlayer player : level.players()) {
+            if (!RuinTerritory.participates(player) || !RuinTerritory.inCore(banner, player.getX(), player.getZ())) {
+                continue;
+            }
+            double distance = player.distanceToSqr(mob);
+            if (distance < best) {
+                best = distance;
+                nearest = player;
+            }
+        }
+        if (nearest != null) {
+            mob.setTarget(nearest);
+            mob.getNavigation().moveTo(nearest, 1.2D);
+            return;
+        }
+        mob.setTarget(null);
+        mob.getNavigation().moveTo(banner.getX() + 0.5D, banner.getY(), banner.getZ() + 0.5D, 1.1D);
     }
 
     public static void tick(Mob mob) {
@@ -30,6 +60,11 @@ public final class RuinBehavior {
             return;
         }
         BlockPos banner = site.banner();
+        /* 夺旗期间守军放弃追击, 全部向核心区聚拢并优先攻击核心区内的玩家 */
+        if (site.capturing()) {
+            converge(mob, level, banner);
+            return;
+        }
         double distance = RuinTerritory.horizontalDistance(banner, mob.getX(), mob.getZ());
         LivingEntity target = mob.getTarget();
         if (target != null) {

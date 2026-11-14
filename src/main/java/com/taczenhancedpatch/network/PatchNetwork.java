@@ -34,6 +34,16 @@ public final class PatchNetwork {
                 .decoder(HitDirectionMessage::decode)
                 .consumerMainThread(HitDirectionMessage::handle)
                 .add();
+        CHANNEL.messageBuilder(RuinNoticeMessage.class, id++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(RuinNoticeMessage::encode)
+                .decoder(RuinNoticeMessage::decode)
+                .consumerMainThread(RuinNoticeMessage::handle)
+                .add();
+        CHANNEL.messageBuilder(RuinStatusMessage.class, id++, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(RuinStatusMessage::encode)
+                .decoder(RuinStatusMessage::decode)
+                .consumerMainThread(RuinStatusMessage::handle)
+                .add();
         CHANNEL.messageBuilder(TankFireMessage.class, id++, NetworkDirection.PLAY_TO_SERVER)
                 .encoder(TankFireMessage::encode)
                 .decoder(TankFireMessage::decode)

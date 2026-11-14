@@ -225,10 +225,13 @@ public final class RuinLoot {
         if (banner == null) {
             return null;
         }
-        for (int attempt = 0; attempt < 48; attempt++) {
-            int radius = 1 + random.nextInt((int) RuinTerritory.CORE_RADIUS);
-            int dx = random.nextInt(radius * 2 + 1) - radius;
-            int dz = random.nextInt(radius * 2 + 1) - radius;
+        for (int attempt = 0; attempt < 64; attempt++) {
+            /* 奖励箱贴近旗帜: 水平距离不超过三格 */
+            int dx = random.nextInt(7) - 3;
+            int dz = random.nextInt(7) - 3;
+            if (Math.hypot(dx, dz) > 3.0D) {
+                continue;
+            }
             BlockPos base = banner.offset(dx, 0, dz);
             for (int dy = 6; dy >= -6; dy--) {
                 BlockPos candidate = base.offset(0, dy, 0);
@@ -361,12 +364,16 @@ public final class RuinLoot {
         if (random.nextFloat() >= ENCHANT_CHANCE || pool.isEmpty()) {
             return;
         }
-        int count = Math.min(MAX_ENCHANTS, 1 + strength / ENCHANT_COUNT_DIVISOR);
-        int level = Math.min(MAX_ENCHANT_LEVEL, 1 + strength / ENCHANT_LEVEL_DIVISOR);
+        /* 条数与等级各自独立掷一次: 强度只抬高上限, 两者之间没有推导关系 */
+        int maxCount = Math.min(MAX_ENCHANTS, 1 + strength / ENCHANT_COUNT_DIVISOR);
+        int maxLevel = Math.min(MAX_ENCHANT_LEVEL, 1 + strength / ENCHANT_LEVEL_DIVISOR);
+        int count = 1 + random.nextInt(Math.max(1, maxCount));
         List<Enchantment> candidates = new ArrayList<>(pool);
         Map<Enchantment, Integer> chosen = new LinkedHashMap<>();
         for (int i = 0; i < count && !candidates.isEmpty(); i++) {
             Enchantment enchantment = candidates.remove(random.nextInt(candidates.size()));
+            /* 每条附魔的等级单独掷, 与条数无关, 且不超过该附魔自身上限 */
+            int level = 1 + random.nextInt(Math.max(1, maxLevel));
             chosen.put(enchantment, Math.min(level, enchantment.getMaxLevel()));
         }
         EnchantmentHelper.setEnchantments(chosen, stack);

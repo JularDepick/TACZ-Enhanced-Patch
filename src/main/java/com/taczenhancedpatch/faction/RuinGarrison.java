@@ -4,6 +4,8 @@ import com.taczenhancedpatch.TACZEnhancedPatch;
 import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.entity.GruntRegistry;
 import com.taczenhancedpatch.entity.TankRegistry;
+import com.taczenhancedpatch.network.RuinNotice;
+import com.taczenhancedpatch.network.RuinStatus;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
@@ -15,14 +17,18 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * 遗迹守军调度。
@@ -36,7 +42,17 @@ public final class RuinGarrison {
     private static final double ACTIVE_DISTANCE = 128.0D;
     /* 坦克在补兵里的权重: 每四只补兵出一辆坦克 */
     private static final int TANK_ONE_IN = 4;
+    /* 玩家离开核心区后的宽限时长, 超过即退出夺旗状态 */
+    private static final int GRACE_TICKS = 100;
+    /* 倒计时前若干秒用大标题, 之后改用顶部小提示 */
+    private static final int TITLE_SECONDS = 5;
+    /* 玩家当前所在的遗迹与核心区状态, 用于进出提示 */
+    private static final Map<UUID, Presence> PRESENCE = new HashMap<>();
     private static int tick;
+
+    /* 玩家所在遗迹与是否处于核心区 */
+    private record Presence(BlockPos site, boolean inCore) {
+    }
 
     private RuinGarrison() {
     }
@@ -79,6 +95,7 @@ public final class RuinGarrison {
                 break;
             }
         }
+        notifyPresence(level, sites, insideBySite);
         for (RuinSites.Site site : sites) {
             List<ServerPlayer> inside = insideBySite.get(site.origin());
             if (inside == null) {
@@ -93,11 +110,12 @@ public final class RuinGarrison {
                 data.setDirty();
             }
             trackStats(level, site, inside, data);
+            /* 兵力只统计一次, 补兵, 夺旗与右上角读数共用, 避免同一 tick 反复扫描实体 */
+            int count = RuinTerritory.countMobs(level, site);
+            RuinStatus.send(inside, percentOf(site, count));
             if (site.captured()) {
                 continue;
             }
-            /* 兵力只统计一次, 补兵与夺旗共用, 避免同一 tick 反复扫描实体 */
-            int count = RuinTerritory.countMobs(level, site);
             reinforce(level, site, count, now, data);
             capture(level, site, inside, count, now, data);
         }
@@ -119,6 +137,9 @@ public final class RuinGarrison {
                                 int width, int height, int depth, BlockPos min, int baseY) {
         RandomSource random = level.getRandom();
         site.setRadius(RuinTerritory.radiusFor(width, depth));
+        /* 基数在生成时从配置区间里取一个值, 之后这座遗迹一直沿用它 */
+        int[] baseRange = ServerConfig.ruinGarrisonBaseRange();
+        site.setGarrisonBase(baseRange[0] + random.nextInt(baseRange[1] - baseRange[0] + 1));
         site.setReinforce(percentIn(ServerConfig.ruinReinforcePercentMin(), ServerConfig.ruinReinforcePercentMax(), random),
                 randomIn(ServerConfig.ruinReinforceIntervalMin(), ServerConfig.ruinReinforceIntervalMax(), random));
         site.setCapture(percentIn(ServerConfig.ruinCapturePercentMin(), ServerConfig.ruinCapturePercentMax(), random),
@@ -131,57 +152,104 @@ public final class RuinGarrison {
     }
 
     private static void reinforce(ServerLevel level, RuinSites.Site site, int count, int now, RuinSites data) {
-        int base = ServerConfig.ruinGarrisonBase();
+        int base = baseOf(site);
         if (count >= base * site.reinforcePercent()) {
             return;
         }
         if (now < site.nextReinforceTick()) {
             return;
         }
-        BlockPos pos = RuinTerritory.randomSpawnPos(level, site, level.getRandom());
-        if (pos == null) {
+        if (!spawnOne(level, site, level.getRandom())) {
             site.setNextReinforceTick(now + CHECK_INTERVAL);
+            data.setDirty();
             return;
         }
-        spawnOne(level, site, pos);
         site.setNextReinforceTick(now + site.reinforceInterval() * 20);
         data.setDirty();
     }
 
-    private static void spawnOne(ServerLevel level, RuinSites.Site site, BlockPos pos) {
-        RandomSource random = level.getRandom();
+    /*
+     * 生成一只守军。
+     * 位置按碰撞箱校验: 坦克两格半高, 只判空气格会让它卡在楼板与地面之间窒息,
+     * 因此先在若干候选点上试放, 找到整箱无碰撞的位置再真正加入世界。
+     */
+    private static boolean spawnOne(ServerLevel level, RuinSites.Site site, RandomSource random) {
         EntityType<?> type = random.nextInt(TANK_ONE_IN) == 0
                 ? TankRegistry.TANK_ELITE.get() : GruntRegistry.GUNNER_GRUNT.get();
         if (!(type.create(level) instanceof Mob mob)) {
-            return;
+            return false;
         }
-        mob.moveTo(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, random.nextFloat() * 360.0F, 0.0F);
+        BlockPos pos = null;
+        for (int attempt = 0; attempt < 8; attempt++) {
+            BlockPos candidate = RuinTerritory.randomSpawnPos(level, site, random);
+            if (candidate == null) {
+                continue;
+            }
+            mob.moveTo(candidate.getX() + 0.5D, candidate.getY(), candidate.getZ() + 0.5D,
+                    random.nextFloat() * 360.0F, 0.0F);
+            if (level.noCollision(mob, mob.getBoundingBox())) {
+                pos = candidate;
+                break;
+            }
+        }
+        if (pos == null) {
+            mob.discard();
+            return false;
+        }
         FactionData.setFaction(mob, Factions.ofColor(site.bannerColor()));
         FactionData.setHome(mob, site.origin());
         FactionData.setReviveDepth(mob, 0);
         mob.finalizeSpawn(level, level.getCurrentDifficultyAt(pos), MobSpawnType.STRUCTURE, null, null);
         level.addFreshEntity(mob);
+        return true;
     }
 
     private static void capture(ServerLevel level, RuinSites.Site site, List<ServerPlayer> inside,
                                 int count, int now, RuinSites data) {
+        BlockPos banner = site.banner();
+        if (banner == null) {
+            return;
+        }
         List<ServerPlayer> core = RuinTerritory.playersInCore(level, site);
-        int base = ServerConfig.ruinGarrisonBase();
+        int base = baseOf(site);
         if (site.capturing()) {
             if (core.isEmpty()) {
-                site.setCaptureEndTick(0);
+                /* 核心区没人: 先进入宽限, 倒计时反向增加, 宽限耗尽才真正退出 */
+                if (site.graceEndTick() == 0) {
+                    site.setGraceEndTick(now + GRACE_TICKS);
+                    tellNear(level, site, "tacz_enhanced_patch.ruin.capture_left_core");
+                    data.setDirty();
+                } else if (now >= site.graceEndTick()) {
+                    site.setCaptureEndTick(0);
+                    site.setGraceEndTick(0);
+                    site.setTitleSecond(-1);
+                    tellNear(level, site, "tacz_enhanced_patch.ruin.capture_abort");
+                    RuinNotice.sendNear(level, Vec3.atCenterOf(banner),
+                            site.radius() + RuinTerritory.PURSUIT_MARGIN, "hud.ruin.capture_abort", 0);
+                    data.setDirty();
+                    TACZEnhancedPatch.LOGGER.info("[ruin] capture aborted at {} after grace", site.origin());
+                    return;
+                }
+                /* 反向计时: 每次检查把截止时刻往后推, 剩余时间随之增加 */
+                site.setCaptureEndTick(site.captureEndTick() + CHECK_INTERVAL * 2);
                 site.setTitleSecond(-1);
-                /* 提示要送到刚离开核心区的人, 覆盖领地加追出范围 */
-                tellNear(level, site, "tacz_enhanced_patch.ruin.capture_abort");
+                int graceLeft = Math.max(1, (site.graceEndTick() - now) / 20 + 1);
+                RuinNotice.sendNear(level, Vec3.atCenterOf(banner),
+                        site.radius() + RuinTerritory.PURSUIT_MARGIN, "hud.ruin.capture_reversed", graceLeft);
                 data.setDirty();
                 return;
+            }
+            if (site.graceEndTick() != 0) {
+                site.setGraceEndTick(0);
+                tellNear(level, site, "tacz_enhanced_patch.ruin.capture_resumed");
+                data.setDirty();
             }
             int remaining = site.captureEndTick() - now;
             if (remaining <= 0) {
                 judge(level, site, base, count, inside, now, data);
                 return;
             }
-            showTitle(core, site, remaining / 20);
+            showCountdown(core, site, remaining);
             return;
         }
         if (now < site.cooldownEndTick() || core.isEmpty()) {
@@ -191,6 +259,7 @@ public final class RuinGarrison {
             return;
         }
         site.setCaptureEndTick(now + site.captureSeconds() * 20);
+        site.setGraceEndTick(0);
         site.setTitleSecond(-1);
         showTitle(core, site, site.captureSeconds());
         tell(inside, "tacz_enhanced_patch.ruin.capture_start", site.captureSeconds());
@@ -202,11 +271,13 @@ public final class RuinGarrison {
     private static void judge(ServerLevel level, RuinSites.Site site, int base, int count,
                               List<ServerPlayer> inside, int now, RuinSites data) {
         site.setCaptureEndTick(0);
+        site.setGraceEndTick(0);
         site.setTitleSecond(-1);
         if (count >= base) {
             site.setCooldownEndTick(now + ServerConfig.ruinCaptureCooldown() * 20);
             tell(inside, "tacz_enhanced_patch.ruin.capture_failed", count, base,
                     ServerConfig.ruinCaptureCooldown());
+            RuinNotice.send(inside, "hud.ruin.capture_failed", count);
             data.setDirty();
             TACZEnhancedPatch.LOGGER.info("[ruin] capture failed at {} count={} base={}", site.origin(), count, base);
             return;
@@ -217,6 +288,7 @@ public final class RuinGarrison {
         RuinLoot.placeChest(level, site, level.getRandom());
         RuinLoot.grantExperience(level, site);
         tell(inside, "tacz_enhanced_patch.ruin.capture_success");
+        RuinNotice.send(inside, "hud.ruin.capture_success", 0);
         for (ServerPlayer player : inside) {
             player.connection.send(new ClientboundSetTitlesAnimationPacket(5, 40, 10));
             player.connection.send(new ClientboundSetTitleTextPacket(
@@ -238,6 +310,100 @@ public final class RuinGarrison {
             player.connection.send(new ClientboundSetTitleTextPacket(title));
             player.connection.send(new ClientboundSetSubtitleTextPacket(subtitle));
         }
+    }
+
+    /* 倒计时前几秒用大标题, 之后改用顶部小提示, 避免长时间占据屏幕中央 */
+    private static void showCountdown(List<ServerPlayer> core, RuinSites.Site site, int remainingTicks) {
+        int seconds = Math.max(1, (remainingTicks + 19) / 20);
+        if (site.titleSecond() == seconds) {
+            return;
+        }
+        site.setTitleSecond(seconds);
+        int elapsedTicks = site.captureSeconds() * 20 - remainingTicks;
+        if (elapsedTicks < TITLE_SECONDS * 20) {
+            showTitle(core, site, seconds);
+        } else {
+            RuinNotice.send(core, "hud.ruin.capture_remaining", seconds);
+        }
+    }
+
+    /* 玩家进出遗迹与核心区的提示, 只在状态真正变化时发一次 */
+    private static void notifyPresence(ServerLevel level, List<RuinSites.Site> sites,
+                                       Map<BlockPos, List<ServerPlayer>> insideBySite) {
+        Map<UUID, Presence> current = new HashMap<>();
+        for (RuinSites.Site site : sites) {
+            List<ServerPlayer> inside = insideBySite.get(site.origin());
+            if (inside == null || inside.isEmpty()) {
+                continue;
+            }
+            BlockPos banner = site.banner();
+            for (ServerPlayer player : inside) {
+                boolean inCore = banner != null && RuinTerritory.inCore(banner, player.getX(), player.getZ());
+                current.put(player.getUUID(), new Presence(site.origin(), inCore));
+            }
+        }
+        Set<UUID> touched = new HashSet<>(current.keySet());
+        touched.addAll(PRESENCE.keySet());
+        for (UUID id : touched) {
+            ServerPlayer player = level.getServer().getPlayerList().getPlayer(id);
+            if (player == null) {
+                PRESENCE.remove(id);
+                continue;
+            }
+            Presence before = PRESENCE.get(id);
+            Presence after = current.get(id);
+            if (before == null && after == null) {
+                continue;
+            }
+            if (before == null) {
+                tell(player, "tacz_enhanced_patch.ruin.enter", after.site().getX(), after.site().getZ());
+                if (after.inCore()) {
+                    tell(player, "tacz_enhanced_patch.ruin.enter_core");
+                }
+            } else if (after == null) {
+                tell(player, "tacz_enhanced_patch.ruin.leave");
+                RuinStatus.clear(player);
+            } else if (!before.site().equals(after.site())) {
+                tell(player, "tacz_enhanced_patch.ruin.leave");
+                RuinStatus.clear(player);
+                tell(player, "tacz_enhanced_patch.ruin.enter", after.site().getX(), after.site().getZ());
+                if (after.inCore()) {
+                    tell(player, "tacz_enhanced_patch.ruin.enter_core");
+                }
+            } else if (before.inCore() != after.inCore()) {
+                tell(player, after.inCore()
+                        ? "tacz_enhanced_patch.ruin.enter_core"
+                        : "tacz_enhanced_patch.ruin.leave_core");
+            }
+            if (after == null) {
+                PRESENCE.remove(id);
+            } else {
+                PRESENCE.put(id, after);
+            }
+        }
+    }
+
+    /* 剩余兵力占基数的百分比, 上限 100 */
+    private static int percentOf(RuinSites.Site site, int count) {
+        int base = baseOf(site);
+        if (base <= 0) {
+            return 0;
+        }
+        return Math.min(100, Math.max(0, Math.round(count * 100.0F / base)));
+    }
+
+    /* 站点自己的守军基数; 旧存档没有记录时取配置区间的中值 */
+    private static int baseOf(RuinSites.Site site) {
+        int base = site.garrisonBase();
+        if (base > 0) {
+            return base;
+        }
+        int[] range = ServerConfig.ruinGarrisonBaseRange();
+        return (range[0] + range[1]) / 2;
+    }
+
+    private static void tell(ServerPlayer player, String key, Object... args) {
+        player.sendSystemMessage(Component.translatable(key, args));
     }
 
     private static void tell(List<ServerPlayer> players, String key, Object... args) {

@@ -14,7 +14,8 @@ import java.util.List;
 public final class ServerConfig {
     private static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
 
-    private static final ForgeConfigSpec.IntValue RUIN_GARRISON_BASE;
+    private static final ForgeConfigSpec.IntValue RUIN_GARRISON_BASE_MIN;
+    private static final ForgeConfigSpec.IntValue RUIN_GARRISON_BASE_MAX;
     private static final ForgeConfigSpec.IntValue RUIN_REINFORCE_PERCENT_MIN;
     private static final ForgeConfigSpec.IntValue RUIN_REINFORCE_PERCENT_MAX;
     private static final ForgeConfigSpec.IntValue RUIN_REINFORCE_INTERVAL_MIN;
@@ -268,9 +269,13 @@ public final class ServerConfig {
         BUILDER.pop();
 
         BUILDER.comment("遗迹守军与夺旗").push("ruin");
-        RUIN_GARRISON_BASE = BUILDER
-                .comment("遗迹生物基数, 领地内守军数量以它为基准")
-                .defineInRange("garrisonBase", 8, 1, 32);
+        RUIN_GARRISON_BASE_MIN = BUILDER
+                .comment("遗迹生物基数的随机区间下限, 每座遗迹生成时在区间内取一个值")
+                .defineInRange("garrisonBaseMin", 8, 4, 128);
+        RUIN_GARRISON_BASE_MAX = BUILDER
+                .comment("遗迹生物基数的随机区间上限, 不小于下限即可",
+                        "基数决定领地内的目标守军数量, 只影响之后新生成的遗迹")
+                .defineInRange("garrisonBaseMax", 16, 4, 128);
         RUIN_REINFORCE_PERCENT_MIN = BUILDER
                 .comment("补兵触发比例下限, 单位百分比, 领地内数量低于基数乘该比例时开始补兵")
                 .defineInRange("reinforcePercentMin", 40, 10, 89);
@@ -539,8 +544,9 @@ public final class ServerConfig {
      * 纯按钮与开关类条目优先: 界面与调试组提供生物持械配置入口与调试开关, 遗迹组是最常用的开关,
      * 两者排在所有数值组之前, 打开页面即可见, 不需要滚动查找。
      */
-    public static int ruinGarrisonBase() {
-        return value(RUIN_GARRISON_BASE, 8);
+    /* 遗迹生物基数的随机区间, 每座遗迹生成时在区间内取一个值 */
+    public static int[] ruinGarrisonBaseRange() {
+        return range(RUIN_GARRISON_BASE_MIN, RUIN_GARRISON_BASE_MAX, 8, 16);
     }
 
     public static int ruinReinforcePercentMin() {
@@ -631,7 +637,8 @@ public final class ServerConfig {
                         new ConfigOption.ToggleOption("opt.ruins", RUINS_ENABLED),
                         new ConfigOption.EnumOption<>("opt.blueprint_source", RUINS_BLUEPRINT_SOURCE),
                         new ConfigOption.IntOption("opt.ruin_min_distance", RUIN_MIN_DISTANCE, 300, 6400),
-                        new ConfigOption.IntOption("opt.garrison_base", RUIN_GARRISON_BASE, 1, 32),
+                        new ConfigOption.IntOption("opt.garrison_base_min", RUIN_GARRISON_BASE_MIN, 4, 128),
+                        new ConfigOption.IntOption("opt.garrison_base_max", RUIN_GARRISON_BASE_MAX, 4, 128),
                         new ConfigOption.IntOption("opt.reinforce_percent_min", RUIN_REINFORCE_PERCENT_MIN, 10, 89),
                         new ConfigOption.IntOption("opt.reinforce_percent_max", RUIN_REINFORCE_PERCENT_MAX, 11, 90),
                         new ConfigOption.IntOption("opt.reinforce_interval_min", RUIN_REINFORCE_INTERVAL_MIN, 3, 60),
