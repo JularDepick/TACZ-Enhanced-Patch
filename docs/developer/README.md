@@ -13,7 +13,7 @@
 
 开发运行已配置 Mixin 引用表重映射, 以支持上游模组 TACZ 的混入; 服务端冒烟测试可使用 `gradlew.bat runServer`
 
-配置界面从模组列表的配置按钮进入, 不属于快捷键入口
+配置界面可从模组列表的配置按钮进入, 也可在游戏内按 Shift 加 C 打开; 该按键是标准按键项, 玩家可自行改绑或解绑
 
 ## 环境要求
 
@@ -36,8 +36,8 @@
 - 构建时 `processResources` 把它们原样并入资源包的 `assets/tacz_enhanced_patch/ruins/`, 不做转换
 - 构建期由 `validateBlueprints` 任务校验: `src/main/ruins` 里没有 .schem 时直接拒绝构建; 单个文件校验不合格或缺少 Python 时只告警
 - 外部目录除了 .schem 还接受旧版 .schematic, 只读取不转换也不回写; 旧版数字编号由 `LegacyBlocks` 映射
-- 旧格式转新格式用 `scripts/blueprints.py` 批量处理: 默认输入目录是脚本同目录的 `.input/`, 输出目录是 `.output/`; `--input` 与 `--output` 可分别指定, 只给一个时输入输出同目录; 不带 `--check` 就把输入目录的 .schematic 转成 .schem 写到输出目录, 带 `--check` 只做格式识别与校验; 结果以 JSON 输出
 - 另有外部目录: 存档服务端配置目录下的 `tacz_enhanced_patch_ruins/`, 递归扫描深度上限四层, 与内置蓝图在选择时平权; 服务端配置项 `worldgen.blueprintSource` 有三档: 仅内置, 内置与外部, 仅外部, 默认取内置与外部
+- 旧格式转新格式用 `scripts/blueprints.py` 批量处理: 默认输入目录是脚本同目录的 `.input/`, 输出目录是 `.output/`; `--input` 与 `--output` 可分别指定, 只给一个时输入输出同目录; 不带 `--check` 就把输入目录的 .schematic 转成 .schem 写到输出目录, 带 `--check` 只做格式识别与校验; 结果以 JSON 输出
 - 站点保存生成时选定的蓝图名, 外部来源带 `external:` 前缀; 蓝图被删除或格式不合法时弃用该文件并换一座可用的蓝图, 记一条运行日志
 - 运行期由 `SchematicCatalog` 扫描目录并随机选取, `SchematicReader` 解析, `RuinPasteHandler` 在服务端 tick 分帧粘贴
 - 新增或替换建筑只需要放文件后重新构建, 不需要改 Java, 也不需要登记清单

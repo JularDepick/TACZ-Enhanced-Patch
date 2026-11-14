@@ -2,6 +2,7 @@ package com.taczenhancedpatch.world.schematic;
 
 import com.taczenhancedpatch.TACZEnhancedPatch;
 import com.taczenhancedpatch.faction.RuinGarrison;
+import com.taczenhancedpatch.faction.RuinLoot;
 import com.taczenhancedpatch.faction.RuinSites;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -134,13 +135,13 @@ public final class RuinPasteHandler {
     private static boolean replace(ServerLevel level, RuinSites.Site site, RuinSites data, String failed) {
         Optional<String> picked = SchematicCatalog.pickOther(failed, level.getRandom());
         if (picked.isEmpty()) {
-            TACZEnhancedPatch.LOGGER.error("[ruin] no usable schematic for site at {}, ruin skipped",
+            TACZEnhancedPatch.LOGGER.error("[ruin] no usable blueprint for site at {}, ruin skipped",
                     site.origin());
             return false;
         }
         site.setSchematic(picked.get());
         data.setDirty();
-        TACZEnhancedPatch.LOGGER.warn("[ruin] schematic {} unusable at {}, replaced by {}",
+        TACZEnhancedPatch.LOGGER.warn("[ruin] blueprint {} unusable at {}, replaced by {}",
                 failed, site.origin(), picked.get());
         return true;
     }
@@ -193,6 +194,9 @@ public final class RuinPasteHandler {
         RandomSource random = level.getRandom();
         placeMarkers(level, job, random);
         scatterDebris(level, job, random);
+        /* 物资箱: 建筑内部各层地面按概率散布, 概率随生成时的难度缩放 */
+        RuinLoot.placeSupplyChests(level, job.min, job.schematic.width(), job.schematic.height(),
+                job.schematic.depth(), job.baseY, random, level.getDifficulty());
         RuinGarrison.onPasted(level, site, data, job.schematic.width(), job.schematic.height(),
                 job.schematic.depth(), job.min, job.baseY);
         JOBS.remove(site.origin());

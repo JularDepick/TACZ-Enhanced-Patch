@@ -54,8 +54,12 @@ public final class FactionCombat {
         if (victim.level().isClientSide()) {
             return;
         }
+        /* 创造与旁观玩家不引发敌意: 既不还击, 也不通知同阵营 */
+        if (attacker instanceof Player player && (player.isCreative() || player.isSpectator())) {
+            return;
+        }
         /* 被攻击者立刻还击 */
-        if (victim instanceof Mob mob) {
+        if (victim instanceof Mob mob && acceptable(mob, attacker)) {
             mob.setTarget(attacker);
             mob.setLastHurtByMob(attacker);
         }
@@ -66,6 +70,9 @@ public final class FactionCombat {
         }
         for (Mob ally : victim.level().getEntitiesOfClass(Mob.class, victim.getBoundingBox().inflate(ALLY_ALERT_RADIUS))) {
             if (ally == victim || !Factions.same(faction, FactionData.factionOf(ally))) {
+                continue;
+            }
+            if (!acceptable(ally, attacker)) {
                 continue;
             }
             ally.setTarget(attacker);
@@ -111,7 +118,7 @@ public final class FactionCombat {
             return;
         }
         LivingEntity current = mob.getTarget();
-        if (current != null && (!current.isAlive() || Factions.allied(mob, current))) {
+        if (current != null && (!current.isAlive() || Factions.allied(mob, current) || !acceptable(mob, current))) {
             mob.setTarget(null);
             current = null;
         }
@@ -122,6 +129,18 @@ public final class FactionCombat {
         if (intruder != null) {
             mob.setTarget(intruder);
         }
+    }
+
+    /*
+     * 敌意目标的口径。
+     * 玩家只认生存与冒险模式, 创造与旁观一律豁免;
+     * 坦克会破坏地形, 只对玩家开火, 不因其它生物的攻击或入侵而锁定它们。
+     */
+    private static boolean acceptable(Mob mob, LivingEntity candidate) {
+        if (candidate instanceof Player player) {
+            return !player.isCreative() && !player.isSpectator();
+        }
+        return !(mob instanceof TankElite);
     }
 
     /* 在领地范围内找最近的入侵者, 同阵营与合作阵营以及同乘组合体都跳过 */
@@ -138,7 +157,7 @@ public final class FactionCombat {
             if (candidate == mob || candidate.isSpectator() || !candidate.isAlive()) {
                 continue;
             }
-            if (candidate instanceof Player player && (player.isCreative() || player.isSpectator())) {
+            if (!acceptable(mob, candidate)) {
                 continue;
             }
             if (candidate.isPassengerOfSameVehicle(mob)) {

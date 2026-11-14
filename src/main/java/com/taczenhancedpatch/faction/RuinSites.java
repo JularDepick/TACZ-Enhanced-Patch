@@ -4,12 +4,17 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
@@ -22,6 +27,8 @@ public final class RuinSites extends SavedData {
     /* 队列上限: 防守军生成器失联时队列无界增长拖垮内存 */
     private static final int PENDING_LIMIT = 4096;
     private static final ConcurrentLinkedQueue<Pending> PENDING = new ConcurrentLinkedQueue<>();
+    /* 已登记的遗迹中心, 世界生成阶段据此做间距判定; 按维度分开, 服务端启动时从存档补齐 */
+    private static final Map<ResourceKey<Level>, List<BlockPos>> KNOWN = new ConcurrentHashMap<>();
 
     private final List<Site> sites = new ArrayList<>();
 
@@ -193,6 +200,43 @@ public final class RuinSites extends SavedData {
         public void setHadPlayers(boolean hadPlayers) {
             this.hadPlayers = hadPlayers;
         }
+    }
+
+    /* 服务端启动时把存档里已有的站点灌进间距登记表 */
+    public static void seed(ResourceKey<Level> dimension, List<BlockPos> origins) {
+        List<BlockPos> known = known(dimension);
+        synchronized (known) {
+            known.clear();
+            known.addAll(origins);
+        }
+    }
+
+    /* 世界生成线程调用: 与已登记遗迹的直线距离不足时返回真 */
+    public static boolean tooClose(ResourceKey<Level> dimension, BlockPos origin, int minDistance) {
+        List<BlockPos> known = KNOWN.get(dimension);
+        if (known == null) {
+            return false;
+        }
+        long limit = (long) minDistance * minDistance;
+        synchronized (known) {
+            for (BlockPos other : known) {
+                long dx = (long) other.getX() - origin.getX();
+                long dz = (long) other.getZ() - origin.getZ();
+                if (dx * dx + dz * dz < limit) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /* 世界生成线程调用: 站点通过间距判定后登记, 供后续选址比对 */
+    public static void remember(ResourceKey<Level> dimension, BlockPos origin) {
+        known(dimension).add(origin.immutable());
+    }
+
+    private static List<BlockPos> known(ResourceKey<Level> dimension) {
+        return KNOWN.computeIfAbsent(dimension, key -> Collections.synchronizedList(new ArrayList<>()));
     }
 
     /* 世界生成线程调用, 只入队, 超过上限后丢弃新站点 */

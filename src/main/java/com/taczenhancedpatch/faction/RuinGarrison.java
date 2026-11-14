@@ -20,7 +20,9 @@ import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 遗迹守军调度。
@@ -58,6 +60,8 @@ public final class RuinGarrison {
             return;
         }
         int now = (int) level.getGameTime();
+        /* 先算出每座活跃遗迹里的参与玩家, 用于判断谁留在这座, 谁已经转到别处 */
+        Map<BlockPos, List<ServerPlayer>> insideBySite = new HashMap<>();
         for (RuinSites.Site site : sites) {
             if (!site.pasted() || site.banner() == null) {
                 continue;
@@ -66,9 +70,28 @@ public final class RuinGarrison {
             if (!hasPlayerNear(level, site)) {
                 continue;
             }
+            insideBySite.put(site.origin(), RuinTerritory.playersInside(level, site));
+        }
+        boolean playerInSomeSite = false;
+        for (List<ServerPlayer> players : insideBySite.values()) {
+            if (!players.isEmpty()) {
+                playerInSomeSite = true;
+                break;
+            }
+        }
+        for (RuinSites.Site site : sites) {
+            List<ServerPlayer> inside = insideBySite.get(site.origin());
+            if (inside == null) {
+                continue;
+            }
             /* 夺旗前旗帜不可破坏, 任何非正常途径抹掉都在这里还原 */
             RuinBanner.restore(level, site);
-            List<ServerPlayer> inside = RuinTerritory.playersInside(level, site);
+            /* 玩家已经转到另一座遗迹时, 这座遗迹的旧战绩立即作废 */
+            if (inside.isEmpty() && site.hadPlayers() && playerInSomeSite) {
+                site.clearStats();
+                site.setHadPlayers(false);
+                data.setDirty();
+            }
             trackStats(level, site, inside, data);
             if (site.captured()) {
                 continue;
@@ -148,7 +171,8 @@ public final class RuinGarrison {
             if (core.isEmpty()) {
                 site.setCaptureEndTick(0);
                 site.setTitleSecond(-1);
-                tell(inside, "tacz_enhanced_patch.ruin.capture_abort");
+                /* 提示要送到刚离开核心区的人, 覆盖领地加追出范围 */
+                tellNear(level, site, "tacz_enhanced_patch.ruin.capture_abort");
                 data.setDirty();
                 return;
             }
@@ -169,8 +193,10 @@ public final class RuinGarrison {
         site.setCaptureEndTick(now + site.captureSeconds() * 20);
         site.setTitleSecond(-1);
         showTitle(core, site, site.captureSeconds());
-        tell(inside, "tacz_enhanced_patch.ruin.capture_start");
+        tell(inside, "tacz_enhanced_patch.ruin.capture_start", site.captureSeconds());
         data.setDirty();
+        TACZEnhancedPatch.LOGGER.info("[ruin] capture started at {} count={} threshold={} seconds={}",
+                site.origin(), count, base * site.capturePercent(), site.captureSeconds());
     }
 
     private static void judge(ServerLevel level, RuinSites.Site site, int base, int count,
@@ -179,8 +205,10 @@ public final class RuinGarrison {
         site.setTitleSecond(-1);
         if (count >= base) {
             site.setCooldownEndTick(now + ServerConfig.ruinCaptureCooldown() * 20);
-            tell(inside, "tacz_enhanced_patch.ruin.capture_failed");
+            tell(inside, "tacz_enhanced_patch.ruin.capture_failed", count, base,
+                    ServerConfig.ruinCaptureCooldown());
             data.setDirty();
+            TACZEnhancedPatch.LOGGER.info("[ruin] capture failed at {} count={} base={}", site.origin(), count, base);
             return;
         }
         site.setCaptured(true);
@@ -195,7 +223,7 @@ public final class RuinGarrison {
                     Component.translatable("tacz_enhanced_patch.ruin.capture_title_success")));
         }
         data.setDirty();
-        TACZEnhancedPatch.LOGGER.info("[ruin] captured at {}", site.origin());
+        TACZEnhancedPatch.LOGGER.info("[ruin] captured at {} count={}", site.origin(), count);
     }
 
     private static void showTitle(List<ServerPlayer> core, RuinSites.Site site, int seconds) {
@@ -212,9 +240,26 @@ public final class RuinGarrison {
         }
     }
 
-    private static void tell(List<ServerPlayer> players, String key) {
+    private static void tell(List<ServerPlayer> players, String key, Object... args) {
         for (ServerPlayer player : players) {
-            player.sendSystemMessage(Component.translatable(key));
+            player.sendSystemMessage(Component.translatable(key, args));
+        }
+    }
+
+    /* 按范围广播: 中断一类的提示要让刚走出核心区甚至走出领地的人也看到 */
+    private static void tellNear(ServerLevel level, RuinSites.Site site, String key, Object... args) {
+        BlockPos banner = site.banner();
+        if (banner == null) {
+            return;
+        }
+        double limit = site.radius() + RuinTerritory.PURSUIT_MARGIN;
+        for (ServerPlayer player : level.players()) {
+            if (!RuinTerritory.participates(player)) {
+                continue;
+            }
+            if (RuinTerritory.horizontalDistance(banner, player.getX(), player.getZ()) <= limit) {
+                player.sendSystemMessage(Component.translatable(key, args));
+            }
         }
     }
 

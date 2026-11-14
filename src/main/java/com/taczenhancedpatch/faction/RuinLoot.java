@@ -10,6 +10,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -92,6 +93,129 @@ public final class RuinLoot {
             }
             chest.setItem(slot++, stack);
         }
+    }
+
+    /**
+     * 物资箱: 遗迹内部各层地面上按概率散布.
+     * 概率由配置的基础值乘以生成时的游戏难度得到, 简单 0.6 倍, 困难 1.4 倍;
+     * 箱内枪械, 弹药, 护甲与食物各自独立判定, 没有必出项.
+     */
+    public static void placeSupplyChests(ServerLevel level, BlockPos min, int width, int height, int depth,
+                                         int baseY, RandomSource random, Difficulty difficulty) {
+        int cap = ServerConfig.ruinSupplyChestMax();
+        int basePercent = ServerConfig.ruinSupplyChestChance();
+        if (cap <= 0 || basePercent <= 0) {
+            return;
+        }
+        double chance = basePercent / 100.0D * difficultyFactor(difficulty);
+        int attempts = Math.max(200, Math.min(900, width * depth * height / 800));
+        List<BlockPos> placed = new ArrayList<>();
+        for (int i = 0; i < attempts && placed.size() < cap; i++) {
+            int x = min.getX() + 1 + random.nextInt(Math.max(1, width - 2));
+            int z = min.getZ() + 1 + random.nextInt(Math.max(1, depth - 2));
+            int y = baseY + 1 + random.nextInt(Math.max(1, height - 2));
+            BlockPos pos = new BlockPos(x, y, z);
+            if (!isInteriorFloor(level, pos) || tooCloseToChest(placed, pos)) {
+                continue;
+            }
+            if (random.nextDouble() >= chance) {
+                continue;
+            }
+            if (placeSupplyChest(level, pos, random, difficulty)) {
+                placed.add(pos);
+            }
+        }
+        if (!placed.isEmpty()) {
+            TACZEnhancedPatch.LOGGER.info("[ruin] {} supply chests placed near {}", placed.size(), min);
+        }
+    }
+
+    private static double difficultyFactor(Difficulty difficulty) {
+        return switch (difficulty) {
+            case EASY -> 0.6D;
+            case HARD -> 1.4D;
+            default -> 1.0D;
+        };
+    }
+
+    /* 只认建筑内部的地面: 脚下实体, 头顶两格空气, 八格内有天花板 */
+    private static boolean isInteriorFloor(ServerLevel level, BlockPos pos) {
+        BlockPos below = pos.below();
+        if (!level.getBlockState(below).isSolidRender(level, below)) {
+            return false;
+        }
+        if (!level.getBlockState(pos).isAir() || !level.getBlockState(pos.above()).isAir()) {
+            return false;
+        }
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+        for (int dy = 2; dy <= 8; dy++) {
+            cursor.set(pos.getX(), pos.getY() + dy, pos.getZ());
+            if (level.getBlockState(cursor).isSolidRender(level, cursor)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean tooCloseToChest(List<BlockPos> placed, BlockPos pos) {
+        for (BlockPos other : placed) {
+            if (other.distSqr(pos) < 16.0D) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean placeSupplyChest(ServerLevel level, BlockPos pos, RandomSource random,
+                                            Difficulty difficulty) {
+        level.setBlock(pos, Blocks.CHEST.defaultBlockState().setValue(ChestBlock.FACING, Direction.SOUTH), 3);
+        if (!(level.getBlockEntity(pos) instanceof ChestBlockEntity chest)) {
+            return false;
+        }
+        int slot = 0;
+        for (ItemStack stack : supplyLoot(random, difficulty)) {
+            if (slot >= CHEST_SLOTS) {
+                break;
+            }
+            chest.setItem(slot++, stack);
+        }
+        return true;
+    }
+
+    /* 枪械配对应口径弹药, 护甲与食物各自独立判定 */
+    private static List<ItemStack> supplyLoot(RandomSource random, Difficulty difficulty) {
+        List<ItemStack> items = new ArrayList<>();
+        int[] weights = ServerConfig.gunnerTierWeights();
+        if (difficulty == Difficulty.HARD) {
+            weights[2] *= 2;
+        } else if (difficulty == Difficulty.EASY) {
+            weights[0] *= 2;
+        }
+        int guns = random.nextInt(3);
+        for (int i = 0; i < guns; i++) {
+            GunnerArsenal.Tier tier = GunnerArsenal.pickTier(random, weights[0], weights[1], weights[2]);
+            GunnerArsenal.GunProfile profile = GunnerArsenal.pick(tier, random);
+            if (profile == null) {
+                continue;
+            }
+            ItemStack gun = TaczApi.createGun(profile.gunId(), profile.fireMode(), 0);
+            if (!gun.isEmpty()) {
+                items.add(gun);
+            }
+            items.add(TaczApi.createAmmo(profile.ammoId(), 16 + random.nextInt(33)));
+        }
+        if (random.nextFloat() < 0.5F) {
+            String material = pickMaterial(random);
+            int pieces = 1 + random.nextInt(3);
+            for (int i = 0; i < pieces; i++) {
+                items.add(new ItemStack(armorItem(material, ARMOR_SLOTS[random.nextInt(ARMOR_SLOTS.length)])));
+            }
+        }
+        int food = random.nextInt(4);
+        for (int i = 0; i < food; i++) {
+            items.add(randomFood(random));
+        }
+        return items;
     }
 
     /* 核心区内找一个无方块的地面位置 */

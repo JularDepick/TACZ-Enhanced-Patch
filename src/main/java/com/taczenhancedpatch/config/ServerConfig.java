@@ -30,6 +30,8 @@ public final class ServerConfig {
     private static final ForgeConfigSpec.IntValue RUIN_XP_PER_KILL;
     private static final ForgeConfigSpec.IntValue RUIN_XP_DAMAGE_POOL;
     private static final ForgeConfigSpec.IntValue RUIN_ROUTED_FACTOR;
+    private static final ForgeConfigSpec.IntValue RUIN_SUPPLY_CHEST_CHANCE;
+    private static final ForgeConfigSpec.IntValue RUIN_SUPPLY_CHEST_MAX;
 
     private static final ForgeConfigSpec.DoubleValue VILLAGER_ARM_CHANCE;
     private static final ForgeConfigSpec.DoubleValue VILLAGER_PLAYER_THRESHOLD;
@@ -76,6 +78,7 @@ public final class ServerConfig {
     private static final ForgeConfigSpec.DoubleValue GUNNER_ARMED_DROP_CAP;
     private static final ForgeConfigSpec.BooleanValue RUINS_ENABLED;
     private static final ForgeConfigSpec.EnumValue<RuinBlueprintSource> RUINS_BLUEPRINT_SOURCE;
+    private static final ForgeConfigSpec.IntValue RUIN_MIN_DISTANCE;
     private static final ForgeConfigSpec.DoubleValue GRUNT_AMMO_DROP_MULTIPLIER;
     private static final ForgeConfigSpec.DoubleValue GRUNT_HIGH_TIER_AMMO_CHANCE;
     private static final ForgeConfigSpec.DoubleValue GRUNT_GUN_DROP_CHANCE;
@@ -258,6 +261,10 @@ public final class ServerConfig {
                         "EXTERNAL 只从存档服务端配置目录下的 tacz_enhanced_patch_ruins 取蓝图",
                         "只影响之后新生成的遗迹, 已生成的遗迹沿用生成时选定的蓝图")
                 .defineEnum("blueprintSource", RuinBlueprintSource.BOTH);
+        RUIN_MIN_DISTANCE = BUILDER
+                .comment("两座遗迹之间的最小直线距离, 单位方块",
+                        "距离不足时新遗迹不生成, 已生成的遗迹不受影响")
+                .defineInRange("minDistance", 640, 300, 6400);
         BUILDER.pop();
 
         BUILDER.comment("遗迹守军与夺旗").push("ruin");
@@ -309,6 +316,14 @@ public final class ServerConfig {
         RUIN_ROUTED_FACTOR = BUILDER
                 .comment("溃军战力系数, 单位百分比, 表示夺旗后残余守军单体战力与原单体战力的比值")
                 .defineInRange("routedCombatFactor", 50, 10, 90);
+        RUIN_SUPPLY_CHEST_CHANCE = BUILDER
+                .comment("遗迹内部地面出现物资箱的基础概率, 单位百分比",
+                        "实际概率再按生成时的游戏难度缩放, 简单乘以 0.6, 困难乘以 1.4",
+                        "物资箱不是必出, 取 0 表示关闭该机制")
+                .defineInRange("supplyChestChance", 25, 0, 100);
+        RUIN_SUPPLY_CHEST_MAX = BUILDER
+                .comment("单座遗迹最多生成的物资箱数量")
+                .defineInRange("supplyChestMax", 6, 0, 32);
         BUILDER.pop();
 
         BUILDER.comment("中立持械村民").push("villager");
@@ -395,6 +410,21 @@ public final class ServerConfig {
     /* 遗迹建筑蓝图的来源 */
     public static RuinBlueprintSource ruinBlueprintSource() {
         return value(RUINS_BLUEPRINT_SOURCE, RuinBlueprintSource.BOTH);
+    }
+
+    /* 遗迹之间的最小直线距离 */
+    public static int ruinMinDistance() {
+        return value(RUIN_MIN_DISTANCE, 640);
+    }
+
+    /* 物资箱的基础出现概率, 单位百分比 */
+    public static int ruinSupplyChestChance() {
+        return value(RUIN_SUPPLY_CHEST_CHANCE, 25);
+    }
+
+    /* 单座遗迹的物资箱数量上限 */
+    public static int ruinSupplyChestMax() {
+        return value(RUIN_SUPPLY_CHEST_MAX, 6);
     }
 
     public static boolean gunnerDifficultyScaling() {
@@ -600,6 +630,7 @@ public final class ServerConfig {
                 new ConfigOptionGroup("group.ruins", List.of(
                         new ConfigOption.ToggleOption("opt.ruins", RUINS_ENABLED),
                         new ConfigOption.EnumOption<>("opt.blueprint_source", RUINS_BLUEPRINT_SOURCE),
+                        new ConfigOption.IntOption("opt.ruin_min_distance", RUIN_MIN_DISTANCE, 300, 6400),
                         new ConfigOption.IntOption("opt.garrison_base", RUIN_GARRISON_BASE, 1, 32),
                         new ConfigOption.IntOption("opt.reinforce_percent_min", RUIN_REINFORCE_PERCENT_MIN, 10, 89),
                         new ConfigOption.IntOption("opt.reinforce_percent_max", RUIN_REINFORCE_PERCENT_MAX, 11, 90),
@@ -615,7 +646,9 @@ public final class ServerConfig {
                         new ConfigOption.DoubleOption("opt.xp_scale", RUIN_XP_SCALE, 0.0D, 10.0D, 0.1D),
                         new ConfigOption.IntOption("opt.xp_per_kill", RUIN_XP_PER_KILL, 0, 200),
                         new ConfigOption.IntOption("opt.xp_damage_pool", RUIN_XP_DAMAGE_POOL, 0, 1000),
-                        new ConfigOption.IntOption("opt.routed_factor", RUIN_ROUTED_FACTOR, 10, 90))),
+                        new ConfigOption.IntOption("opt.routed_factor", RUIN_ROUTED_FACTOR, 10, 90),
+                        new ConfigOption.IntOption("opt.supply_chest_chance", RUIN_SUPPLY_CHEST_CHANCE, 0, 100),
+                        new ConfigOption.IntOption("opt.supply_chest_max", RUIN_SUPPLY_CHEST_MAX, 0, 32))),
                 new ConfigOptionGroup("group.villager", List.of(
                         new ConfigOption.DoubleOption("opt.villager_arm_chance", VILLAGER_ARM_CHANCE, 0.0D, 1.0D, 0.01D),
                         new ConfigOption.DoubleOption("opt.villager_player_threshold", VILLAGER_PLAYER_THRESHOLD, 0.3D, 0.9D, 0.05D),

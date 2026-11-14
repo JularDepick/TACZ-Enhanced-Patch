@@ -51,19 +51,19 @@ src/main/
 │   │   ├── TankRegistration.java         # 属性, 生成规则与刷怪蛋
 │   │   └── TankRegistry.java             # 实体与物品注册
 │   ├── faction/
-│   │   ├── FactionCombat.java             # 共享敌对与免伤
+│   │   ├── FactionCombat.java             # 共享敌对, 免伤与目标口径
 │   │   ├── FactionData.java               # 阵营与归属持久化
 │   │   ├── Factions.java                  # 阵营关系判定与颜色阵营
 │   │   ├── RuinBanner.java                # 旗帜放置, 保护与纪念品
 │   │   ├── RuinBehavior.java              # 领地行为
 │   │   ├── RuinCombatStats.java           # 击杀与伤害统计
 │   │   ├── RuinExperience.java            # 离线经验补发
-│   │   ├── RuinGarrison.java              # 补兵与夺旗状态机
-│   │   ├── RuinLoot.java                  # 夺旗战利品与经验换算
+│   │   ├── RuinGarrison.java              # 补兵, 夺旗状态机与战绩转移
+│   │   ├── RuinLoot.java                  # 夺旗战利品, 物资箱与经验换算
 │   │   ├── RuinRout.java                  # 溃军标记与战力缩放
-│   │   ├── RuinSites.java                 # 遗迹站点与旗帜与统计字段
+│   │   ├── RuinSites.java                 # 遗迹站点, 旗帜, 统计字段与间距登记
 │   │   ├── RuinStats.java                 # 战斗统计持久化
-│   │   └── RuinTerritory.java             # 领地几何与数量统计
+│   │   └── RuinTerritory.java             # 领地几何, 参与玩家与在编守军统计
 │   ├── fastmag/
 │   │   ├── FastMag.java                  # 快速扩容弹匣标记, 名称后缀与换弹比例
 │   │   ├── FastMagCreativeTab.java       # 快速扩容弹匣物品页

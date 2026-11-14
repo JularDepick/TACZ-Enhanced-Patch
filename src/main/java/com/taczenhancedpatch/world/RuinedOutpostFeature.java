@@ -6,6 +6,8 @@ import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.faction.RuinSites;
 import com.taczenhancedpatch.world.schematic.SchematicCatalog;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.feature.Feature;
@@ -52,6 +54,12 @@ public class RuinedOutpostFeature extends Feature<NoneFeatureConfiguration> {
         if (!isFlatEnough(level, origin)) {
             return false;
         }
+        /* 遗迹之间保持最小直线距离, 避免扎堆; 距离不足时本次不生成 */
+        ResourceKey<Level> dimension = level.getLevel().dimension();
+        if (RuinSites.tooClose(dimension, origin, ServerConfig.ruinMinDistance())) {
+            return false;
+        }
+        RuinSites.remember(dimension, origin);
         /* 站点只记录中心, 建筑名与底面高度, 粘贴与守军补齐都交给服务端 tick */
         RuinSites.queue(origin, picked.get(), origin.getY());
         return true;

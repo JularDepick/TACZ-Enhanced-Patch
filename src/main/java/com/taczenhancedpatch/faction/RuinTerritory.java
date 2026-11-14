@@ -66,15 +66,30 @@ public final class RuinTerritory {
                 && inside(banner, radius, mob.getX(), mob.getZ()));
     }
 
+    /* 在编守军数量: 战斗追出领地时仍算在编, 否则追击期间会被误判为领地已清空 */
     public static int countMobs(ServerLevel level, RuinSites.Site site) {
-        return mobs(level, site).size();
+        BlockPos banner = site.banner();
+        if (banner == null) {
+            return 0;
+        }
+        int radius = Mth.ceil(site.radius() + PURSUIT_MARGIN);
+        AABB area = new AABB(banner.getX() - radius, level.getMinBuildHeight(), banner.getZ() - radius,
+                banner.getX() + radius + 1, level.getMaxBuildHeight(), banner.getZ() + radius + 1);
+        return level.getEntitiesOfClass(Mob.class, area, mob -> isRuinMob(mob)
+                && site.origin().equals(FactionData.homeOf(mob))
+                && inside(banner, radius, mob.getX(), mob.getZ())).size();
     }
 
     public static boolean isRuinMob(Mob mob) {
         return mob instanceof GunnerGrunt || mob instanceof TankElite;
     }
 
-    /* 领地内全部玩家 */
+    /* 参与遗迹机制的玩家: 创造与旁观不参与夺旗与统计, 与敌意口径保持一致 */
+    public static boolean participates(ServerPlayer player) {
+        return !player.isCreative() && !player.isSpectator();
+    }
+
+    /* 领地内的参与玩家 */
     public static List<ServerPlayer> playersInside(ServerLevel level, RuinSites.Site site) {
         BlockPos banner = site.banner();
         List<ServerPlayer> players = new ArrayList<>();
@@ -82,7 +97,7 @@ public final class RuinTerritory {
             return players;
         }
         for (ServerPlayer player : level.players()) {
-            if (inside(banner, site.radius(), player.getX(), player.getZ())) {
+            if (participates(player) && inside(banner, site.radius(), player.getX(), player.getZ())) {
                 players.add(player);
             }
         }
@@ -96,7 +111,7 @@ public final class RuinTerritory {
             return players;
         }
         for (ServerPlayer player : level.players()) {
-            if (inCore(banner, player.getX(), player.getZ())) {
+            if (participates(player) && inCore(banner, player.getX(), player.getZ())) {
                 players.add(player);
             }
         }

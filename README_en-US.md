@@ -54,13 +54,13 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 
 | Mechanic | Description |
 |:---:|:---|
-| Building blueprints | The building itself is a WorldEdit .schem file under `src/main/ruins/`, one is picked at random per ruin, and adding a building only means adding a file |
+| Building blueprints | The building itself is a WorldEdit .schem file, either under `src/main/ruins/` or in the `tacz_enhanced_patch_ruins` folder of the world server config directory, one is picked at random per ruin; built-in files must be .schem while the external folder also accepts legacy .schematic |
 | Framed pasting | Blocks are written chunk by chunk across ticks and the space under the building is filled with a stone foundation, so a large ruin appears as the player approaches |
-| Terrain fitting | The site requires a surface variation of at most two blocks around its center and never generates at or below sea level |
-| Chest and spawner | Placed automatically at a covered spot inside the building, falling back to the center |
+| Terrain fitting | The site requires a surface variation of at most two blocks around its center, never generates at or below sea level, and keeps a configurable straight-line distance (640 blocks by default) from existing ruins |
+| Chests and supply crates | The loot chest is placed at a covered spot inside the building; supply crates are scattered across the floors by chance and hold guns, ammo, armor and food with nothing guaranteed |
 | Banner and factions | A vanilla banner marks the building center and its color is the faction, so same-colored ruins are allied while different colors may ally or turn hostile |
 | Territory and reinforcement | A cylinder around the banner with a radius fitted to the building; the garrison is reinforced at a fixed interval until it reaches the threshold |
-| Capture | Players inside the core area start a shared countdown while the garrison is thin, leaving the core aborts it, and the garrison strength decides the outcome; surviving guards become routed troops with reduced combat power |
+| Capture | Players inside the core area start a shared countdown while the garrison is thin, leaving the core aborts it, and the garrison strength decides the outcome; every start, abort, failure and success reports the concrete reason and numbers; surviving guards become routed troops with reduced combat power |
 | Capture loot | A supply chest appears in the core area, with ammo and weapons converted from the kill tally plus experience for each participant |
 | Reward chest | Always holds a matching armor set and a sword, each piece has a fifty percent chance of strength-scaled enchantments, plus ender pearls, a chance at eyes of ender and bread |
 | Banner souvenir | After a successful capture the banner can be broken and dropped, named after its color and coordinates, and its tooltip records the ruin coordinates plus every participant |
@@ -111,9 +111,9 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Item | Description |
 |:---:|:---|
 | Client configuration | Local preferences such as automatic reload, the incoming fire indicator, the heading ruler and its color, stored per player |
-| Server configuration | 62 parameters grouped into debug, ruins, armed neutral villagers, basics, retaliation, spawning, targeting, ammo, toughness, loot, armed grunt and tank elite, with pure-button and switch groups listed before numeric ones and synced from the server |
+| Server configuration | 65 parameters grouped into debug, ruins, armed neutral villagers, basics, retaliation, spawning, targeting, ammo, toughness, loot, armed grunt and tank elite, with pure-button and switch groups listed before numeric ones and synced from the server |
 | Configuration screen | Opens the config screen directly, with tabs at the top to switch between client and server; the server tab only appears for the world owner |
-| Shortcut | C opens the config screen directly by default; it is a standard key binding, so it can be rebound or cleared in the vanilla controls |
+| Shortcut | Shift + C opens the config screen by default; it is a standard key binding, so it can be rebound or cleared in the vanilla controls |
 | Mob arming config | The first row of the server page scans every mob into one switchable list, shows each mob's name and entity ID, and lets group toggles flip those switches in bulk |
 
 ## Gameplay highlights
@@ -122,7 +122,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 - Hitting an armed mob makes it return fire at once, so ambushes need a way out
 - Think before hitting passive mobs: below half health they may pick up a gun, and both the chance and the threshold are configurable
 - High-tier guns are rare and much tougher to kill, so armor-piercing rounds and headshots are the fast answer
-- Ruin guards come from a spawner plus the gunner system, so clear the guards before looting
+- Ruin guards are reinforced over time, so clear them before looting; supply crates sit on the floors along the way
 - Disabling the gunner master switch returns everything to vanilla and leaves saves untouched
 
 ## Configuration

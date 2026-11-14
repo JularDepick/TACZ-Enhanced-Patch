@@ -297,6 +297,10 @@ public class TankElite extends Monster {
             if (target == null || !target.isAlive()) {
                 return false;
             }
+            /* 炮弹会破坏地形, 因此只对生存玩家开火; 创造与旁观玩家同样跳过 */
+            if (!(target instanceof Player player) || player.isCreative() || player.isSpectator()) {
+                return false;
+            }
             double range = ServerConfig.tankCannonRange();
             return this.tank.distanceToSqr(target) <= range * range;
         }
