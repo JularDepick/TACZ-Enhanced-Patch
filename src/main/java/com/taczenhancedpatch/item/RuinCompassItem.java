@@ -86,7 +86,7 @@ public class RuinCompassItem extends Item {
     @Nullable
     private static BlockPos nearestRuin(ServerLevel level, BlockPos from) {
         RuinSites sites = RuinSites.get(level);
-        sites.drainPending();
+        sites.drainPending(level);
         BlockPos best = null;
         double bestDistance = Double.MAX_VALUE;
         for (RuinSites.Site site : sites.sites()) {

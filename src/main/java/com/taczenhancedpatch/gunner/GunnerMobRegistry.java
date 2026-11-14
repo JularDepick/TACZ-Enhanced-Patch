@@ -23,7 +23,8 @@ import java.util.TreeSet;
  */
 public final class GunnerMobRegistry {
     /* 列表为空表示中间层尚未扫描, 此时候选判定退回默认规则 */
-    private static Set<String> enabledCache;
+    /* 服务端线程读, 客户端重建, 用 volatile 保证可见性; 构建完成后一次性发布, 避免读到半成品 */
+    private static volatile Set<String> enabledCache;
 
     private GunnerMobRegistry() {
     }
@@ -107,15 +108,18 @@ public final class GunnerMobRegistry {
     }
 
     private static Set<String> enabledIds() {
-        if (enabledCache == null) {
-            enabledCache = new TreeSet<>();
-            for (Map.Entry<String, Boolean> entry : MobListConfig.states().entrySet()) {
-                if (Boolean.TRUE.equals(entry.getValue())) {
-                    enabledCache.add(entry.getKey());
-                }
+        Set<String> cached = enabledCache;
+        if (cached != null) {
+            return cached;
+        }
+        Set<String> built = new TreeSet<>();
+        for (Map.Entry<String, Boolean> entry : MobListConfig.states().entrySet()) {
+            if (Boolean.TRUE.equals(entry.getValue())) {
+                built.add(entry.getKey());
             }
         }
-        return enabledCache;
+        enabledCache = built;
+        return built;
     }
 
     private static void invalidate() {

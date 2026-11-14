@@ -61,6 +61,11 @@ public final class TankCrew {
     }
 
     /* 坦克失去全部成员时把加成整体撤掉 */
+    /* 服务端停止时清空全部乘员登记 */
+    public static void clearAll() {
+        MEMBERS.clear();
+    }
+
     public static void clear(TankElite tank) {
         Set<UUID> previous = MEMBERS.remove(tank.getUUID());
         if (previous != null) {

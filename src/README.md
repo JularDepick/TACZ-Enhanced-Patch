@@ -18,14 +18,18 @@ src/main/
 │   │   ├── ConfigAccess.java             # 存档创建者判定
 │   │   ├── ConfigShortcutHandler.java    # 配置入口快捷键(原版按键)
 │   │   ├── InfiniteMagTooltipHandler.java # 无限弹匣提示
+│   │   ├── RuinCompassAngle.java          # 指南针指针角度
 │   │   ├── TACZEnhancedPatchClient.java  # 客户端入口
+│   │   ├── TankControlHandler.java        # 玩家驾驶坦克的开火输入
 │   │   ├── config/
 │   │   │   ├── MobListScreen.java        # 生物持械配置页
 │   │   │   ├── ModConfigScreen.java      # 配置界面注册
 │   │   │   ├── PatchConfigScreen.java    # 配置页(客户端与服务端双页签)
 │   │   │   └── ScrollBar.java            # 可拖动滚动条
 │   │   ├── hud/
-│   │   │   └── HeadingRulerOverlay.java  # 方向标尺绘制
+│   │   │   ├── HeadingRulerOverlay.java  # 方向标尺绘制
+│   │   │   ├── RuinGarrisonOverlay.java  # 右上角遗迹守军读数
+│   │   │   └── RuinNoticeOverlay.java    # 顶部居中的遗迹提示
 │   │   └── render/
 │   │       ├── ArmedHumanoidLayer.java    # 非人形持械的人形骨架图层
 │   │       ├── ArmedShapeAttach.java      # 给原版渲染器挂载该图层
@@ -44,9 +48,12 @@ src/main/
 │   ├── debug/
 │   │   └── TaczEventProbe.java           # TACZ API 事件探针(默认关闭)
 │   ├── entity/
+│   │   ├── CombatPreset.java             # 按难度切换的生命, 护甲与炮弹威力
 │   │   ├── GunnerGrunt.java              # 持枪小兵实体与装配
 │   │   ├── GruntRegistration.java        # 属性, 生成规则与刷怪蛋
 │   │   ├── GruntRegistry.java            # 实体与物品注册
+│   │   ├── RideTankGoal.java             # 小兵骑乘坦克的寻路目标
+│   │   ├── TankCrew.java                 # 组合体乘员与生命护甲倍率
 │   │   ├── TankElite.java                # 坦克精英怪实体与炮击
 │   │   ├── TankRegistration.java         # 属性, 生成规则与刷怪蛋
 │   │   └── TankRegistry.java             # 实体与物品注册
@@ -66,6 +73,7 @@ src/main/
 │   │   └── RuinTerritory.java             # 领地几何, 参与玩家与在编守军统计
 │   ├── fastmag/
 │   │   ├── FastMag.java                  # 快速扩容弹匣标记, 名称后缀与换弹比例
+│   │   ├── FastMagClientAnimator.java    # 换弹动画进度加速
 │   │   ├── FastMagCreativeTab.java       # 快速扩容弹匣物品页
 │   │   ├── FastMagReloadHandler.java     # 换弹加速
 │   │   └── FastMagTooltipHandler.java    # 物品提示
@@ -81,7 +89,10 @@ src/main/
 │   │   ├── GunnerMobRegistry.java        # 全量扫描与分组批量改写
 │   │   ├── GunnerRetaliation.java        # 非敌对生物临场武装与反击
 │   │   ├── GunnerSpawnHandler.java       # 枪手生成
-│   │   └── GunnerState.java              # 枪手瞬时状态
+│   │   ├── GunnerState.java              # 枪手瞬时状态
+│   │   ├── MobGroups.java                # 生物分组与持械分类
+│   │   ├── ReloadGuard.java              # 满弹匣时取消换弹
+│   │   └── WeaponFacingHandler.java      # 有目标时视线对准目标
 │   ├── hitindicator/
 │   │   ├── HitDirectionNotifier.java     # 子弹命中判定与来源方位下发
 │   │   └── HitIndicatorOverlay.java      # 受击方向弧块绘制
@@ -91,27 +102,38 @@ src/main/
 │   ├── item/
 │   │   ├── InfiniteMag.java              # 无限弹匣标记与名称
 │   │   ├── InfiniteMagHandler.java       # 弹匣与虚拟备弹维持
-│   │   └── PatchCreativeTab.java         # 补丁物品页
+│   │   ├── PatchCreativeTab.java         # 补丁物品页
+│   │   ├── PatchItems.java               # 补丁物品注册
+│   │   └── RuinCompassItem.java          # 遗迹指南针行为
 │   ├── loot/
 │   │   ├── BattleLootHandler.java        # 枪手战利品掉落
 │   │   └── GruntLootHandler.java         # 持枪小兵战利品
 │   ├── network/
 │   │   ├── HitDirectionMessage.java      # 受击方向同步包
-│   │   └── PatchNetwork.java             # 网络通道注册
+│   │   ├── PatchNetwork.java             # 网络通道注册
+│   │   ├── RuinNotice.java               # 遗迹提示下发
+│   │   ├── RuinNoticeMessage.java        # 遗迹提示同步包
+│   │   ├── RuinStatus.java               # 守军读数下发
+│   │   ├── RuinStatusMessage.java        # 守军读数同步包
+│   │   └── TankFireMessage.java          # 玩家开火包
 │   ├── power/
 │   │   ├── CombatPower.java               # 战力量化与掉落翻倍系数
 │   │   └── PowerTracker.java              # 战斗峰值战力记录
+│   ├── runtime/
+│   │   └── RuntimeStateCleaner.java      # 服务端停止时清理进程级状态
 │   ├── util/
 │   │   └── UiText.java                   # 界面文本包装
 │   ├── villager/
 │   │   ├── ArmedVillager.java            # 中立持械村民状态与交易数据
-│   │   ├── VillagerArmingHandler.java    # 生成判定与额外经验
+│   │   ├── VillagerArmingHandler.java    # 生成判定, 库存掉落与额外经验
+│   │   ├── VillagerConversionHandler.java # 感染转化时的库存去向
 │   │   ├── VillagerRetaliation.java      # 玩家与生物的反击判定
 │   │   └── VillagerTradeHandler.java     # 交易结算与商品重建
 │   └── world/
 │       ├── ModFeatures.java              # 世界生成特性注册
 │       ├── RuinedOutpostFeature.java     # 废弃前哨遗迹生成
 │       └── schematic/
+│           ├── LegacyBlocks.java         # 旧版方块编号映射(只服务外部旧文件)
 │           ├── RuinPasteHandler.java     # 分帧粘贴调度与容器摆放
 │           ├── RuinSchematic.java        # 建筑数据形态
 │           ├── SchematicCatalog.java     # 建筑目录扫描与缓存
@@ -123,12 +145,14 @@ src/main/
     ├── pack.mcmeta                       # 资源包元信息
     ├── assets/tacz_enhanced_patch/
     │   ├── lang/                         # 界面语言文件
-    │   ├── models/item/                  # 刷怪蛋等物品模型
-    │   └── textures/entity/              # 生物贴图
+    │   ├── models/item/                  # 刷怪蛋与指南针等物品模型
+    │   ├── textures/entity/              # 生物贴图
+    │   └── textures/item/                # 物品贴图与指南针帧
     └── data/tacz_enhanced_patch/         # 世界生成与战利品数据
         ├── forge/biome_modifier/         # 群系注入
         ├── loot_tables/chests/           # 宝箱战利品
         ├── loot_tables/entities/         # 生物战利品
+        ├── recipes/                      # 合成配方
         └── worldgen/                     # 特性与放置规则
 ```
 

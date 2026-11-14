@@ -61,7 +61,7 @@ public class RuinedOutpostFeature extends Feature<NoneFeatureConfiguration> {
         }
         RuinSites.remember(dimension, origin);
         /* 站点只记录中心, 建筑名与底面高度, 粘贴与守军补齐都交给服务端 tick */
-        RuinSites.queue(origin, picked.get(), origin.getY());
+        RuinSites.queue(dimension, origin, picked.get(), origin.getY());
         return true;
     }
 

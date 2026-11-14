@@ -150,7 +150,20 @@ public final class FactionCombat {
         if (home == null) {
             return null;
         }
-        AABB area = new AABB(home).inflate(TERRITORY_RADIUS, TERRITORY_HEIGHT, TERRITORY_RADIUS);
+        /* 遗迹生物按站点自己的领地圆柱判定, 其他阵营生物沿用固定范围 */
+        double radius = TERRITORY_RADIUS;
+        BlockPos center = home;
+        RuinSites.Site site = mob.level() instanceof net.minecraft.server.level.ServerLevel level
+                ? RuinSites.find(level, home) : null;
+        if (site != null) {
+            radius = site.radius();
+            if (site.banner() != null) {
+                center = site.banner();
+            }
+        }
+        AABB area = site == null
+                ? new AABB(home).inflate(TERRITORY_RADIUS, TERRITORY_HEIGHT, TERRITORY_RADIUS)
+                : new AABB(center).inflate(radius, radius, radius);
         LivingEntity best = null;
         double bestDistance = Double.MAX_VALUE;
         for (LivingEntity candidate : mob.level().getEntitiesOfClass(LivingEntity.class, area)) {
@@ -161,6 +174,11 @@ public final class FactionCombat {
                 continue;
             }
             if (candidate.isPassengerOfSameVehicle(mob)) {
+                continue;
+            }
+            /* 遗迹生物额外按圆柱筛选, 盒子的四个角不算领地内 */
+            if (site != null && !RuinTerritory.inside(center, radius,
+                    candidate.getX(), candidate.getY(), candidate.getZ())) {
                 continue;
             }
             if (Factions.allied(mob, candidate) || Factions.same(FactionData.factionOf(mob), FactionData.factionOf(candidate))) {

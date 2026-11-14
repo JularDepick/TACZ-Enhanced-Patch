@@ -184,11 +184,12 @@ public final class SchematicReader {
         if (width <= 0 || height <= 0 || depth <= 0) {
             throw new IOException("bad size " + width + "x" + height + "x" + depth + ": " + id);
         }
-        int volume = width * height * depth;
-        if (volume > MAX_VOLUME) {
+        /* 三个维度相乘可能溢出 int, 先用 long 算完再收紧到上限, 避免绕过体积限制 */
+        long volume = (long) width * (long) height * (long) depth;
+        if (volume <= 0L || volume > MAX_VOLUME) {
             throw new IOException("too large " + volume + " blocks: " + id);
         }
-        return volume;
+        return (int) volume;
     }
 
     /* 尺寸在标准里是短整型, 少数导出工具写整型, 两种都接受 */

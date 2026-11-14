@@ -35,6 +35,8 @@ public final class ArmedVillager {
     private static final String QUOTA = "quota";
     private static final String TOTAL = "total";
     private static final String SOLD = "sold";
+    /* 额度里带一份样品, 背包清空后仍能凭它开出五折段商品 */
+    private static final String SAMPLE = "sample";
     /* 弹药每次交易的发数, 原价段与折扣段不同 */
     private static final int AMMO_UNIT_FULL = 8;
     private static final int AMMO_UNIT_HALF = 16;
@@ -96,6 +98,7 @@ public final class ArmedVillager {
             CompoundTag entry = new CompoundTag();
             entry.putInt(TOTAL, countOf(stack) * 2);
             entry.putInt(SOLD, 0);
+            entry.put(SAMPLE, stack.copy().save(new CompoundTag()));
             quota.put(key, entry);
         }
         data.put(QUOTA, quota);
@@ -252,11 +255,15 @@ public final class ArmedVillager {
             if (remaining <= 0) {
                 continue;
             }
+            /* 背包里还有就按原价并扣背包, 背包清空后走系统兜底的五折段 */
             ItemStack sample = sampleOf(stock, key);
+            boolean discounted = sample.isEmpty();
+            if (discounted) {
+                sample = templateOf(entry);
+            }
             if (sample.isEmpty()) {
                 continue;
             }
-            boolean discounted = countOf(stock, key) <= 0;
             if (key.startsWith("ammo:")) {
                 int unit = discounted ? AMMO_UNIT_HALF : AMMO_UNIT_FULL;
                 int rounds = Math.min(unit, remaining);
@@ -351,6 +358,14 @@ public final class ArmedVillager {
             }
         }
         return ItemStack.EMPTY;
+    }
+
+    /* 额度里保存的样品, 用于背包清空后继续开出五折段商品 */
+    private static ItemStack templateOf(CompoundTag entry) {
+        if (!entry.contains(SAMPLE, Tag.TAG_COMPOUND)) {
+            return ItemStack.EMPTY;
+        }
+        return ItemStack.of(entry.getCompound(SAMPLE));
     }
 
     /* 从库存里扣掉指定数量, 扣到零的条目直接移除 */

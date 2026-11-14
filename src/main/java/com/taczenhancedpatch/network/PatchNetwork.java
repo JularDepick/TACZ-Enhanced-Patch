@@ -15,7 +15,8 @@ import java.util.Objects;
  * 下行用于把枪击来源方向发给受击玩家, 上行用于玩家驾驶坦克时的开火请求; 协议版本变化时递增即可。
  */
 public final class PatchNetwork {
-    private static final String PROTOCOL = "1";
+    /* 0.2.0 新增了遗迹提示与兵力读数两个下行包, 协议版本随之递增, 避免旧客户端握手通过后解码失败 */
+    private static final String PROTOCOL = "2";
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.ChannelBuilder
             .named(Objects.requireNonNull(ResourceLocation.tryParse(TACZEnhancedPatch.MOD_ID + ":main")))

@@ -25,6 +25,11 @@ public final class RuinExperience extends SavedData {
     private static final String DATA_NAME = "tacz_enhanced_patch_ruin_xp";
     private static final Map<UUID, Integer> PENDING = new LinkedHashMap<>();
 
+    /* 服务端停止时清空待补发经验, 避免切换存档后把旧世界的欠账带进新世界 */
+    public static void clearPending() {
+        PENDING.clear();
+    }
+
     public static void add(ServerLevel level, UUID player, int amount) {
         PENDING.merge(player, amount, Integer::sum);
         data(level).setDirty();

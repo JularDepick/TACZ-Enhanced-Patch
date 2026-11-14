@@ -7,6 +7,7 @@ import com.taczenhancedpatch.config.ConfigOptionGroup;
 import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.util.UiText;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -211,7 +212,8 @@ public final class PatchConfigScreen extends Screen {
             if (row.kind() == RowKind.GROUP) {
                 graphics.fill(listLeft, rowY + 2, listRight, rowY + ROW_HEIGHT - 2, 0x33000000);
                 graphics.fill(listLeft, rowY + 2, listLeft + 3, rowY + ROW_HEIGHT - 2, ACCENT_COLOR);
-                graphics.drawString(font, UiText.plain(row.label()), listLeft + 10, rowY + 9, GROUP_COLOR, false);
+                graphics.drawString(font, fitLabel(UiText.plain(row.label()), listRight - listLeft - 16),
+                        listLeft + 10, rowY + 9, GROUP_COLOR, false);
                 continue;
             }
             graphics.fill(listLeft, rowY + 1, listRight, rowY + ROW_HEIGHT - 1,
@@ -219,7 +221,10 @@ public final class PatchConfigScreen extends Screen {
             if (hovered) {
                 graphics.fill(listLeft, rowY + 1, listRight, rowY + ROW_HEIGHT - 1, HOVER_COLOR);
             }
-            graphics.drawString(font, UiText.plain(row.label()), listLeft + 10, rowY + 9, LABEL_COLOR, false);
+            int labelWidth = row.kind() == RowKind.BUTTON ? BUTTON_ROW_WIDTH : WIDGET_WIDTH;
+            graphics.drawString(font, fitLabel(UiText.plain(row.label()),
+                            listRight - labelWidth - 8 - listLeft - 14),
+                    listLeft + 10, rowY + 9, LABEL_COLOR, false);
             if (widget != null) {
                 widget.render(graphics, mouseX, mouseY, partialTick);
             }
@@ -231,6 +236,22 @@ public final class PatchConfigScreen extends Screen {
         syncScrollbar();
         scrollbar.render(graphics);
         super.render(graphics, mouseX, mouseY, partialTick);
+    }
+
+    /* 标签列宽度有限: 超出可用宽度时截断并加省略号, 避免压到右侧控件 */
+    static String fitLabel(String text, int width) {
+        net.minecraft.client.gui.Font font = Minecraft.getInstance().font;
+        if (width <= 0) {
+            return "";
+        }
+        if (font.width(text) <= width) {
+            return text;
+        }
+        int room = width - font.width("...");
+        if (room <= 0) {
+            return "";
+        }
+        return font.plainSubstrByWidth(text, room) + "...";
     }
 
     private void drawHeader(GuiGraphics graphics) {
@@ -592,7 +613,10 @@ public final class PatchConfigScreen extends Screen {
 
         @Override
         protected void updateMessage() {
-            setMessage(Component.literal(UiText.plain(label) + ": " + format(currentValue())));
+            /* 按钮内同时放标签与数值, 标签过长时截断, 避免两侧溢出 */
+            String suffix = ": " + format(currentValue());
+            int room = Math.max(0, getWidth() - 8 - Minecraft.getInstance().font.width(suffix));
+            setMessage(Component.literal(fitLabel(UiText.plain(label), room) + suffix));
         }
 
         @Override

@@ -18,14 +18,18 @@ src/main/
 │   │   ├── ConfigAccess.java             # World owner check
 │   │   ├── ConfigShortcutHandler.java    # Config entry key binding (vanilla)
 │   │   ├── InfiniteMagTooltipHandler.java # Infinite magazine tooltip
+│   │   ├── RuinCompassAngle.java          # Compass needle angle
 │   │   ├── TACZEnhancedPatchClient.java  # Client entry point
+│   │   ├── TankControlHandler.java        # Driving fire input for the tank
 │   │   ├── config/
 │   │   │   ├── MobListScreen.java        # Mob arming config screen
 │   │   │   ├── ModConfigScreen.java      # Configuration screen registration
 │   │   │   ├── PatchConfigScreen.java    # Config screen (client and server tabs)
 │   │   │   └── ScrollBar.java            # Draggable scroll bar
 │   │   ├── hud/
-│   │   │   └── HeadingRulerOverlay.java  # Heading ruler rendering
+│   │   │   ├── HeadingRulerOverlay.java  # Heading ruler rendering
+│   │   │   ├── RuinGarrisonOverlay.java  # Top right garrison readout
+│   │   │   └── RuinNoticeOverlay.java    # Top centred ruin notice
 │   │   └── render/
 │   │       ├── ArmedHumanoidLayer.java    # Humanoid skeleton layer for non-humanoid armed mobs
 │   │       ├── ArmedShapeAttach.java      # Attaches the layer to vanilla renderers
@@ -44,9 +48,12 @@ src/main/
 │   ├── debug/
 │   │   └── TaczEventProbe.java           # TACZ API event probe (disabled by default)
 │   ├── entity/
+│   │   ├── CombatPreset.java             # Health, armor and shell power per difficulty
 │   │   ├── GunnerGrunt.java              # Armed grunt entity and arming
 │   │   ├── GruntRegistration.java        # Attributes, spawn rules and spawn egg
 │   │   ├── GruntRegistry.java            # Entity and item registration
+│   │   ├── RideTankGoal.java             # Grunt riding goal for tanks
+│   │   ├── TankCrew.java                 # Crew health and armor multipliers
 │   │   ├── TankElite.java                # Tank elite entity and shelling
 │   │   ├── TankRegistration.java         # Attributes, spawn rules and spawn egg
 │   │   └── TankRegistry.java             # Entity and item registration
@@ -66,6 +73,7 @@ src/main/
 │   │   └── RuinTerritory.java             # Territory geometry, participants and garrison counting
 │   ├── fastmag/
 │   │   ├── FastMag.java                  # Fast mag marker, name suffix and reload ratios
+│   │   ├── FastMagClientAnimator.java    # Reload animation acceleration
 │   │   ├── FastMagCreativeTab.java       # Fast mag creative tab
 │   │   ├── FastMagReloadHandler.java     # Reload acceleration
 │   │   └── FastMagTooltipHandler.java    # Item tooltip
@@ -81,7 +89,10 @@ src/main/
 │   │   ├── GunnerMobRegistry.java        # Full scan and bulk group rewriting
 │   │   ├── GunnerRetaliation.java        # Improvised arming and retaliation for non-hostile mobs
 │   │   ├── GunnerSpawnHandler.java       # Gunner spawn assignment
-│   │   └── GunnerState.java              # Transient gunner state
+│   │   ├── GunnerState.java              # Transient gunner state
+│   │   ├── MobGroups.java                # Mob grouping and armed classification
+│   │   ├── ReloadGuard.java              # Cancels reload when the magazine is full
+│   │   └── WeaponFacingHandler.java      # Aim the look direction at the target
 │   ├── hitindicator/
 │   │   ├── HitDirectionNotifier.java     # Bullet hit check and source direction delivery
 │   │   └── HitIndicatorOverlay.java      # Incoming fire arc rendering
@@ -91,27 +102,38 @@ src/main/
 │   ├── item/
 │   │   ├── InfiniteMag.java              # Infinite magazine marker and name
 │   │   ├── InfiniteMagHandler.java       # Magazine and dummy ammo upkeep
-│   │   └── PatchCreativeTab.java         # Patch item tab
+│   │   ├── PatchCreativeTab.java         # Patch item tab
+│   │   ├── PatchItems.java               # Patch item registration
+│   │   └── RuinCompassItem.java          # Ruin compass behaviour
 │   ├── loot/
 │   │   ├── BattleLootHandler.java        # Gunner loot drops
 │   │   └── GruntLootHandler.java         # Armed grunt loot
 │   ├── network/
 │   │   ├── HitDirectionMessage.java      # Hit direction sync packet
-│   │   └── PatchNetwork.java             # Network channel registration
+│   │   ├── PatchNetwork.java             # Network channel registration
+│   │   ├── RuinNotice.java               # Ruin notice delivery
+│   │   ├── RuinNoticeMessage.java        # Ruin notice sync packet
+│   │   ├── RuinStatus.java               # Garrison readout delivery
+│   │   ├── RuinStatusMessage.java        # Garrison readout sync packet
+│   │   └── TankFireMessage.java          # Player fire packet
 │   ├── power/
 │   │   ├── CombatPower.java               # Combat power scoring and drop multiplier
 │   │   └── PowerTracker.java              # Peak combat power recording
+│   ├── runtime/
+│   │   └── RuntimeStateCleaner.java      # Clears process wide state when the server stops
 │   ├── util/
 │   │   └── UiText.java                   # UI text wrapper
 │   ├── villager/
 │   │   ├── ArmedVillager.java            # Armed villager state and trade data
-│   │   ├── VillagerArmingHandler.java    # Spawn roll and bonus experience
+│   │   ├── VillagerArmingHandler.java    # Spawn roll, stock drops and bonus experience
+│   │   ├── VillagerConversionHandler.java # Stock handling on zombification
 │   │   ├── VillagerRetaliation.java      # Retaliation rules for players and mobs
 │   │   └── VillagerTradeHandler.java     # Trade settlement and offer rebuild
 │   └── world/
 │       ├── ModFeatures.java              # World generation feature registration
 │       ├── RuinedOutpostFeature.java     # Ruined outpost generation
 │       └── schematic/
+│           ├── LegacyBlocks.java         # Legacy block id mapping (external files only)
 │           ├── RuinPasteHandler.java     # Framed paste scheduling and containers
 │           ├── RuinSchematic.java        # Building data shape
 │           ├── SchematicCatalog.java     # Building catalog scan and cache
@@ -123,12 +145,14 @@ src/main/
     ├── pack.mcmeta                       # Resource pack metadata
     ├── assets/tacz_enhanced_patch/
     │   ├── lang/                         # UI language files
-    │   ├── models/item/                  # Item models such as spawn eggs
-    │   └── textures/entity/              # Entity textures
+    │   ├── models/item/                  # Item models such as spawn eggs and the compass
+    │   ├── textures/entity/              # Entity textures
+    │   └── textures/item/                # Item textures and compass frames
     └── data/tacz_enhanced_patch/         # World generation and loot data
         ├── forge/biome_modifier/         # Biome injection
         ├── loot_tables/chests/           # Chest loot
         ├── loot_tables/entities/         # Entity loot
+        ├── recipes/                      # Crafting recipes
         └── worldgen/                     # Features and placement rules
 ```
 

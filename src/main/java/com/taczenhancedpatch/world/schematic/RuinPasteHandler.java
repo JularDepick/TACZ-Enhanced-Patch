@@ -6,11 +6,13 @@ import com.taczenhancedpatch.faction.RuinLoot;
 import com.taczenhancedpatch.faction.RuinSites;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.ChestBlock;
@@ -59,11 +61,22 @@ public final class RuinPasteHandler {
             Blocks.COBBLESTONE.defaultBlockState(),
             Blocks.STONE_BRICKS.defaultBlockState(),
             Blocks.MOSSY_STONE_BRICKS.defaultBlockState()};
-    private static final Map<BlockPos, Job> JOBS = new HashMap<>();
+    private static final Map<JobKey, Job> JOBS = new HashMap<>();
+    /* 任务空闲超过该时长即丢弃: 玩家长期不回来时不占名额, 回来时按未完成站点重新贴一次 */
+    private static final long JOB_IDLE_TICKS = 1200L;
+
+    /* 任务键带维度, 避免不同维度同名坐标互相干扰 */
+    private record JobKey(ResourceKey<Level> dimension, BlockPos origin) {
+    }
 
     /* 站点是否正在粘贴: 守军调度据此延后刷新, 避免新方块卡住刚生成的守军 */
-    public static boolean isPasting(BlockPos origin) {
-        return JOBS.containsKey(origin);
+    public static boolean isPasting(ServerLevel level, BlockPos origin) {
+        return JOBS.containsKey(new JobKey(level.dimension(), origin));
+    }
+
+    /* 服务端停止时丢弃全部任务, 重启后按未完成站点重贴 */
+    public static void clearJobs() {
+        JOBS.clear();
     }
 
     private RuinPasteHandler() {
@@ -79,7 +92,9 @@ public final class RuinPasteHandler {
 
     private static void tickLevel(ServerLevel level) {
         RuinSites data = RuinSites.get(level);
-        data.drainPending();
+        data.drainPending(level);
+        long now = level.getGameTime();
+        JOBS.values().removeIf(job -> now - job.lastTouch > JOB_IDLE_TICKS);
         List<RuinSites.Site> sites = data.sites();
         if (sites.isEmpty()) {
             return;
@@ -90,7 +105,8 @@ public final class RuinPasteHandler {
             if (site.pasted() || !hasPlayerNear(level, site, PASTE_DISTANCE)) {
                 continue;
             }
-            Job job = JOBS.get(site.origin());
+            JobKey key = new JobKey(level.dimension(), site.origin());
+            Job job = JOBS.get(key);
             if (job == null) {
                 if (JOBS.size() >= MAX_JOBS) {
                     continue;
@@ -99,7 +115,7 @@ public final class RuinPasteHandler {
                 if (job == null) {
                     continue;
                 }
-                JOBS.put(site.origin(), job);
+                JOBS.put(key, job);
             }
             budget = advance(level, site, job, data, budget);
         }
@@ -154,6 +170,7 @@ public final class RuinPasteHandler {
     }
 
     private static int advance(ServerLevel level, RuinSites.Site site, Job job, RuinSites data, int budget) {
+        job.lastTouch = level.getGameTime();
         ServerChunkCache chunks = level.getChunkSource();
         int remaining = budget;
         while (remaining > 0 && !job.pending.isEmpty()) {
@@ -201,13 +218,17 @@ public final class RuinPasteHandler {
         RandomSource random = level.getRandom();
         placeMarkers(level, job, random);
         scatterDebris(level, job, random);
-        /* 物资箱: 建筑内部各层地面按概率散布, 概率随生成时的难度缩放 */
-        RuinLoot.placeSupplyChests(level, job.min, job.schematic.width(), job.schematic.height(),
-                job.schematic.depth(), job.baseY, random, level.getDifficulty());
+        /* 物资箱: 建筑内部各层地面按概率散布, 概率随生成时的难度缩放; 只散一次, 崩溃重贴不重复投放 */
+        if (!site.suppliesPlaced()) {
+            RuinLoot.placeSupplyChests(level, job.min, job.schematic.width(), job.schematic.height(),
+                    job.schematic.depth(), job.baseY, random, level.getDifficulty());
+            site.setSuppliesPlaced(true);
+            data.setDirty();
+        }
         discardTrappedItems(level, job);
         RuinGarrison.onPasted(level, site, data, job.schematic.width(), job.schematic.height(),
                 job.schematic.depth(), job.min, job.baseY);
-        JOBS.remove(site.origin());
+        JOBS.remove(new JobKey(level.dimension(), site.origin()));
         TACZEnhancedPatch.LOGGER.info("[ruin] pasted {} at {}", job.schematic.id(), job.min);
         return remaining;
     }
@@ -350,6 +371,8 @@ public final class RuinPasteHandler {
         private int chunkStage = STAGE_START;
         /* 当前阶段已经处理到的游标, 换阶段或换区块时归零 */
         private int chunkCursor;
+        /* 最近一次推进的游戏刻, 用于丢弃长期无人推进的任务 */
+        private long lastTouch;
 
         private Job(RuinSchematic schematic, BlockPos min, int baseY) {
             this.schematic = schematic;

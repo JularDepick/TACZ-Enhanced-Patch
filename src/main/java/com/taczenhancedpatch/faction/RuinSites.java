@@ -32,7 +32,8 @@ public final class RuinSites extends SavedData {
 
     private final List<Site> sites = new ArrayList<>();
 
-    private record Pending(BlockPos origin, String schematic, int baseY) {
+    /* 队列项带维度: 世界生成线程只给坐标, 由对应维度的服务端 tick 收敛 */
+    private record Pending(ResourceKey<Level> dimension, BlockPos origin, String schematic, int baseY) {
     }
 
     /* 单座遗迹的全部运行期状态, 可变, 由服务端 tick 与事件在服务端线程修改 */
@@ -50,6 +51,8 @@ public final class RuinSites extends SavedData {
         private int captureSeconds = 60;
         /* 生成时随机确定的守军基数, 0 表示旧存档没有记录 */
         private int garrisonBase;
+        /* 物资箱是否已经散布过: 崩溃后重贴时不重复投放 */
+        private boolean suppliesPlaced;
         private boolean captured;
         private int nextReinforceTick;
         private int captureEndTick;
@@ -127,6 +130,14 @@ public final class RuinSites extends SavedData {
 
         public int garrisonBase() {
             return garrisonBase;
+        }
+
+        public boolean suppliesPlaced() {
+            return suppliesPlaced;
+        }
+
+        public void setSuppliesPlaced(boolean placed) {
+            this.suppliesPlaced = placed;
         }
 
         public void setGarrisonBase(int base) {
@@ -261,11 +272,16 @@ public final class RuinSites extends SavedData {
     }
 
     /* 世界生成线程调用, 只入队, 超过上限后丢弃新站点 */
-    public static void queue(BlockPos origin, String schematic, int baseY) {
+    public static void queue(ResourceKey<Level> dimension, BlockPos origin, String schematic, int baseY) {
         if (PENDING.size() >= PENDING_LIMIT) {
             return;
         }
-        PENDING.add(new Pending(origin.immutable(), schematic, baseY));
+        PENDING.add(new Pending(dimension, origin.immutable(), schematic, baseY));
+    }
+
+    /* 服务端停止时清空队列, 避免切换存档后把旧世界的站点带进新世界 */
+    public static void clearPending() {
+        PENDING.clear();
     }
 
     public static RuinSites get(ServerLevel level) {
@@ -284,10 +300,14 @@ public final class RuinSites extends SavedData {
     }
 
     /* 把队列里的新站点并入存档数据 */
-    public void drainPending() {
-        Pending pending;
+    public void drainPending(ServerLevel level) {
+        ResourceKey<Level> dimension = level.dimension();
         boolean changed = false;
-        while ((pending = PENDING.poll()) != null) {
+        for (Pending pending : PENDING) {
+            /* 别的维度的站点留在队列里, 由那个维度自己收敛 */
+            if (!pending.dimension().equals(dimension) || !PENDING.remove(pending)) {
+                continue;
+            }
             boolean known = false;
             for (Site site : sites) {
                 if (site.origin().equals(pending.origin())) {
@@ -331,6 +351,7 @@ public final class RuinSites extends SavedData {
             entry.putFloat("capturePercent", site.capturePercent());
             entry.putInt("captureSeconds", site.captureSeconds());
             entry.putInt("garrisonBase", site.garrisonBase());
+            entry.putBoolean("suppliesPlaced", site.suppliesPlaced());
             entry.putBoolean("captured", site.captured());
             entry.putInt("nextReinforceTick", site.nextReinforceTick());
             entry.putInt("cooldownEndTick", site.cooldownEndTick());
@@ -361,6 +382,7 @@ public final class RuinSites extends SavedData {
             site.capturePercent = entry.contains("capturePercent") ? entry.getFloat("capturePercent") : 0.4F;
             site.captureSeconds = entry.contains("captureSeconds") ? entry.getInt("captureSeconds") : 60;
             site.garrisonBase = entry.contains("garrisonBase") ? entry.getInt("garrisonBase") : 0;
+            site.suppliesPlaced = entry.getBoolean("suppliesPlaced");
             site.captured = entry.getBoolean("captured");
             site.nextReinforceTick = entry.getInt("nextReinforceTick");
             site.cooldownEndTick = entry.getInt("cooldownEndTick");

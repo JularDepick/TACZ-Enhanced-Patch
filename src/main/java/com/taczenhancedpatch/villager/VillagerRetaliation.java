@@ -55,6 +55,11 @@ public final class VillagerRetaliation {
         }
         if (source instanceof Mob attacker) {
             retaliateMob(villager, attacker, event.getAmount());
+            return;
+        }
+        /* 环境伤害没有攻击者, 按生物阈值判定后反击最近的敌对生物 */
+        if (source == null) {
+            retaliateEnvironment(villager, event.getAmount());
         }
     }
 
@@ -111,6 +116,27 @@ public final class VillagerRetaliation {
             damage = Math.max(MIN_MELEE_DAMAGE, (float) attack.getValue());
         }
         attacker.hurt(villager.damageSources().mobAttack(villager), damage);
+    }
+
+    /* 摔落与岩浆这类没有攻击者的伤害: 生命值压到生物阈值以下时找最近的敌对生物还击 */
+    private static void retaliateEnvironment(Villager villager, float amount) {
+        float after = villager.getHealth() - amount;
+        if (after <= 0.0F || after > villager.getMaxHealth() * (float) ServerConfig.villagerMobThreshold()) {
+            return;
+        }
+        Mob nearest = null;
+        double best = Double.MAX_VALUE;
+        for (Mob candidate : villager.level().getEntitiesOfClass(Mob.class,
+                villager.getBoundingBox().inflate(16.0D), candidate -> candidate instanceof Enemy)) {
+            double distance = villager.distanceToSqr(candidate);
+            if (distance < best) {
+                best = distance;
+                nearest = candidate;
+            }
+        }
+        if (nearest != null) {
+            retaliateWithGun(villager, nearest);
+        }
     }
 
     private static void retaliateWithGun(Villager villager, net.minecraft.world.entity.LivingEntity target) {

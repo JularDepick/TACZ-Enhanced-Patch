@@ -12,6 +12,7 @@ import net.minecraft.world.entity.ai.goal.WrappedGoal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.event.entity.EntityLeaveLevelEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
@@ -31,6 +32,11 @@ import java.util.WeakHashMap;
 @Mod.EventBusSubscriber(modid = TACZEnhancedPatch.MOD_ID)
 public final class GunnerCombat {
     private static final Map<LivingEntity, GunnerState> STATES = new WeakHashMap<>();
+
+    /* 服务端停止时清空射击状态, 避免切换存档后残留 */
+    public static void clearStates() {
+        STATES.clear();
+    }
     private static final int RETARGET_INTERVAL = 10;
     private static final int RELOAD_ATTEMPT_INTERVAL = 8;
 
@@ -58,6 +64,21 @@ public final class GunnerCombat {
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
         STATES.remove(event.getEntity());
+    }
+
+    /*
+     * 实体离开关卡时先装回被摘掉的原版索敌, 再丢弃状态。
+     * 状态里保存着 Goal 对象, 它们反向引用实体, 只靠弱引用不会回收。
+     */
+    @SubscribeEvent
+    public static void onEntityLeaveLevel(EntityLeaveLevelEvent event) {
+        if (!(event.getEntity() instanceof Mob mob)) {
+            return;
+        }
+        GunnerState state = STATES.remove(mob);
+        if (state != null) {
+            restoreTargeting(mob, state);
+        }
     }
 
     /**

@@ -7,6 +7,8 @@ import com.taczenhancedpatch.entity.TankRegistry;
 import com.taczenhancedpatch.network.RuinNotice;
 import com.taczenhancedpatch.network.RuinStatus;
 import com.taczenhancedpatch.world.schematic.RuinPasteHandler;
+import com.taczenhancedpatch.world.schematic.RuinSchematic;
+import com.taczenhancedpatch.world.schematic.SchematicCatalog;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
@@ -40,7 +42,8 @@ import java.util.UUID;
 public final class RuinGarrison {
     private static final int CHECK_INTERVAL = 20;
     /* 玩家进入该距离内才跑补兵与夺旗调度, 单位方块 */
-    private static final double ACTIVE_DISTANCE = 128.0D;
+    /* 活跃判定: 领地半径之外再加这么多格, 玩家在这段内也算附近 */
+    private static final double ACTIVE_MARGIN = 32.0D;
     /* 坦克在补兵里的权重: 每四只补兵出一辆坦克 */
     private static final int TANK_ONE_IN = 4;
     /* 玩家离开核心区后的宽限时长, 超过即退出夺旗状态 */
@@ -71,7 +74,7 @@ public final class RuinGarrison {
 
     private static void tickLevel(ServerLevel level) {
         RuinSites data = RuinSites.get(level);
-        data.drainPending();
+        data.drainPending(level);
         List<RuinSites.Site> sites = data.sites();
         if (sites.isEmpty()) {
             return;
@@ -80,8 +83,21 @@ public final class RuinGarrison {
         /* 先算出每座活跃遗迹里的参与玩家, 用于判断谁留在这座, 谁已经转到别处 */
         Map<BlockPos, List<ServerPlayer>> insideBySite = new HashMap<>();
         for (RuinSites.Site site : sites) {
-            if (!site.pasted() || site.banner() == null || RuinPasteHandler.isPasting(site.origin())) {
+            if (!site.pasted() || RuinPasteHandler.isPasting(level, site.origin())) {
                 continue;
+            }
+            /* 站点没有旗帜时补放一次, 老存档的遗迹因此重新参与领地与夺旗 */
+            if (site.banner() == null) {
+                int height = 8;
+                RuinSchematic schematic = site.schematic().isEmpty() ? null : SchematicCatalog.load(site.schematic());
+                if (schematic != null) {
+                    height = schematic.height();
+                }
+                RuinBanner.place(level, site, site.origin(), site.baseY(), height, level.getRandom());
+                data.setDirty();
+                if (site.banner() == null) {
+                    continue;
+                }
             }
             /* 没有玩家在附近时整座遗迹休眠, 不做任何实体查询 */
             if (!hasPlayerNear(level, site)) {
@@ -110,7 +126,10 @@ public final class RuinGarrison {
                 site.setHadPlayers(false);
                 data.setDirty();
             }
-            trackStats(level, site, inside, data);
+            /* 夺旗成功后战绩冻结, 供旗帜纪念品读取 */
+            if (!site.captured()) {
+                trackStats(level, site, inside, data);
+            }
             /* 兵力只统计一次, 补兵, 夺旗与右上角读数共用, 避免同一 tick 反复扫描实体 */
             int count = RuinTerritory.countMobs(level, site);
             RuinStatus.send(inside, percentOf(site, count));
@@ -124,7 +143,8 @@ public final class RuinGarrison {
 
     /* 玩家是否在遗迹附近, 用于决定这座遗迹要不要跑调度 */
     private static boolean hasPlayerNear(ServerLevel level, RuinSites.Site site) {
-        double limit = ACTIVE_DISTANCE * ACTIVE_DISTANCE;
+        double active = site.radius() + ACTIVE_MARGIN;
+        double limit = active * active;
         for (ServerPlayer player : level.players()) {
             if (player.blockPosition().distSqr(site.origin()) <= limit) {
                 return true;
@@ -319,11 +339,12 @@ public final class RuinGarrison {
         if (site.titleSecond() == seconds) {
             return;
         }
-        site.setTitleSecond(seconds);
         int elapsedTicks = site.captureSeconds() * 20 - remainingTicks;
         if (elapsedTicks < TITLE_SECONDS * 20) {
+            /* 秒数由大标题自己记录, 这里不能抢先写入, 否则会被判等直接跳过 */
             showTitle(core, site, seconds);
         } else {
+            site.setTitleSecond(seconds);
             RuinNotice.send(core, "hud.ruin.capture_remaining", seconds);
         }
     }
@@ -402,6 +423,11 @@ public final class RuinGarrison {
         }
         int[] range = ServerConfig.ruinGarrisonBaseRange();
         return (range[0] + range[1]) / 2;
+    }
+
+    /* 服务端停止时清空在线状态, 避免切换存档后残留 */
+    public static void clearPresence() {
+        PRESENCE.clear();
     }
 
     private static void tell(ServerPlayer player, String key, Object... args) {

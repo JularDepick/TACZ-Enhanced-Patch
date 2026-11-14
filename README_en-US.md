@@ -60,12 +60,13 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Chests and supply crates | The loot chest is placed at a covered spot inside the building; supply crates are scattered across the floors by chance and hold guns, ammo, armor and food with nothing guaranteed |
 | Banner and factions | A vanilla banner marks the building center and its color is the faction, so same-colored ruins are allied while different colors may ally or turn hostile |
 | Territory and reinforcement | A cylinder centred on the banner height whose height equals its horizontal diameter, with the radius fitted to the building; the garrison is reinforced at a fixed interval until it reaches the threshold |
-| Capture | Players inside the core area start a shared countdown while the garrison is thin, leaving the core aborts it, and the garrison strength decides the outcome; every start, abort, failure and success reports the concrete reason and numbers; surviving guards become routed troops with reduced combat power |
+| Capture | Players inside the core area start a shared countdown while the garrison is thin, leaving the core for more than five seconds aborts it while the countdown runs backwards in the meantime, and the garrison strength decides the outcome; every start, abort, failure and success reports the concrete reason and numbers; surviving guards become routed troops with reduced combat power |
 | Capture loot | A supply chest appears in the core area, with ammo and weapons converted from the kill tally plus experience for each participant |
 | Reward chest | Always holds a matching armor set and a sword, each piece has a fifty percent chance of strength-scaled enchantments, plus ender pearls, a chance at eyes of ender and bread |
 | Banner souvenir | After a successful capture the banner can be broken and dropped, named after its color and coordinates, and its tooltip records the ruin coordinates plus every participant |
 | Ruin compass | Crafted from an emerald next to a compass; right-click records the nearest ruin and reports the distance, direction and bearing, while the needle keeps pointing at it |
 | Garrison readout | While inside a ruin the top right of the screen shows the remaining garrison percentage, refreshed every 20 ticks and coloured by how dangerous the number is |
+| Top notice | After the first five seconds the capture countdown switches to a single centred line at the top, placed below the heading ruler readout and moved up when the ruler is off |
 
 ### Tank elite
 
@@ -105,14 +106,14 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 |:---:|:---|
 | Incoming fire indicator | When hit by a gun, a soft-edged arc on screen points to the source, up to three directions at once, off by default |
 | Heading ruler | A horizontal compass tape flush with the top edge, nine tenths of the screen wide, showing cardinal directions and a bare bearing number, off by default |
-| Ruler color | The accent color is plain red by default and can be set to any 8-digit hexadecimal ARGB value in the client config |
+| Ruler color | The accent color is plain red by default and can be set to any 6-digit hexadecimal RGB value in the client config |
 
 ### Configuration and permissions
 
 | Item | Description |
 |:---:|:---|
 | Client configuration | Local preferences such as automatic reload, the incoming fire indicator, the heading ruler and its color, stored per player |
-| Server configuration | 66 parameters grouped into debug, ruins, armed neutral villagers, basics, retaliation, spawning, targeting, ammo, toughness, loot, armed grunt and tank elite, with pure-button and switch groups listed before numeric ones and synced from the server |
+| Server configuration | 68 parameters grouped into debug, ruins, armed neutral villagers, basics, retaliation, spawning, targeting, ammo, toughness, loot, armed grunt and tank elite, with pure-button and switch groups listed before numeric ones and synced from the server |
 | Configuration screen | Opens the config screen directly, with tabs at the top to switch between client and server; the server tab only appears for the world owner |
 | Shortcut | Shift + C opens the config screen by default; it is a standard key binding, so it can be rebound or cleared in the vanilla controls |
 | Mob arming config | The first row of the server page scans every mob into one switchable list, shows each mob's name and entity ID, and lets group toggles flip those switches in bulk |
