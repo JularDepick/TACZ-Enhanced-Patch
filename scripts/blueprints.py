@@ -478,16 +478,21 @@ def convert_alpha(root, states, table):
 
 
 def _resolve_dirs(args):
+    """返回输入目录, 输出目录, 以及两者是否需要在缺失时创建.
+
+    显式指定的输入目录不创建, 缺失时按空目录处理;
+    显式指定的输出目录缺失时创建; 两者都未指定时创建默认的 .input 与 .output.
+    """
     script_dir = Path(__file__).resolve().parent
     if args.input and args.output:
-        return Path(args.input).resolve(), Path(args.output).resolve()
+        return Path(args.input).resolve(), Path(args.output).resolve(), False, True
     if args.input:
         resolved = Path(args.input).resolve()
-        return resolved, resolved
+        return resolved, resolved, False, False
     if args.output:
         resolved = Path(args.output).resolve()
-        return resolved, resolved
-    return (script_dir / DEFAULT_INPUT).resolve(), (script_dir / DEFAULT_OUTPUT).resolve()
+        return resolved, resolved, True, True
+    return (script_dir / DEFAULT_INPUT).resolve(), (script_dir / DEFAULT_OUTPUT).resolve(), True, True
 
 
 def _collect(directory, suffixes):
@@ -543,7 +548,14 @@ def main(argv):
     parser.add_argument("--input", default=None, help="输入目录, 默认脚本同目录的 .input")
     parser.add_argument("--output", default=None, help="输出目录, 默认脚本同目录的 .output; 只给一个目录时输入输出同目录")
     args = parser.parse_args(argv)
-    input_dir, output_dir = _resolve_dirs(args)
+    input_dir, output_dir, create_input, create_output = _resolve_dirs(args)
+    created = {"input": False, "output": False}
+    if create_input and not input_dir.is_dir():
+        input_dir.mkdir(parents=True, exist_ok=True)
+        created["input"] = True
+    if not args.check and create_output and not output_dir.is_dir():
+        output_dir.mkdir(parents=True, exist_ok=True)
+        created["output"] = True
 
     results = []
     skipped = []
@@ -552,7 +564,6 @@ def main(argv):
             results.append(_check_file(path))
     else:
         states, table = _load_legacy_table()
-        output_dir.mkdir(parents=True, exist_ok=True)
         for path in _collect(input_dir, (ALPHA_SUFFIX,)):
             results.append(_convert_file(path, output_dir, states, table))
         skipped = [str(path) for path in _collect(input_dir, (SPONGE_SUFFIX,))]
@@ -574,6 +585,8 @@ def main(argv):
         "input": str(input_dir),
         "output": str(output_dir),
         "input_exists": input_dir.is_dir(),
+        "output_exists": output_dir.is_dir(),
+        "created": created,
         "ok": summary["invalid"] == 0,
         "files": results,
         "skipped": skipped,
