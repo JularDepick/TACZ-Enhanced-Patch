@@ -38,6 +38,8 @@ public final class SchematicCatalog {
     private static final String BUILTIN_PREFIX = "assets/" + TACZEnhancedPatch.MOD_ID + "/ruins/";
     /* 外部来源前缀, 与站点里保存的名字一起构成来源判定 */
     private static final String EXTERNAL_PREFIX = "external:";
+    /* 单个蓝图文件的压缩体积上限, 64 MB; 解压后的上限由解析器按方块数校验 */
+    private static final long MAX_BLUEPRINT_BYTES = 64L * 1024L * 1024L;
     private static final String EXTERNAL_FOLDER = "tacz_enhanced_patch_ruins";
     private static final String SERVERCONFIG_FOLDER = "serverconfig";
     /* 内置只认新格式, 外部目录新旧都认, 旧文件不写回也不转换 */
@@ -217,9 +219,7 @@ public final class SchematicCatalog {
                 TACZEnhancedPatch.LOGGER.error("[ruin] blueprint not found: {}", name);
                 return null;
             }
-            try (InputStream stream = Files.newInputStream(path)) {
-                return SchematicReader.read(name, stream);
-            }
+            return readFile(name, path);
         } catch (IOException | RuntimeException exception) {
             TACZEnhancedPatch.LOGGER.error("[ruin] failed to read blueprint {}", name, exception);
             return null;
@@ -235,6 +235,16 @@ public final class SchematicCatalog {
         Path path = root.resolve(name.substring(EXTERNAL_PREFIX.length()));
         if (!Files.isRegularFile(path)) {
             TACZEnhancedPatch.LOGGER.error("[ruin] external blueprint not found: {}", path);
+            return null;
+        }
+        return readFile(name, path);
+    }
+
+    /* 先按压缩体积挡一道, 避免解压阶段吃满内存 */
+    private static RuinSchematic readFile(String name, Path path) throws IOException {
+        long size = Files.size(path);
+        if (size > MAX_BLUEPRINT_BYTES) {
+            TACZEnhancedPatch.LOGGER.error("[ruin] blueprint {} too large: {} bytes", name, size);
             return null;
         }
         try (InputStream stream = Files.newInputStream(path)) {

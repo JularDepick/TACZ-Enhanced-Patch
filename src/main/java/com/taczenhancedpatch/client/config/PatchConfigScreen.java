@@ -231,7 +231,8 @@ public final class PatchConfigScreen extends Screen {
         }
         graphics.disableScissor();
         if (hasInvalidColor()) {
-            graphics.drawString(font, UiText.plain("screen.color_hint"), listLeft, listBottom + 4, ERROR_COLOR, false);
+            graphics.drawString(font, fitLabel(UiText.plain("screen.color_hint"), listRight - listLeft),
+                    listLeft, listBottom + 4, ERROR_COLOR, false);
         }
         syncScrollbar();
         scrollbar.render(graphics);

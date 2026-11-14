@@ -53,6 +53,8 @@ public final class RuinSites extends SavedData {
         private int garrisonBase;
         /* 物资箱是否已经散布过: 崩溃后重贴时不重复投放 */
         private boolean suppliesPlaced;
+        /* 蓝图全部不可用时放弃本座遗迹, 不再补兵与补旗 */
+        private boolean abandoned;
         private boolean captured;
         private int nextReinforceTick;
         private int captureEndTick;
@@ -130,6 +132,14 @@ public final class RuinSites extends SavedData {
 
         public int garrisonBase() {
             return garrisonBase;
+        }
+
+        public boolean abandoned() {
+            return abandoned;
+        }
+
+        public void setAbandoned(boolean value) {
+            this.abandoned = value;
         }
 
         public boolean suppliesPlaced() {
@@ -352,6 +362,7 @@ public final class RuinSites extends SavedData {
             entry.putInt("captureSeconds", site.captureSeconds());
             entry.putInt("garrisonBase", site.garrisonBase());
             entry.putBoolean("suppliesPlaced", site.suppliesPlaced());
+            entry.putBoolean("abandoned", site.abandoned());
             entry.putBoolean("captured", site.captured());
             entry.putInt("nextReinforceTick", site.nextReinforceTick());
             entry.putInt("cooldownEndTick", site.cooldownEndTick());
@@ -383,6 +394,7 @@ public final class RuinSites extends SavedData {
             site.captureSeconds = entry.contains("captureSeconds") ? entry.getInt("captureSeconds") : 60;
             site.garrisonBase = entry.contains("garrisonBase") ? entry.getInt("garrisonBase") : 0;
             site.suppliesPlaced = entry.getBoolean("suppliesPlaced");
+            site.abandoned = entry.getBoolean("abandoned");
             site.captured = entry.getBoolean("captured");
             site.nextReinforceTick = entry.getInt("nextReinforceTick");
             site.cooldownEndTick = entry.getInt("cooldownEndTick");

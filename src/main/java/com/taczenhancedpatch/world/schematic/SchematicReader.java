@@ -31,6 +31,9 @@ import java.util.Map;
  */
 public final class SchematicReader {
     private static final Logger LOGGER = LogUtils.getLogger();
+    /* 调色板告警的全局计数, 用于限流 */
+    private static final java.util.concurrent.atomic.AtomicInteger PALETTE_WARNINGS =
+            new java.util.concurrent.atomic.AtomicInteger();
     /* 单座蓝图的方块上限, 防止异常文件把服务端内存打满 */
     private static final int MAX_VOLUME = 4_000_000;
     private static final int MAX_VERSION = 3;
@@ -77,7 +80,10 @@ public final class SchematicReader {
             int paletteId = varInt(data, cursor);
             BlockState state = palette.get(paletteId);
             if (state == null) {
-                LOGGER.warn("[blueprint] palette id {} missing in {}, treated as air", paletteId, id);
+                /* 缺调色板条目时最多记五条, 避免大文件刷满日志 */
+        if (PALETTE_WARNINGS.incrementAndGet() <= 5) {
+            LOGGER.warn("[blueprint] palette id {} missing in {}, treated as air", paletteId, id);
+        }
                 continue;
             }
             if (state.isAir()) {

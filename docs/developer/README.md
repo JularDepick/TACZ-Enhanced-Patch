@@ -30,6 +30,23 @@
 
 开发运行与产物构建都需要 JDK 17; 只用 `javac` 做语法校验不产生可运行产物
 
+## 运行期文件位置
+
+| 项 | 位置 |
+|:---:|:---|
+| 客户端配置 | `config/tacz_enhanced_patch-client.toml` |
+| 服务端配置(专用服务端) | `config/tacz_enhanced_patch-server.toml` |
+| 服务端配置(单人存档) | 该存档目录下的 `serverconfig/tacz_enhanced_patch-server.toml` |
+| 外部遗迹蓝图 | 服务端配置目录下的 `tacz_enhanced_patch_ruins/` |
+
+## 服务端参数清单
+
+- 界面可调 68 项, 分十二组: 界面与调试, 遗迹, 中立持械村民, 基础, 反击规则, 生成, 索敌与射击, 弹药与装备, 耐久与平衡, 战利品, 持枪小兵, 坦克精英怪
+- 另有三项分档权重 `tierWeightLow` `tierWeightMid` `tierWeightHigh` 不在界面, 只能改配置文件, 它们决定枪械按档位抽取的比例
+- 客户端页只有一组本机偏好, 含自动换弹, 枪击来源提示, 方向标尺与颜色
+- 每项的默认值与取值范围以配置文件为准, 界面只暴露可在游戏内调整的部分
+- 服务端参数只有存档创建者可以修改, 普通客户端只接收同步值
+
 ## 遗迹建筑蓝图
 
 - 蓝图源文件放在 `src/main/ruins/`, 只接受 WorldEdit 的 .schem 格式(Sponge Schematic 版本 1 至 3), 文件名随意, 中文名同样可用

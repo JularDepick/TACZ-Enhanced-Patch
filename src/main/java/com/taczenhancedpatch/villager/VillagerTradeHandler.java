@@ -23,6 +23,11 @@ public final class VillagerTradeHandler {
     /* 交易后下一 tick 复核等级, 升级则关掉交易页, 让玩家重新打开 */
     private static final List<Pending> PENDING = new ArrayList<>();
 
+    /* 服务端停止时清空待处理项, 避免切换存档后钉住旧关卡 */
+    public static void clearPending() {
+        PENDING.clear();
+    }
+
     private record Pending(Villager villager, net.minecraft.server.level.ServerPlayer player, int ticks) {
     }
 

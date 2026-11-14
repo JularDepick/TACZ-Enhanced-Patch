@@ -208,7 +208,7 @@ public final class MobListScreen extends Screen {
             }
             button.setX(listRight - TOGGLE_WIDTH - 6);
             button.setY(rowY + 1);
-            graphics.drawString(font, row.label(), listLeft + 8, rowY + 6,
+            graphics.drawString(font, UiText.plain(row.label()), listLeft + 8, rowY + 6,
                     row.group() ? 0xFFD080 : 0xE0E0E0, false);
             /* 名称右侧补实体 ID, 名称与 ID 相同时不重复绘制 */
             if (!row.group() && !row.id().isEmpty() && !row.id().equals(row.label())) {

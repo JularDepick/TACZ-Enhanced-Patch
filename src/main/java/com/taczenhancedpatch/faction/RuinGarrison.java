@@ -83,7 +83,7 @@ public final class RuinGarrison {
         /* 先算出每座活跃遗迹里的参与玩家, 用于判断谁留在这座, 谁已经转到别处 */
         Map<BlockPos, List<ServerPlayer>> insideBySite = new HashMap<>();
         for (RuinSites.Site site : sites) {
-            if (!site.pasted() || RuinPasteHandler.isPasting(level, site.origin())) {
+            if (site.abandoned() || !site.pasted() || RuinPasteHandler.isPasting(level, site.origin())) {
                 continue;
             }
             /* 站点没有旗帜时补放一次, 老存档的遗迹因此重新参与领地与夺旗 */
@@ -101,6 +101,13 @@ public final class RuinGarrison {
             }
             /* 没有玩家在附近时整座遗迹休眠, 不做任何实体查询 */
             if (!hasPlayerNear(level, site)) {
+                /* 玩家离开遗迹范围时正在进行的夺旗直接中断, 否则回来会按过期倒计时立即判定成功 */
+                if (site.capturing()) {
+                    site.setCaptureEndTick(0);
+                    site.setGraceEndTick(0);
+                    site.setTitleSecond(-1);
+                    data.setDirty();
+                }
                 continue;
             }
             insideBySite.put(site.origin(), RuinTerritory.playersInside(level, site));
@@ -371,6 +378,10 @@ public final class RuinGarrison {
             ServerPlayer player = level.getServer().getPlayerList().getPlayer(id);
             if (player == null) {
                 PRESENCE.remove(id);
+                continue;
+            }
+            /* 只处理当前维度的玩家: 其他维度的进出记录由那个维度的调度负责, 否则两边互相清空会刷屏 */
+            if (player.level() != level) {
                 continue;
             }
             Presence before = PRESENCE.get(id);

@@ -117,7 +117,12 @@ public final class RuinPasteHandler {
                 }
                 JOBS.put(key, job);
             }
+            int before = budget;
             budget = advance(level, site, job, data, budget);
+            /* 只有真正推进过才续命: 卡在未加载区块上的任务才会按闲置超时被丢弃 */
+            if (budget < before) {
+                job.lastTouch = level.getGameTime();
+            }
         }
     }
 
@@ -144,14 +149,17 @@ public final class RuinPasteHandler {
              * 弃用该文件并换一座可用的建筑, 下一 tick 再取替代文件; 连替代都没有时才放弃本座遗迹。
              */
             if (!replace(level, site, data, name)) {
-                site.setPasted(true);
+                /* 没有可用蓝图: 放弃本座遗迹, 不要当成已落地, 否则野外会留下只刷守军的空地 */
+                site.setAbandoned(true);
                 data.setDirty();
             }
             return null;
         }
         int minX = site.origin().getX() - schematic.width() / 2;
         int minZ = site.origin().getZ() - schematic.depth() / 2;
-        return new Job(schematic, new BlockPos(minX, site.baseY(), minZ), site.baseY());
+        Job created = new Job(schematic, new BlockPos(minX, site.baseY(), minZ), site.baseY());
+        created.lastTouch = level.getGameTime();
+        return created;
     }
 
     /* 把站点换成另一座可用的建筑, 返回是否换成功 */
@@ -170,7 +178,6 @@ public final class RuinPasteHandler {
     }
 
     private static int advance(ServerLevel level, RuinSites.Site site, Job job, RuinSites data, int budget) {
-        job.lastTouch = level.getGameTime();
         ServerChunkCache chunks = level.getChunkSource();
         int remaining = budget;
         while (remaining > 0 && !job.pending.isEmpty()) {
@@ -220,10 +227,11 @@ public final class RuinPasteHandler {
         scatterDebris(level, job, random);
         /* 物资箱: 建筑内部各层地面按概率散布, 概率随生成时的难度缩放; 只散一次, 崩溃重贴不重复投放 */
         if (!site.suppliesPlaced()) {
-            RuinLoot.placeSupplyChests(level, job.min, job.schematic.width(), job.schematic.height(),
-                    job.schematic.depth(), job.baseY, random, level.getDifficulty());
+            /* 先落标记再散箱: 中途崩溃最多少一批物资, 不会重复投放 */
             site.setSuppliesPlaced(true);
             data.setDirty();
+            RuinLoot.placeSupplyChests(level, job.min, job.schematic.width(), job.schematic.height(),
+                    job.schematic.depth(), job.baseY, random, level.getDifficulty());
         }
         discardTrappedItems(level, job);
         RuinGarrison.onPasted(level, site, data, job.schematic.width(), job.schematic.height(),

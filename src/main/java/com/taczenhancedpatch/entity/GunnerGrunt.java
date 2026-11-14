@@ -2,6 +2,7 @@ package com.taczenhancedpatch.entity;
 
 import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.gunner.GunnerArming;
+import com.taczenhancedpatch.gunner.GunnerMarker;
 import com.taczenhancedpatch.TACZEnhancedPatch;
 import com.taczenhancedpatch.faction.FactionData;
 import com.taczenhancedpatch.faction.RuinBehavior;
@@ -124,6 +125,8 @@ public class GunnerGrunt extends Animal {
                 TaczApi.installRandomAttachment(gun, grunt.getRandom());
             }
         }
+        /* 写入枪手身份标记: 战利品结算与遗迹战绩快照都靠它取枪械档位与口径 */
+        GunnerMarker.mark(grunt, profile, arming.ammoPool(), false);
         grunt.setItemSlot(EquipmentSlot.MAINHAND, gun);
         /* 枪械掉落由独立战利品逻辑接管, 关闭原版手持掉落 */
         grunt.setDropChance(EquipmentSlot.MAINHAND, 0.0F);

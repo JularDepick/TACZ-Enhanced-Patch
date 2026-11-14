@@ -58,7 +58,13 @@ public final class GunnerCombat {
             }
             return;
         }
-        tick(mob);
+        /* 射击循环依赖上游数据, 任何异常都不能冒到服务端 tick 直接终止服务器 */
+        try {
+            tick(mob);
+        } catch (RuntimeException exception) {
+            STATES.remove(mob);
+            TACZEnhancedPatch.LOGGER.error("[gunner] tick failed for {}", mob.getType(), exception);
+        }
     }
 
     @SubscribeEvent
