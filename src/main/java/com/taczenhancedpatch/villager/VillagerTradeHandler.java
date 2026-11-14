@@ -85,6 +85,12 @@ public final class VillagerTradeHandler {
     private static boolean check(Pending pending) {
         Villager villager = pending.villager();
         if (villager.isRemoved() || pending.player().isRemoved() || pending.ticks() > 40) {
+            settle(villager);
+            return true;
+        }
+        /* 交易页还开着时不重建商品, 否则客户端索引会错位; 关闭后再统一重建 */
+        if (!hasScreenOpen(pending.player(), villager)) {
+            settle(villager);
             return true;
         }
         int stored = villager.getPersistentData().getInt(TAG_LEVEL);
@@ -93,8 +99,22 @@ public final class VillagerTradeHandler {
         if (stored > 0 && current > stored) {
             villager.getPersistentData().putInt(TAG_LEVEL, current);
             pending.player().closeContainer();
+            settle(villager);
             return true;
         }
         return false;
+    }
+
+    /* 玩家是否正停在这只村民的交易页上 */
+    private static boolean hasScreenOpen(net.minecraft.server.level.ServerPlayer player, Villager villager) {
+        /* 原版 MerchantMenu 不暴露交易对象, 这里只判断是否停在某个交易页上, 宁可多等一 tick */
+        return player.containerMenu instanceof net.minecraft.world.inventory.MerchantMenu;
+    }
+
+    /* 界面已经关闭或村民已移除, 此时重建商品不会打乱客户端列表 */
+    private static void settle(Villager villager) {
+        if (!villager.isRemoved() && ArmedVillager.isArmed(villager)) {
+            ArmedVillager.refreshOffers(villager);
+        }
     }
 }

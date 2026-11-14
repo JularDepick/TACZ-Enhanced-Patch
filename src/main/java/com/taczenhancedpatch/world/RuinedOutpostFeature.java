@@ -6,6 +6,7 @@ import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.faction.RuinSites;
 import com.taczenhancedpatch.world.schematic.SchematicCatalog;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.WorldGenLevel;
@@ -52,6 +53,10 @@ public class RuinedOutpostFeature extends Feature<NoneFeatureConfiguration> {
             return false;
         }
         if (!isFlatEnough(level, origin)) {
+            return false;
+        }
+        /* 只在刚生成的新区块落地: 已有长期区块数据的区块不再生成遗迹 */
+        if (RuinChunkGuard.isExisting(new ChunkPos(origin))) {
             return false;
         }
         /* 遗迹之间保持最小直线距离, 避免扎堆; 距离不足时本次不生成 */

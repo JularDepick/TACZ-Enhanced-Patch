@@ -86,8 +86,8 @@ public final class RuinGarrison {
             if (site.abandoned() || !site.pasted() || RuinPasteHandler.isPasting(level, site.origin())) {
                 continue;
             }
-            /* 站点没有旗帜时补放一次, 老存档的遗迹因此重新参与领地与夺旗 */
-            if (site.banner() == null) {
+            /* 站点没有旗帜时补放一次, 老存档的遗迹因此重新参与领地与夺旗; 已夺旗的站点不再补放 */
+            if (site.banner() == null && !site.captured()) {
                 int height = 8;
                 RuinSchematic schematic = site.schematic().isEmpty() ? null : SchematicCatalog.load(site.schematic());
                 if (schematic != null) {
@@ -258,8 +258,8 @@ public final class RuinGarrison {
                     TACZEnhancedPatch.LOGGER.info("[ruin] capture aborted at {} after grace", site.origin());
                     return;
                 }
-                /* 反向计时: 每次检查把截止时刻往后推, 剩余时间随之增加 */
-                site.setCaptureEndTick(site.captureEndTick() + CHECK_INTERVAL * 2);
+                /* 反向计时: 每次检查把截止时刻按真实经过时间往后推, 不再乘二, 避免反复进出无限延长 */
+                site.setCaptureEndTick(site.captureEndTick() + CHECK_INTERVAL);
                 site.setTitleSecond(-1);
                 int graceLeft = Math.max(1, (site.graceEndTick() - now) / 20 + 1);
                 RuinNotice.sendNear(level, Vec3.atCenterOf(banner),
@@ -311,6 +311,8 @@ public final class RuinGarrison {
             return;
         }
         site.setCaptured(true);
+        /* 夺旗成功后旗帜交还玩家处理, 站点不再补放也不再兜底还原 */
+        site.setBanner(null, "");
         /* 势力瓦解: 剩余守军转为溃军, 阵营与归属保持不变 */
         RuinRout.rout(level, site);
         RuinLoot.placeChest(level, site, level.getRandom());

@@ -285,7 +285,28 @@ public final class RuinLoot {
         int budget = (int) Math.floor(scale * Math.min(killValue, stats.snapshotWeaponValue()));
         List<RuinStats.Kill> pool = new ArrayList<>(stats.kills());
         while (budget > 0 && !pool.isEmpty() && items.size() < CHEST_SLOTS) {
-            RuinStats.Kill kill = pool.remove(random.nextInt(pool.size()));
+            /* 按价值权重抽取: 价值越高的击杀记录越容易被抽中, 与文档口径一致 */
+            int totalWeight = 0;
+            for (RuinStats.Kill candidate : pool) {
+                totalWeight += Math.max(1, candidate.weaponValue());
+            }
+            if (totalWeight <= 0) {
+                break;
+            }
+            int roll = random.nextInt(totalWeight);
+            RuinStats.Kill kill = null;
+            for (java.util.Iterator<RuinStats.Kill> iterator = pool.iterator(); iterator.hasNext(); ) {
+                RuinStats.Kill candidate = iterator.next();
+                roll -= Math.max(1, candidate.weaponValue());
+                if (roll < 0) {
+                    kill = candidate;
+                    iterator.remove();
+                    break;
+                }
+            }
+            if (kill == null) {
+                break;
+            }
             if (kill.weapon().isEmpty() || kill.weaponValue() > budget) {
                 continue;
             }

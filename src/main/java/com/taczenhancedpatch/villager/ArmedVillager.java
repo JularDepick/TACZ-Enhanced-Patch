@@ -163,7 +163,8 @@ public final class ArmedVillager {
             degrade(villager);
             return true;
         }
-        refreshOffers(villager);
+        /* 不在交易回调里重建商品: 客户端还停在旧列表上, 重建会让索引错位;
+           重建交给 VillagerTradeHandler 在界面关闭后的下一 tick 完成 */
         return false;
     }
 

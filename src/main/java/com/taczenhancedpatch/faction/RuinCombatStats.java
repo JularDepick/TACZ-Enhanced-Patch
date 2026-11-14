@@ -37,7 +37,7 @@ public final class RuinCombatStats {
             return;
         }
         Entity source = event.getSource().getEntity();
-        if (!(source instanceof ServerPlayer player)) {
+        if (!(source instanceof ServerPlayer player) || !RuinTerritory.participates(player)) {
             return;
         }
         RuinSites.Site site = siteOf(level, dead);
@@ -69,7 +69,8 @@ public final class RuinCombatStats {
         if (!(mob.level() instanceof ServerLevel level)) {
             return;
         }
-        if (!(event.getSource().getEntity() instanceof Player player)) {
+        if (!(event.getSource().getEntity() instanceof ServerPlayer player)
+                || !RuinTerritory.participates(player)) {
             return;
         }
         RuinSites.Site site = siteOf(level, mob);

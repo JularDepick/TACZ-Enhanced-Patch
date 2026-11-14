@@ -290,6 +290,11 @@ public final class RuinSites extends SavedData {
     }
 
     /* 服务端停止时清空队列, 避免切换存档后把旧世界的站点带进新世界 */
+    /* 服务端停止时清空间距登记, 避免换存档后旧坐标仍参与判定 */
+    public static void clearKnown() {
+        KNOWN.clear();
+    }
+
     public static void clearPending() {
         PENDING.clear();
     }

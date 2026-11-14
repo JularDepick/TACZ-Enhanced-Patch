@@ -76,7 +76,8 @@ public final class TankCrew {
                 }
             }
         }
-        clear(tank);
+        /* 这里必须调用单实体重载, 直接传 tank 会解析回本方法形成自递归 */
+        clear((LivingEntity) tank);
     }
 
     /* 按 UUID 在服务端存档里找实体, 找不到说明已经离开世界 */

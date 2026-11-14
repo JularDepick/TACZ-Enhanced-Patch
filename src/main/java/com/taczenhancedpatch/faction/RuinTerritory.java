@@ -91,7 +91,7 @@ public final class RuinTerritory {
 
     /* 参与遗迹机制的玩家: 创造与旁观不参与夺旗与统计, 与敌意口径保持一致 */
     public static boolean participates(ServerPlayer player) {
-        return !player.isCreative() && !player.isSpectator();
+        return !player.isCreative() && !player.isSpectator() && !player.isDeadOrDying();
     }
 
     /* 领地内的参与玩家 */

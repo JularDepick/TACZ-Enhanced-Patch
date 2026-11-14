@@ -29,5 +29,7 @@ public final class RuntimeStateCleaner {
         TankCrew.clearAll();
         GunnerCombat.clearStates();
         com.taczenhancedpatch.villager.VillagerTradeHandler.clearPending();
+        com.taczenhancedpatch.world.RuinChunkGuard.clear();
+        RuinSites.clearKnown();
     }
 }
