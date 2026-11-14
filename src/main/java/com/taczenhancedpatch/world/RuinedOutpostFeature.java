@@ -16,7 +16,7 @@ import java.util.Optional;
 
 /**
  * 遗迹生成入口。
- * 建筑本体来自 assets/tacz_enhanced_patch/ruins/ 下的 .schematic, 每次生成随机选一座;
+ * 建筑本体来自 assets/tacz_enhanced_patch/ruins/ 下的 .schem, 每次生成随机选一座;
  * 本类只做选址与登记, 方块写入交给 RuinPasteHandler 在服务端 tick 里分帧完成,
  * 因此建筑多大都不会撞上世界生成的区块边界, 也不会把生成线程卡住。
  */
@@ -39,7 +39,7 @@ public class RuinedOutpostFeature extends Feature<NoneFeatureConfiguration> {
         if (picked.isEmpty()) {
             if (!warnedEmpty) {
                 warnedEmpty = true;
-                TACZEnhancedPatch.LOGGER.error("[ruin] no schematic found under assets/{}/ruins, ruin generation disabled",
+                TACZEnhancedPatch.LOGGER.error("[ruin] no blueprint found under assets/{}/ruins, ruin generation disabled",
                         TACZEnhancedPatch.MOD_ID);
             }
             return false;

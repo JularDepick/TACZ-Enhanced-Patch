@@ -7,7 +7,7 @@ This directory holds the functional source code of the mod, while the rest of th
 
 ```
 src/main/
-├── ruins/                                 # Ruin building models (*.schematic, packed into resources at build time)
+├── ruins/                                 # Ruin building blueprints (*.schem, packed into resources at build time)
 ├── java/com/taczenhancedpatch/
 │   ├── TACZEnhancedPatch.java            # Mod entry point
 │   ├── balance/
@@ -39,6 +39,7 @@ src/main/
 │   │   ├── ConfigOptionGroup.java        # Configuration groups and UI order
 │   │   ├── MobListConfig.java            # Mob arming config with runtime cache
 │   │   ├── MobMiddleConfig.java          # Seven armed group switches
+│   │   ├── RuinBlueprintSource.java      # Ruin blueprint source enum
 │   │   └── ServerConfig.java             # Server configuration and option list
 │   ├── debug/
 │   │   └── TaczEventProbe.java           # TACZ API event probe (disabled by default)
@@ -111,12 +112,12 @@ src/main/
 │       ├── ModFeatures.java              # World generation feature registration
 │       ├── RuinedOutpostFeature.java     # Ruined outpost generation
 │       └── schematic/
-│           ├── LegacyBlocks.java         # Legacy block id to modern state mapping
 │           ├── RuinPasteHandler.java     # Framed paste scheduling and containers
 │           ├── RuinSchematic.java        # Building data shape
 │           ├── SchematicCatalog.java     # Building catalog scan and cache
+│           ├── SchematicCatalogRefreshHandler.java # Rescans blueprints on world load
 │           ├── SchematicPaster.java      # Per-chunk pasting
-│           └── SchematicReader.java      # .schematic parsing
+│           └── SchematicReader.java      # .schem parsing
 └── resources/
     ├── META-INF/mods.toml                # Mod metadata
     ├── pack.mcmeta                       # Resource pack metadata

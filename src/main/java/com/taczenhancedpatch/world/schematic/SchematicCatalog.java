@@ -2,7 +2,7 @@ package com.taczenhancedpatch.world.schematic;
 
 import com.taczenhancedpatch.TACZEnhancedPatch;
 import com.taczenhancedpatch.config.ConfigEvents;
-import com.taczenhancedpatch.config.RuinModelSource;
+import com.taczenhancedpatch.config.RuinBlueprintSource;
 import com.taczenhancedpatch.config.ServerConfig;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.RandomSource;
@@ -26,8 +26,8 @@ import java.util.concurrent.Executors;
 import java.util.stream.Stream;
 
 /**
- * 遗迹建筑目录。
- * 建筑有两个来源: 模组内置的 assets/tacz_enhanced_patch/ruins, 以及存档服务端配置目录下的
+ * 遗迹蓝图目录。
+ * 蓝图有两个来源: 模组内置的 assets/tacz_enhanced_patch/ruins, 以及存档服务端配置目录下的
  * tacz_enhanced_patch_ruins, 两者在选择时平权。
  * 站点里保存的是完整名字, 外部来源带 external: 前缀, 因此运行期可以反查来源;
  * 内置名单取自模组文件系统, 文件名不受资源命名规则限制; 外部目录递归扫描并限制深度。
@@ -40,7 +40,9 @@ public final class SchematicCatalog {
     private static final String EXTERNAL_PREFIX = "external:";
     private static final String EXTERNAL_FOLDER = "tacz_enhanced_patch_ruins";
     private static final String SERVERCONFIG_FOLDER = "serverconfig";
-    private static final String SUFFIX = ".schematic";
+    /* 内置只认新格式, 外部目录新旧都认, 旧文件不写回也不转换 */
+    private static final String SUFFIX = ".schem";
+    private static final String LEGACY_SUFFIX = ".schematic";
     /* 外部目录的递归深度上限, 避免误放深层目录时扫出巨量文件 */
     private static final int MAX_DEPTH = 4;
     private static final ConcurrentHashMap<String, RuinSchematic> CACHE = new ConcurrentHashMap<>();
@@ -57,9 +59,9 @@ public final class SchematicCatalog {
     private SchematicCatalog() {
     }
 
-    /* 按遗迹模型源合并两个来源: 只取一侧时直接返回该侧, 两侧都取时平权参与随机 */
+    /* 按遗迹蓝图源合并两个来源: 只取一侧时直接返回该侧, 两侧都取时平权参与随机 */
     public static List<String> files() {
-        RuinModelSource source = ServerConfig.ruinModelSource();
+        RuinBlueprintSource source = ServerConfig.ruinBlueprintSource();
         List<String> inside = source.allowsBuiltin() ? builtinFiles() : List.of();
         List<String> outside = source.allowsExternal() ? externalFiles() : List.of();
         if (outside.isEmpty()) {
@@ -98,7 +100,7 @@ public final class SchematicCatalog {
                         .forEach(name -> found.add(BUILTIN_PREFIX + name));
             }
         } catch (IOException | RuntimeException exception) {
-            TACZEnhancedPatch.LOGGER.error("[ruin] failed to list builtin schematics", exception);
+            TACZEnhancedPatch.LOGGER.error("[ruin] failed to list builtin blueprints", exception);
         }
         builtin = List.copyOf(found);
         return builtin;
@@ -114,19 +116,22 @@ public final class SchematicCatalog {
         if (root != null && Files.isDirectory(root)) {
             try (Stream<Path> stream = Files.walk(root, MAX_DEPTH)) {
                 stream.filter(Files::isRegularFile)
-                        .filter(path -> path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(SUFFIX))
+                        .filter(path -> {
+                            String name = path.getFileName().toString().toLowerCase(Locale.ROOT);
+                            return name.endsWith(SUFFIX) || name.endsWith(LEGACY_SUFFIX);
+                        })
                         .sorted()
                         .forEach(path -> found.add(EXTERNAL_PREFIX
                                 + root.relativize(path).toString().replace('\\', '/')));
             } catch (IOException | RuntimeException exception) {
-                TACZEnhancedPatch.LOGGER.error("[ruin] failed to list external schematics under {}", root, exception);
+                TACZEnhancedPatch.LOGGER.error("[ruin] failed to list external blueprints under {}", root, exception);
             }
         }
         external = List.copyOf(found);
         return external;
     }
 
-    /* 外部目录: 存档服务端配置目录下的固定子目录, 不可配置 */
+    /* 外部目录: 存档服务端配置目录下的固定子目录, 路径不可配置 */
     public static Path externalRoot() {
         Path base = serverConfigDir();
         return base == null ? null : base.resolve(EXTERNAL_FOLDER);
@@ -209,14 +214,14 @@ public final class SchematicCatalog {
             }
             Path path = modFileInfo.getFile().findResource(name.split("/"));
             if (!Files.isRegularFile(path)) {
-                TACZEnhancedPatch.LOGGER.error("[ruin] schematic not found: {}", name);
+                TACZEnhancedPatch.LOGGER.error("[ruin] blueprint not found: {}", name);
                 return null;
             }
             try (InputStream stream = Files.newInputStream(path)) {
                 return SchematicReader.read(name, stream);
             }
         } catch (IOException | RuntimeException exception) {
-            TACZEnhancedPatch.LOGGER.error("[ruin] failed to read schematic {}", name, exception);
+            TACZEnhancedPatch.LOGGER.error("[ruin] failed to read blueprint {}", name, exception);
             return null;
         }
     }
@@ -224,12 +229,12 @@ public final class SchematicCatalog {
     private static RuinSchematic readExternal(String name) throws IOException {
         Path root = externalRoot();
         if (root == null) {
-            TACZEnhancedPatch.LOGGER.error("[ruin] external schematic dir unavailable: {}", name);
+            TACZEnhancedPatch.LOGGER.error("[ruin] external blueprint dir unavailable: {}", name);
             return null;
         }
         Path path = root.resolve(name.substring(EXTERNAL_PREFIX.length()));
         if (!Files.isRegularFile(path)) {
-            TACZEnhancedPatch.LOGGER.error("[ruin] external schematic not found: {}", path);
+            TACZEnhancedPatch.LOGGER.error("[ruin] external blueprint not found: {}", path);
             return null;
         }
         try (InputStream stream = Files.newInputStream(path)) {
@@ -240,7 +245,7 @@ public final class SchematicCatalog {
     /*
      * 重新扫描外部目录。
      * 内置名单来自模组文件, 运行期不会变化, 因此只丢弃外部来源的列表与解析结果,
-     * 让增删改过的外部文件重新解析; 已解析的内置模型继续复用。
+     * 让增删改过的外部文件重新解析; 已解析的内置蓝图继续复用。
      */
     public static void refresh() {
         external = null;

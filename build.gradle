@@ -26,13 +26,79 @@ processResources {
                'forgeMajor': forgeMajor,
                'taczMinVersion': taczMinVersion
     }
-    /* 遗迹建筑模型: 作者把 .schematic 放在 src/main/ruins, 构建时原样并入资源包, 运行期由模组文件系统扫描并随机选取 */
+    /* 遗迹建筑蓝图: 作者把 .schem 放在 src/main/ruins, 构建时原样并入资源包, 运行期由模组文件系统扫描并随机选取 */
     inputs.dir file('src/main/ruins')
     from('src/main/ruins') {
-        include '*.schematic'
+        include '*.schem'
         into 'assets/tacz_enhanced_patch/ruins'
     }
 }
+
+/*
+ * 遗迹蓝图校验: 构建期检查 src/main/ruins 下的蓝图能否解析.
+ * 内置只允许 .schem, 校验结果只告警不中断构建; 缺少 Python 时同样只告警.
+ */
+tasks.register('validateBlueprints') {
+    group = 'verification'
+    description = '校验 src/main/ruins 下的遗迹蓝图, 只告警'
+    doLast {
+        def blueprintDir = file('src/main/ruins')
+        def blueprintFiles = blueprintDir.isDirectory() ? (blueprintDir.listFiles() ?: new File[0]) : new File[0]
+        def blueprints = blueprintFiles.findAll { entry ->
+            entry.isFile() && entry.name.toLowerCase(Locale.ROOT).endsWith('.schem')
+        }
+        if (blueprints.isEmpty()) {
+            throw new GradleException("[blueprints] src/main/ruins 下没有 .schem 蓝图, 拒绝构建; 旧格式请先用 scripts/blueprints.py 转换")
+        }
+        def python = null
+        for (String candidate : ['python', 'python3']) {
+            try {
+                def probe = project.providers.exec {
+                    commandLine candidate, '--version'
+                    ignoreExitValue = true
+                    standardOutput = new ByteArrayOutputStream()
+                    errorOutput = new ByteArrayOutputStream()
+                }
+                if (probe.result.get().exitValue == 0) {
+                    python = candidate
+                    break
+                }
+            } catch (Exception ignored) {
+                /* 该候选不可用, 试下一个 */
+            }
+        }
+        if (python == null) {
+            logger.warn('[blueprints] 未找到可用的 Python, 跳过蓝图校验')
+            return
+        }
+        def output = new ByteArrayOutputStream()
+        def runner = project.providers.exec {
+            commandLine python, 'scripts/blueprints.py', '--check', '--input', 'src/main/ruins'
+            workingDir project.projectDir
+            ignoreExitValue = true
+            standardOutput = output
+            errorOutput = output
+        }
+        runner.result.get()
+        def text = output.toString('UTF-8')
+        try {
+            def report = new groovy.json.JsonSlurper().parseText(text.trim())
+            if (report.ok) {
+                logger.lifecycle("[blueprints] 蓝图校验通过, 共 ${report.summary.total} 个文件")
+            } else {
+                report.files.findAll { !it.valid }.each { item ->
+                    logger.warn("[blueprints] ${item.path} 校验未通过: ${item.errors?.join('; ')}")
+                }
+                logger.warn('[blueprints] 蓝图校验未通过, 构建继续')
+            }
+        } catch (Exception ignored) {
+            logger.warn('[blueprints] 蓝图校验输出无法解析, 构建继续')
+            logger.warn(text.take(400))
+        }
+    }
+}
+
+processResources.dependsOn 'validateBlueprints'
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 

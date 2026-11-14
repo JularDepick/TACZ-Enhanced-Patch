@@ -40,6 +40,10 @@ temp/
 tmp/
 javac.*.args
 
+# blueprint tool workspace
+scripts/.input/
+scripts/.output/
+
 # docs for some versions
 v*-*.md
 

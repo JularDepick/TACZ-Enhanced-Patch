@@ -54,7 +54,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 
 | Mechanic | Description |
 |:---:|:---|
-| Building models | The building itself is a WorldEdit .schematic file under `src/main/ruins/`, one is picked at random per ruin, and adding a building only means adding a file |
+| Building blueprints | The building itself is a WorldEdit .schem file under `src/main/ruins/`, one is picked at random per ruin, and adding a building only means adding a file |
 | Framed pasting | Blocks are written chunk by chunk across ticks and the space under the building is filled with a stone foundation, so a large ruin appears as the player approaches |
 | Terrain fitting | The site requires a surface variation of at most two blocks around its center and never generates at or below sea level |
 | Chest and spawner | Placed automatically at a covered spot inside the building, falling back to the center |
@@ -111,7 +111,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Item | Description |
 |:---:|:---|
 | Client configuration | Local preferences such as automatic reload, the incoming fire indicator, the heading ruler and its color, stored per player |
-| Server configuration | 61 parameters grouped into debug, ruins, armed neutral villagers, basics, retaliation, spawning, targeting, ammo, toughness, loot, armed grunt and tank elite, with pure-button and switch groups listed before numeric ones and synced from the server |
+| Server configuration | 62 parameters grouped into debug, ruins, armed neutral villagers, basics, retaliation, spawning, targeting, ammo, toughness, loot, armed grunt and tank elite, with pure-button and switch groups listed before numeric ones and synced from the server |
 | Configuration screen | Opens the config screen directly, with tabs at the top to switch between client and server; the server tab only appears for the world owner |
 | Shortcut | C opens the config screen directly by default; it is a standard key binding, so it can be rebound or cleared in the vanilla controls |
 | Mob arming config | The first row of the server page scans every mob into one switchable list, shows each mob's name and entity ID, and lets group toggles flip those switches in bulk |
@@ -162,4 +162,4 @@ This repository is licensed under the [Apache-2.0 License](./LICENSE)
 - CurseForge mod page: https://www.curseforge.com/minecraft/mc-mods/TACZ-Enhanced-Patch
 - Modrinth mod page: https://modrinth.com/mod/TACZ-Enhanced-Patch
 - TACZ mod: https://www.curseforge.com/minecraft/mc-mods/timeless-and-classics-zero
-- Building model format reference: https://github.com/EngineHub/WorldEdit
+- Building blueprint format reference: https://github.com/EngineHub/WorldEdit

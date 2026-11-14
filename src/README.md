@@ -7,7 +7,7 @@
 
 ```
 src/main/
-├── ruins/                                 # 遗迹建筑模型(*.schematic, 构建时并入资源包)
+├── ruins/                                 # 遗迹建筑蓝图(*.schem, 构建时并入资源包)
 ├── java/com/taczenhancedpatch/
 │   ├── TACZEnhancedPatch.java            # 模组主入口
 │   ├── balance/
@@ -39,6 +39,7 @@ src/main/
 │   │   ├── ConfigOptionGroup.java        # 配置分组与界面顺序
 │   │   ├── MobListConfig.java            # 生物持械配置与运行期缓存
 │   │   ├── MobMiddleConfig.java          # 七个持械分组开关
+│   │   ├── RuinBlueprintSource.java      # 遗迹蓝图来源枚举
 │   │   └── ServerConfig.java             # 服务端配置与配置项列表
 │   ├── debug/
 │   │   └── TaczEventProbe.java           # TACZ API 事件探针(默认关闭)
@@ -111,12 +112,12 @@ src/main/
 │       ├── ModFeatures.java              # 世界生成特性注册
 │       ├── RuinedOutpostFeature.java     # 废弃前哨遗迹生成
 │       └── schematic/
-│           ├── LegacyBlocks.java         # 旧版方块 ID 到现代方块状态映射
 │           ├── RuinPasteHandler.java     # 分帧粘贴调度与容器摆放
 │           ├── RuinSchematic.java        # 建筑数据形态
 │           ├── SchematicCatalog.java     # 建筑目录扫描与缓存
+│           ├── SchematicCatalogRefreshHandler.java # 世界加载时重扫蓝图目录
 │           ├── SchematicPaster.java      # 按区块粘贴
-│           └── SchematicReader.java      # .schematic 解析
+│           └── SchematicReader.java      # .schem 解析
 └── resources/
     ├── META-INF/mods.toml                # 模组元信息
     ├── pack.mcmeta                       # 资源包元信息
