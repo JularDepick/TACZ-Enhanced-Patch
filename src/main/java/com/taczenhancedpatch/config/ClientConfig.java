@@ -225,6 +225,7 @@ public final class ClientConfig {
         return List.of(new ConfigOptionGroup("group.client_prefs", List.of(
                 new ConfigOption.ToggleOption("opt.auto_reload", AUTO_RELOAD),
                 new ConfigOption.ToggleOption("opt.hit_indicator", HIT_INDICATOR),
+                new ConfigOption.ToggleOption("opt.health_bars", HEALTH_BARS),
                 new ConfigOption.ToggleOption("opt.heading_ruler", HEADING_RULER),
                 new ConfigOption.ColorOption("opt.heading_ruler_color", HEADING_RULER_COLOR))));
     }

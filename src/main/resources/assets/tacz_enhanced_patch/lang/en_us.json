@@ -142,6 +142,7 @@
   "tacz_enhanced_patch.opt.debug": "Debug logging",
   "tacz_enhanced_patch.opt.auto_reload": "Automatic reload",
   "tacz_enhanced_patch.opt.hit_indicator": "Incoming fire indicator",
+  "tacz_enhanced_patch.opt.health_bars": "Mob health bars",
   "tacz_enhanced_patch.opt.heading_ruler": "Heading ruler",
   "tacz_enhanced_patch.opt.heading_ruler_color": "Heading ruler color",
   "entity.tacz_enhanced_patch.gunner_grunt": "Armed Grunt",

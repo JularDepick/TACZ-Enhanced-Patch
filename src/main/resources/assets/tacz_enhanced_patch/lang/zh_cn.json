@@ -142,6 +142,7 @@
   "tacz_enhanced_patch.opt.debug": "调试日志",
   "tacz_enhanced_patch.opt.auto_reload": "自动换弹",
   "tacz_enhanced_patch.opt.hit_indicator": "枪击来源提示",
+  "tacz_enhanced_patch.opt.health_bars": "生物血量显示",
   "tacz_enhanced_patch.opt.heading_ruler": "方向标尺",
   "tacz_enhanced_patch.opt.heading_ruler_color": "方向标尺颜色",
   "entity.tacz_enhanced_patch.gunner_grunt": "持枪小兵",
