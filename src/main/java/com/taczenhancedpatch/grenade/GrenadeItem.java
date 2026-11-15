@@ -1,21 +1,20 @@
 package com.taczenhancedpatch.grenade;
 
+import com.taczenhancedpatch.shell.ShellItem;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.level.Level;
 
 /*
  * 手雷物品。
- * 全模组只有这一种手雷, 堆叠上限 64; 六项属性不存在物品数据里, 而是玩家偏好, 由客户端配置持有,
- * 投掷时随包下发并绑定到这一颗手雷上, 之后切换属性不会影响已经飞出去的那一颗。
+ * 属性随物品数据走, 手持时用按键切换并写回这一叠; 右键蓄力, 松开投掷。
  * 蓄力沿用拉弓姿态, 视野同时收缩, 不占用屏幕空间。
  */
-public class GrenadeItem extends Item {
+public class GrenadeItem extends ShellItem {
     public GrenadeItem(Properties properties) {
         super(properties);
     }
@@ -27,7 +26,6 @@ public class GrenadeItem extends Item {
         return InteractionResultHolder.consume(stack);
     }
 
-    /* 蓄力超过三秒不再累计, 使用时长给足即可, 松开才投出 */
     @Override
     public int getUseDuration(ItemStack stack) {
         return 72000;

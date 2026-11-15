@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "tacz_enhanced_patch:block/mortar"
+    }
+  }
+}

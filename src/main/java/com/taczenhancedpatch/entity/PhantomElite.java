@@ -1,5 +1,7 @@
 package com.taczenhancedpatch.entity;
 
+import com.taczenhancedpatch.shell.ShellTarget;
+import com.taczenhancedpatch.shell.ShellSettings;
 import com.taczenhancedpatch.TACZEnhancedPatch;
 import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.faction.FactionData;
@@ -7,8 +9,6 @@ import com.taczenhancedpatch.faction.Factions;
 import com.taczenhancedpatch.faction.RuinSites;
 import com.taczenhancedpatch.faction.RuinTerritory;
 import com.taczenhancedpatch.grenade.GrenadeProjectile;
-import com.taczenhancedpatch.grenade.GrenadeSettings;
-import com.taczenhancedpatch.grenade.GrenadeTarget;
 import com.taczenhancedpatch.item.PatchItems;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -224,15 +224,15 @@ public class PhantomElite extends Phantom {
         }
         this.throwCooldown = ServerConfig.phantomThrowDelay(this.getRandom()) * 20;
         boolean againstPlayer = target instanceof Player;
-        GrenadeTarget mode = againstPlayer ? GrenadeTarget.PLAYER_ONLY : GrenadeTarget.MOB_ONLY;
+        ShellTarget mode = againstPlayer ? ShellTarget.PLAYER_ONLY : ShellTarget.MOB_ONLY;
         int fuse = 1 + this.getRandom().nextInt(MAX_FUSE_SECONDS);
         DyeColor color = DyeColor.byName(site.bannerColor(), DyeColor.GREEN);
-        GrenadeSettings settings = new GrenadeSettings(fuse, false, DEFAULT_POWER, mode, color, true);
+        ShellSettings settings = new ShellSettings(fuse, false, DEFAULT_POWER, mode, color, true);
         int charge = ServerConfig.phantomCharge(this.getRandom());
         double[] range = ServerConfig.grenadeSpeedRange();
         Vec3 start = this.getEyePosition();
         Vec3 velocity = this.aimAt(start, target.getEyePosition(),
-                GrenadeSettings.speedFor(charge, range[0], range[1]) / 20.0D);
+                ShellSettings.speedFor(charge, range[0], range[1]) / 20.0D);
         GrenadeProjectile grenade = new GrenadeProjectile(level, start, velocity, settings, this, fuse * 20);
         level.addFreshEntity(grenade);
         level.playSound(null, this.getX(), this.getY(), this.getZ(),

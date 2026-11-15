@@ -1,8 +1,8 @@
 package com.taczenhancedpatch.client.hud;
 
+import com.taczenhancedpatch.shell.ShellSettings;
 import com.taczenhancedpatch.TACZEnhancedPatch;
 import com.taczenhancedpatch.grenade.GrenadeClientHandler;
-import com.taczenhancedpatch.grenade.GrenadeSettings;
 import com.taczenhancedpatch.util.UiText;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -46,7 +46,7 @@ public final class GrenadeHudOverlay {
         if (minecraft.player == null || minecraft.options.hideGui) {
             return;
         }
-        boolean holding = GrenadeClientHandler.isHoldingGrenade(minecraft.player);
+        boolean holding = GrenadeClientHandler.isHoldingShell(minecraft.player);
         if (!holding) {
             /* 手雷已全部投出时仍保留这一颗的引信倒计时, 直到爆炸或计时结束 */
             String status = statusText();
@@ -59,7 +59,7 @@ public final class GrenadeHudOverlay {
             }
             return;
         }
-        GrenadeSettings settings = GrenadeClientHandler.settings();
+        ShellSettings settings = GrenadeClientHandler.settings();
         List<String[]> rows = rows(settings);
         int labelWidth = 0;
         int valueWidth = 0;
@@ -93,7 +93,7 @@ public final class GrenadeHudOverlay {
     }
 
     /* 面板行序: 引信, 威力, 杀伤, 粘性, 特效, 颜色 */
-    private static List<String[]> rows(GrenadeSettings settings) {
+    private static List<String[]> rows(ShellSettings settings) {
         List<String[]> rows = new ArrayList<>();
         rows.add(new String[]{UiText.plain("grenade.label.fuse"),
                 GrenadeClientHandler.fuseText(settings.fuseSeconds()).getString(), "- ="});

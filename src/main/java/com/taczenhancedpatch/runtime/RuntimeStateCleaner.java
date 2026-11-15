@@ -5,7 +5,6 @@ import com.taczenhancedpatch.entity.TankCrew;
 import com.taczenhancedpatch.faction.RuinExperience;
 import com.taczenhancedpatch.faction.RuinGarrison;
 import com.taczenhancedpatch.faction.RuinSites;
-import com.taczenhancedpatch.grenade.GrenadeThrowHandler;
 import com.taczenhancedpatch.gunner.GunnerCombat;
 import com.taczenhancedpatch.world.schematic.RuinPasteHandler;
 import net.minecraftforge.event.server.ServerStoppingEvent;
@@ -29,7 +28,6 @@ public final class RuntimeStateCleaner {
         RuinGarrison.clearPresence();
         TankCrew.clearAll();
         GunnerCombat.clearStates();
-        GrenadeThrowHandler.clearAll();
         com.taczenhancedpatch.villager.VillagerTradeHandler.clearPending();
         com.taczenhancedpatch.world.RuinChunkGuard.clear();
         RuinSites.clearKnown();

@@ -3,6 +3,7 @@ package com.taczenhancedpatch.item;
 import com.taczenhancedpatch.TACZEnhancedPatch;
 import com.taczenhancedpatch.entity.GruntRegistry;
 import com.taczenhancedpatch.entity.PhantomRegistry;
+import com.taczenhancedpatch.mortar.MortarRegistry;
 import com.taczenhancedpatch.entity.TankRegistry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -38,6 +39,9 @@ public final class PatchCreativeTab {
                         output.accept(GruntRegistry.SPAWN_EGG.get());
                         output.accept(TankRegistry.SPAWN_EGG.get());
                         output.accept(PhantomRegistry.SPAWN_EGG.get());
+                        output.accept(MortarRegistry.MORTAR_ITEM.get());
+                        output.accept(MortarRegistry.MORTAR_SHELL.get());
+                        output.accept(MortarRegistry.MORTAR_REMOTE.get());
                     })
                     .build());
 

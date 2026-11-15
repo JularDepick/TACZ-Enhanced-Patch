@@ -4,9 +4,9 @@ import com.taczenhancedpatch.TACZEnhancedPatch;
 import com.taczenhancedpatch.client.render.GrenadeRenderer;
 import com.taczenhancedpatch.client.render.GruntRenderer;
 import com.taczenhancedpatch.client.render.PhantomEliteRenderer;
-import com.taczenhancedpatch.config.ClientConfig;
 import com.taczenhancedpatch.entity.PhantomRegistry;
 import com.taczenhancedpatch.grenade.GrenadeRegistry;
+import com.taczenhancedpatch.shell.ShellItem;
 import com.taczenhancedpatch.item.PatchItems;
 import com.taczenhancedpatch.client.render.TankModel;
 import com.taczenhancedpatch.client.render.TankRenderer;
@@ -14,7 +14,6 @@ import com.taczenhancedpatch.entity.GruntRegistry;
 import com.taczenhancedpatch.entity.TankRegistry;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
-import net.minecraft.world.item.DyeColor;
 import net.minecraftforge.client.event.RegisterColorHandlersEvent;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -57,10 +56,10 @@ public final class TACZEnhancedPatchClient {
     @SubscribeEvent
     public static void onRegisterItemColors(RegisterColorHandlersEvent.Item event) {
         event.register((stack, tintIndex) -> {
-            if (tintIndex != 0) {
+            if (tintIndex != 0 || !(stack.getItem() instanceof ShellItem shell)) {
                 return -1;
             }
-            int rgb = DyeColor.byName(ClientConfig.grenadeColor(), DyeColor.GREEN).getFireworkColor();
+            int rgb = shell.settingsOf(stack).color().getFireworkColor();
             return 0xFF000000 | rgb;
         }, PatchItems.GRENADE.get());
     }
