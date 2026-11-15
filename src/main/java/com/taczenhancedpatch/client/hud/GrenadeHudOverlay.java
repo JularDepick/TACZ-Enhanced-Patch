@@ -17,9 +17,8 @@ import java.util.Locale;
 
 /*
  * 手雷面板。
- * 靠屏幕右侧显示, 避开顶部居中的方向标尺; 手持手雷时列出六项属性与对应按键,
- * 成对按键只写两个键, 单键只写一个键, 不再用斜杠分隔。
- * 蓄力过程不在这里显示, 改用拉弓姿态与视野收缩; 面板只在投出后保留这一颗的引信倒计时。
+ * 靠屏幕右侧显示属性与对应按键; 引信倒计时单独一块, 居中贴在快捷栏上方, 最多并排两颗。
+ * 倒计时从按下蓄力就开始走, 投出后继续, 因此蓄力期间也能看到还剩多少。
  */
 @Mod.EventBusSubscriber(modid = TACZEnhancedPatch.MOD_ID, value = Dist.CLIENT)
 public final class GrenadeHudOverlay {
@@ -36,6 +35,9 @@ public final class GrenadeHudOverlay {
     private static final int VALUE_COLOR = 0xFFFFFFFF;
     private static final int HINT_COLOR = 0xFF7F7F7F;
     private static final int WARN_COLOR = 0xFFFF7070;
+    /* 倒计时面板离屏幕底边的距离, 避开快捷栏 */
+    private static final int FUSE_BOTTOM = 62;
+    private static final int FUSE_GAP = 6;
 
     private GrenadeHudOverlay() {
     }
@@ -46,17 +48,9 @@ public final class GrenadeHudOverlay {
         if (minecraft.player == null || minecraft.options.hideGui) {
             return;
         }
-        boolean holding = GrenadeClientHandler.isHoldingShell(minecraft.player);
-        if (!holding) {
-            /* 手雷已全部投出时仍保留这一颗的引信倒计时, 直到爆炸或计时结束 */
-            String status = statusText();
-            if (!status.isEmpty()) {
-                GuiGraphics graphics = event.getGuiGraphics();
-                int width = minecraft.font.width(status) + PADDING_X * 2;
-                int left = minecraft.getWindow().getGuiScaledWidth() - MARGIN - width;
-                graphics.fill(left, TOP, left + width, TOP + ROW_HEIGHT, BACKGROUND);
-                graphics.drawString(minecraft.font, status, left + PADDING_X, TOP + 2, WARN_COLOR, false);
-            }
+        GuiGraphics graphics = event.getGuiGraphics();
+        drawFuses(minecraft, graphics);
+        if (!GrenadeClientHandler.isHoldingShell(minecraft.player)) {
             return;
         }
         ShellSettings settings = GrenadeClientHandler.settings();
@@ -73,9 +67,8 @@ public final class GrenadeHudOverlay {
         int contentWidth = Math.max(minecraft.font.width(title),
                 labelWidth + GAP + valueWidth + GAP * 2 + hintWidth);
         int width = contentWidth + PADDING_X * 2;
-        int height = PADDING_Y * 2 + ROW_HEIGHT + rows.size() * ROW_HEIGHT + ROW_HEIGHT;
+        int height = PADDING_Y * 2 + ROW_HEIGHT + rows.size() * ROW_HEIGHT;
         int left = minecraft.getWindow().getGuiScaledWidth() - MARGIN - width;
-        GuiGraphics graphics = event.getGuiGraphics();
         graphics.fill(left, TOP, left + width, TOP + height, BACKGROUND);
         graphics.drawString(minecraft.font, title, left + PADDING_X, TOP + PADDING_Y, TITLE_COLOR, false);
         int y = TOP + PADDING_Y + ROW_HEIGHT;
@@ -86,9 +79,32 @@ public final class GrenadeHudOverlay {
                     y, HINT_COLOR, false);
             y += ROW_HEIGHT;
         }
-        String status = statusText();
-        if (!status.isEmpty()) {
-            graphics.drawString(minecraft.font, status, left + PADDING_X, y, WARN_COLOR, false);
+    }
+
+    /* 引信倒计时: 单独一块, 居中并排, 最多两颗 */
+    private static void drawFuses(Minecraft minecraft, GuiGraphics graphics) {
+        List<GrenadeClientHandler.Fuse> fuses = GrenadeClientHandler.fuses();
+        if (fuses.isEmpty()) {
+            return;
+        }
+        List<String> texts = new ArrayList<>();
+        for (GrenadeClientHandler.Fuse fuse : fuses) {
+            texts.add(fuse.impact()
+                    ? UiText.plain("grenade.fuse_impact")
+                    : UiText.of("grenade.fuse_countdown",
+                            String.format(Locale.ROOT, "%.1f", fuse.ticks() / 20.0D)).getString());
+        }
+        int total = FUSE_GAP * (texts.size() - 1);
+        for (String text : texts) {
+            total += minecraft.font.width(text) + PADDING_X * 2;
+        }
+        int x = (minecraft.getWindow().getGuiScaledWidth() - total) / 2;
+        int y = minecraft.getWindow().getGuiScaledHeight() - FUSE_BOTTOM;
+        for (String text : texts) {
+            int width = minecraft.font.width(text) + PADDING_X * 2;
+            graphics.fill(x, y, x + width, y + ROW_HEIGHT, BACKGROUND);
+            graphics.drawString(minecraft.font, text, x + PADDING_X, y + 2, WARN_COLOR, false);
+            x += width + FUSE_GAP;
         }
     }
 
@@ -108,16 +124,5 @@ public final class GrenadeHudOverlay {
         rows.add(new String[]{UiText.plain("grenade.label.color"),
                 UiText.plain("grenade.color." + settings.color().getName()), ", ."});
         return rows;
-    }
-
-    private static String statusText() {
-        int fuse = GrenadeClientHandler.fuseTicks();
-        if (fuse < 0) {
-            return "";
-        }
-        if (GrenadeClientHandler.impactFuse()) {
-            return UiText.plain("grenade.fuse_impact");
-        }
-        return UiText.of("grenade.fuse_countdown", String.format(Locale.ROOT, "%.1f", fuse / 20.0D)).getString();
     }
 }

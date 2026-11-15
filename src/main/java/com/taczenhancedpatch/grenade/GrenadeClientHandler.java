@@ -19,13 +19,17 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 /*
  * 炮弹属性的客户端交互。
- * 手持任意炮弹时接管九个固定按键切换六项属性, 成对按键到边界即停, 单键为开关或循环。
- * 修改直接写回手里这一叠物品并上报服务端; 手雷额外支持按住右键蓄力与松开投掷。
+ * 手持任意炮弹时接管九个固定按键切换六项属性, 成对按键到边界即停, 颜色循环;
+ * 按住不放会在短暂延迟后连续步进。修改直接写回手里这一叠物品并上报服务端。
+ * 手雷额外支持按住右键蓄力与松开投掷, 蓄力中按左键取消。
  */
 @Mod.EventBusSubscriber(modid = TACZEnhancedPatch.MOD_ID, value = Dist.CLIENT)
 public final class GrenadeClientHandler {
@@ -38,12 +42,11 @@ public final class GrenadeClientHandler {
     private static final Map<Integer, Integer> HOLD = new HashMap<>();
     private static final int REPEAT_DELAY = 12;
     private static final int REPEAT_INTERVAL = 2;
+    /* 正在走引信的炮弹, 最新在前, 最多保留两颗 */
+    private static final List<Fuse> FUSES = new ArrayList<>();
+    private static final int FUSE_LIMIT = 2;
     private static boolean attackDown;
-    private static final int IMPACT_HINT_TICKS = 40;
-
     private static int chargeTicks = -1;
-    private static int fuseTicks = -1;
-    private static boolean impactFuse;
 
     private GrenadeClientHandler() {
     }
@@ -75,12 +78,8 @@ public final class GrenadeClientHandler {
         return chargeTicks;
     }
 
-    public static int fuseTicks() {
-        return fuseTicks;
-    }
-
-    public static boolean impactFuse() {
-        return impactFuse;
+    public static List<Fuse> fuses() {
+        return FUSES;
     }
 
     @SubscribeEvent
@@ -101,10 +100,13 @@ public final class GrenadeClientHandler {
         /* 蓄力中按左键取消这次投掷 */
         if (pollAttack(minecraft) && chargeTicks >= 0) {
             chargeTicks = -1;
+            if (!FUSES.isEmpty()) {
+                FUSES.remove(0);
+            }
             minecraft.player.stopUsingItem();
         }
         updateCharge(minecraft, holding);
-        tickFuse();
+        tickFuses();
     }
 
     @SubscribeEvent
@@ -204,6 +206,8 @@ public final class GrenadeClientHandler {
         if (grenade && useDown && using) {
             if (chargeTicks < 0) {
                 chargeTicks = 0;
+                ShellSettings current = settings();
+                pushFuse(current.impactFuse() ? -1 : current.fuseSeconds() * 20, current.impactFuse());
             } else {
                 chargeTicks = Math.min(ShellSettings.CHARGE_TICKS, chargeTicks + 1);
             }
@@ -219,8 +223,34 @@ public final class GrenadeClientHandler {
         }
         ShellSettings settings = settings();
         PatchNetwork.sendGrenadeThrow(charge);
-        impactFuse = settings.impactFuse();
-        fuseTicks = impactFuse ? IMPACT_HINT_TICKS : Math.max(1, settings.fuseSeconds() * 20 - charge);
+        if (settings.impactFuse()) {
+            /* 触发式没有倒计时, 投出后不再显示 */
+            FUSES.removeIf(fuse -> fuse.impact);
+        }
+    }
+
+    private static void pushFuse(int ticks, boolean impact) {
+        FUSES.add(0, new Fuse(ticks, impact));
+        while (FUSES.size() > FUSE_LIMIT) {
+            FUSES.remove(FUSES.size() - 1);
+        }
+    }
+
+    private static void tickFuses() {
+        if (FUSES.isEmpty()) {
+            return;
+        }
+        Iterator<Fuse> iterator = FUSES.iterator();
+        while (iterator.hasNext()) {
+            Fuse fuse = iterator.next();
+            if (fuse.impact) {
+                continue;
+            }
+            fuse.ticks--;
+            if (fuse.ticks <= 0) {
+                iterator.remove();
+            }
+        }
     }
 
     private static boolean pollAttack(Minecraft minecraft) {
@@ -228,15 +258,6 @@ public final class GrenadeClientHandler {
         boolean edge = down && !attackDown;
         attackDown = down;
         return edge;
-    }
-
-    private static void tickFuse() {
-        if (fuseTicks > 0) {
-            fuseTicks--;
-        } else if (fuseTicks == 0) {
-            fuseTicks = -1;
-            impactFuse = false;
-        }
     }
 
     public static Component fuseText(int fuseSeconds) {
@@ -247,9 +268,27 @@ public final class GrenadeClientHandler {
 
     private static void reset() {
         chargeTicks = -1;
-        fuseTicks = -1;
-        impactFuse = false;
         HOLD.clear();
+        FUSES.clear();
         attackDown = false;
+    }
+
+    /* 一颗正在走引信的炮弹, 倒计时单位 tick; 触发式没有倒计时, 只显示状态 */
+    public static final class Fuse {
+        private int ticks;
+        private final boolean impact;
+
+        private Fuse(int ticks, boolean impact) {
+            this.ticks = ticks;
+            this.impact = impact;
+        }
+
+        public int ticks() {
+            return ticks;
+        }
+
+        public boolean impact() {
+            return impact;
+        }
     }
 }
