@@ -140,7 +140,7 @@ public final class RuinPasteHandler {
     private static void abandon(ServerLevel level, RuinSites.Site site, Job job, RuinSites data) {
         for (Map.Entry<Long, BlockState> entry : job.snapshot.entrySet()) {
             BlockPos pos = BlockPos.of(entry.getKey());
-            level.setBlock(pos, entry.getValue(), Block.UPDATE_CLIENTS);
+            SchematicPaster.place(level, pos, entry.getValue(), Block.UPDATE_CLIENTS);
         }
         JOBS.remove(new JobKey(level.dimension(), site.origin()));
         data.removeSite(site.origin());

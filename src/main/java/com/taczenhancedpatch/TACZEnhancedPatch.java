@@ -13,7 +13,7 @@ import com.taczenhancedpatch.item.PatchCreativeTab;
 import com.taczenhancedpatch.item.PatchItems;
 import com.taczenhancedpatch.mortar.MortarRegistry;
 import com.taczenhancedpatch.network.PatchNetwork;
-import com.taczenhancedpatch.world.ModFeatures;
+import com.taczenhancedpatch.world.structure.RuinStructures;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.common.Mod;
@@ -35,7 +35,8 @@ public final class TACZEnhancedPatch {
         context.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
         context.registerConfig(ModConfig.Type.SERVER, ServerConfig.SPEC);
         PatchNetwork.register();
-        ModFeatures.FEATURES.register(context.getModEventBus());
+        RuinStructures.STRUCTURE_TYPES.register(context.getModEventBus());
+        RuinStructures.PIECE_TYPES.register(context.getModEventBus());
         FastMagCreativeTab.TABS.register(context.getModEventBus());
         GruntRegistry.register(context.getModEventBus());
         TankRegistry.register(context.getModEventBus());

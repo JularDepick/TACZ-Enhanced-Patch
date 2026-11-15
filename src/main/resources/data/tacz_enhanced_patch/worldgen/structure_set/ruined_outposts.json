@@ -1,0 +1,14 @@
+{
+  "placement": {
+    "type": "minecraft:random_spread",
+    "salt": 10387313,
+    "spacing": 43,
+    "separation": 39
+  },
+  "structures": [
+    {
+      "structure": "tacz_enhanced_patch:ruined_outpost",
+      "weight": 1
+    }
+  ]
+}

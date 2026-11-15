@@ -168,17 +168,19 @@ src/main/
 │   │   ├── VillagerRetaliation.java      # Retaliation rules for players and mobs
 │   │   └── VillagerTradeHandler.java     # Trade settlement and offer rebuild
 │   └── world/
-│       ├── ModFeatures.java              # World generation feature registration
-│       ├── RuinedOutpostFeature.java     # Ruined outpost generation
 │       ├── RuinChunkGuard.java           # New chunk guard so ruins only land in fresh chunks
-│       └── schematic/
-│           ├── LegacyBlocks.java         # Legacy block id mapping (external files only)
-│           ├── RuinPasteHandler.java     # Framed paste scheduling and containers
-│           ├── RuinSchematic.java        # Building data shape
-│           ├── SchematicCatalog.java     # Building catalog scan and cache
-│           ├── SchematicCatalogRefreshHandler.java # Rescans blueprints on world load
-│           ├── SchematicPaster.java      # Per-chunk pasting
-│           └── SchematicReader.java      # .schem parsing
+│       ├── schematic/
+│       │   ├── LegacyBlocks.java         # Legacy block id mapping (external files only)
+│       │   ├── RuinPasteHandler.java     # Framed paste scheduling and containers
+│       │   ├── RuinSchematic.java        # Building data shape
+│       │   ├── SchematicCatalog.java     # Building catalog scan and cache
+│       │   ├── SchematicCatalogRefreshHandler.java # Rescans blueprints on world load
+│       │   ├── SchematicPaster.java      # Per-chunk pasting
+│       │   └── SchematicReader.java      # .schem parsing
+│       └── structure/
+│           ├── RuinPiece.java            # Ruin piece with per-chunk clipped writes
+│           ├── RuinStructure.java        # Ruin structure placement and generation entry
+│           └── RuinStructures.java       # Structure and piece type registration
 └── resources/
     ├── META-INF/mods.toml                # Mod metadata
     ├── pack.mcmeta                       # Resource pack metadata
