@@ -177,6 +177,15 @@ public final class RuinSiteIndexManager {
         }
         ticks++;
         MinecraftServer server = event.getServer();
+        /* 首个 tick 把各维度的索引读进来: 读盘放在这里, 不落在区块加载回调里 */
+        if (ticks == 1) {
+            for (ServerLevel level : server.getAllLevels()) {
+                RandomSpreadStructurePlacement first = placement(level);
+                if (first != null) {
+                    index(level, first);
+                }
+            }
+        }
         if (!JOBS.isEmpty() || !QUEUES.isEmpty()) {
             RuinStructure.SampleCounter counter = new RuinStructure.SampleCounter();
             for (Job job : List.copyOf(JOBS.values())) {
@@ -199,7 +208,13 @@ public final class RuinSiteIndexManager {
 
     @SubscribeEvent
     public static void onServerStopping(ServerStoppingEvent event) {
-        saveAll(event.getServer());
+        /* 停止时同步落盘, 后台写线程可能来不及跑完 */
+        for (Map.Entry<ResourceKey<Level>, RuinSiteIndex> entry : INDEXES.entrySet()) {
+            ServerLevel level = event.getServer().getLevel(entry.getKey());
+            if (level != null) {
+                entry.getValue().saveNow(level);
+            }
+        }
         clear();
     }
 

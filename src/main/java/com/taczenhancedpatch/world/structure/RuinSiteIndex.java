@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.Map;
 
 /*
@@ -99,20 +101,45 @@ public final class RuinSiteIndex {
         return index;
     }
 
+    /* 落盘走单独线程: 整表写盘不该占服务端线程 */
+    private static final ExecutorService WRITER = Executors.newSingleThreadExecutor(task -> {
+        Thread thread = new Thread(task, "tacz-enhanced-patch-ruin-index-writer");
+        thread.setDaemon(true);
+        return thread;
+    });
+
     public void save(ServerLevel level) {
+        writeTo(level, false);
+    }
+
+    /* 服务端停止时用: 直接在当前线程写完, 避免进程退出丢掉最后一次索引 */
+    public void saveNow(ServerLevel level) {
+        writeTo(level, true);
+    }
+
+    private void writeTo(ServerLevel level, boolean sync) {
         if (!dirty) {
             return;
         }
         Path path = file(level);
-        try {
-            Path parent = path.getParent();
-            if (parent != null) {
-                Files.createDirectories(parent);
+        /* 先在当前线程拍一份快照, 之后表的改动不会影响这次落盘 */
+        CompoundTag tag = write();
+        dirty = false;
+        Runnable job = () -> {
+            try {
+                Path parent = path.getParent();
+                if (parent != null) {
+                    Files.createDirectories(parent);
+                }
+                NbtIo.writeCompressed(tag, path.toFile());
+            } catch (IOException | RuntimeException exception) {
+                TACZEnhancedPatch.LOGGER.warn("[ruin] failed to save site index", exception);
             }
-            NbtIo.writeCompressed(write(), path.toFile());
-            dirty = false;
-        } catch (IOException | RuntimeException exception) {
-            TACZEnhancedPatch.LOGGER.warn("[ruin] failed to save site index", exception);
+        };
+        if (sync) {
+            job.run();
+        } else {
+            WRITER.execute(job);
         }
     }
 
