@@ -8,6 +8,7 @@ import com.taczenhancedpatch.config.ConfigOption;
  * 按键切换与界面展示都按声明顺序循环。
  */
 public enum ShellTarget implements ConfigOption.Labeled {
+    NO_DAMAGE(false, false, false, "no_damage"),
     TERRAIN_ONLY(true, false, false, "terrain_only"),
     PLAYER_ONLY(false, true, false, "player_only"),
     MOB_ONLY(false, false, true, "mob_only"),

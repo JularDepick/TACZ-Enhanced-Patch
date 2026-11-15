@@ -34,7 +34,11 @@ public final class GrenadeClientHandler {
             GLFW.GLFW_KEY_LEFT_BRACKET, GLFW.GLFW_KEY_RIGHT_BRACKET,
             GLFW.GLFW_KEY_BACKSLASH, GLFW.GLFW_KEY_SEMICOLON, GLFW.GLFW_KEY_APOSTROPHE,
             GLFW.GLFW_KEY_COMMA, GLFW.GLFW_KEY_PERIOD};
-    private static final Map<Integer, Boolean> DOWN = new HashMap<>();
+    /* 按键按住时长, 用于长按连续步进 */
+    private static final Map<Integer, Integer> HOLD = new HashMap<>();
+    private static final int REPEAT_DELAY = 12;
+    private static final int REPEAT_INTERVAL = 2;
+    private static boolean attackDown;
     private static final int IMPACT_HINT_TICKS = 40;
 
     private static int chargeTicks = -1;
@@ -94,6 +98,11 @@ public final class GrenadeClientHandler {
             chargeTicks = -1;
         }
         pollKeys(minecraft, holding);
+        /* 蓄力中按左键取消这次投掷 */
+        if (pollAttack(minecraft) && chargeTicks >= 0) {
+            chargeTicks = -1;
+            minecraft.player.stopUsingItem();
+        }
         updateCharge(minecraft, holding);
         tickFuse();
     }
@@ -111,10 +120,15 @@ public final class GrenadeClientHandler {
         long window = minecraft.getWindow().getWindow();
         boolean canAct = holding && minecraft.screen == null;
         for (int key : KEYS) {
-            boolean down = InputConstants.isKeyDown(window, key);
-            boolean was = DOWN.getOrDefault(key, false);
-            DOWN.put(key, down);
-            if (down && !was && canAct) {
+            if (!InputConstants.isKeyDown(window, key)) {
+                HOLD.remove(key);
+                continue;
+            }
+            int hold = HOLD.getOrDefault(key, 0);
+            HOLD.put(key, hold + 1);
+            boolean fire = hold == 0
+                    || (hold >= REPEAT_DELAY && (hold - REPEAT_DELAY) % REPEAT_INTERVAL == 0);
+            if (fire && canAct) {
                 applyKey(minecraft, key);
             }
         }
@@ -209,6 +223,13 @@ public final class GrenadeClientHandler {
         fuseTicks = impactFuse ? IMPACT_HINT_TICKS : Math.max(1, settings.fuseSeconds() * 20 - charge);
     }
 
+    private static boolean pollAttack(Minecraft minecraft) {
+        boolean down = minecraft.mouseHandler.isMouseGrabbed() && minecraft.options.keyAttack.isDown();
+        boolean edge = down && !attackDown;
+        attackDown = down;
+        return edge;
+    }
+
     private static void tickFuse() {
         if (fuseTicks > 0) {
             fuseTicks--;
@@ -228,6 +249,7 @@ public final class GrenadeClientHandler {
         chargeTicks = -1;
         fuseTicks = -1;
         impactFuse = false;
-        DOWN.clear();
+        HOLD.clear();
+        attackDown = false;
     }
 }

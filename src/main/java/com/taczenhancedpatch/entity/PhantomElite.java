@@ -227,10 +227,13 @@ public class PhantomElite extends Phantom {
         ShellTarget mode = againstPlayer ? ShellTarget.PLAYER_ONLY : ShellTarget.MOB_ONLY;
         int fuse = 1 + this.getRandom().nextInt(MAX_FUSE_SECONDS);
         DyeColor color = DyeColor.byName(site.bannerColor(), DyeColor.GREEN);
-        ShellSettings settings = PhantomShells.take(this);
-        if (settings == null) {
+        ShellSettings base = PhantomShells.take(this);
+        if (base == null) {
             return;
         }
+        /* 背包里存的是威力与引信, 杀伤对象与颜色按投掷时的目标与遗迹阵营决定 */
+        ShellSettings settings = new ShellSettings(base.fuseSeconds(), base.sticky(), base.power(),
+                mode, color, base.effects());
         int charge = ServerConfig.phantomCharge(this.getRandom());
         double[] range = ServerConfig.grenadeSpeedRange();
         Vec3 start = this.getEyePosition();

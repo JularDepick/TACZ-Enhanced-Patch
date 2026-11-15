@@ -11,23 +11,25 @@ import net.minecraft.world.item.DyeColor;
  */
 public record ShellSettings(int fuseSeconds, boolean sticky, int power, ShellTarget target,
                             DyeColor color, boolean effects) {
-    public static final int CHARGE_TICKS = 60;
+    public static final int CHARGE_TICKS = 20;
     public static final double SPEED_MIN_DEFAULT = 4.0D;
     public static final double SPEED_MAX_DEFAULT = 16.0D;
     public static final double SPEED_MIN_LIMIT = 4.0D;
     public static final double SPEED_MAX_LIMIT = 64.0D;
     public static final int FUSE_IMPACT = -1;
-    public static final int FUSE_MIN = 1;
+    public static final int FUSE_MIN = 3;
     public static final int FUSE_MAX = 10;
     public static final int POWER_MIN = 0;
     public static final int POWER_MAX = 16;
     public static final double RADIUS_MAX = 16.0D;
     public static final float DAMAGE_MAX = 64.0F;
+    /* 单颗手雷的质量, 单位千克, 只用于提示与手感换算 */
+    public static final double MASS_KG = 0.3D;
     public static final double REST_SPEED = 0.1D;
     public static final double TANGENT_LOSS = 0.1D;
 
-    /* 新物品的出厂属性: 三秒引信, 不粘, 威力四, 破坏地形且杀伤玩家, 墨绿, 开特效 */
-    public static final ShellSettings DEFAULT = new ShellSettings(3, false, 4, ShellTarget.NO_MOB, DyeColor.GREEN, true);
+    /* 新物品的出厂属性: 三秒引信, 不粘, 威力四, 不杀伤任何目标, 墨绿, 开特效 */
+    public static final ShellSettings DEFAULT = new ShellSettings(3, false, 4, ShellTarget.NO_DAMAGE, DyeColor.GREEN, true);
 
     public static double speedFor(int chargeTicks, double min, double max) {
         double ratio = Mth.clamp(chargeTicks, 0, CHARGE_TICKS) / (double) CHARGE_TICKS;
@@ -48,7 +50,7 @@ public record ShellSettings(int fuseSeconds, boolean sticky, int power, ShellTar
 
     /* 成对按键到边界即停, 不溢出也不循环 */
     public static int stepFuse(int current, boolean forward) {
-        int[] table = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, FUSE_IMPACT};
+        int[] table = {3, 4, 5, 6, 7, 8, 9, 10, FUSE_IMPACT};
         int index = 0;
         for (int i = 0; i < table.length; i++) {
             if (table[i] == current) {
@@ -66,7 +68,8 @@ public record ShellSettings(int fuseSeconds, boolean sticky, int power, ShellTar
     public static DyeColor stepColor(DyeColor current, boolean forward) {
         DyeColor[] colors = DyeColor.values();
         int index = current == null ? 0 : current.ordinal();
-        return colors[Mth.clamp(index + (forward ? 1 : -1), 0, colors.length - 1)];
+        int next = (index + (forward ? 1 : colors.length - 1)) % colors.length;
+        return colors[next];
     }
 
     public static ShellSettings sanitize(ShellSettings settings) {
@@ -76,7 +79,7 @@ public record ShellSettings(int fuseSeconds, boolean sticky, int power, ShellTar
         }
         int power = Mth.clamp(settings.power(), POWER_MIN, POWER_MAX);
         DyeColor color = settings.color() == null ? DyeColor.GREEN : settings.color();
-        ShellTarget target = settings.target() == null ? ShellTarget.NO_MOB : settings.target();
+        ShellTarget target = settings.target() == null ? ShellTarget.NO_DAMAGE : settings.target();
         return new ShellSettings(fuse, settings.sticky(), power, target, color, settings.effects());
     }
 

@@ -40,6 +40,7 @@
 | 世界生成配置(专用服务端) | `config/tacz_enhanced_patch-worldgen.toml` |
 | 世界生成配置(单人存档) | 该存档目录下的 `serverconfig/tacz_enhanced_patch-worldgen.toml` |
 | 外部遗迹蓝图 | 服务端配置目录下的 `tacz_enhanced_patch_ruins/` |
+| 遗迹选址索引 | 各维度目录下的 `tacz_enhanced_patch_ruin_index.dat`, 与 `region` 目录同级 |
 
 ## 服务端参数清单
 

@@ -27,7 +27,7 @@ import java.util.UUID;
 public abstract class ShellProjectile extends ThrowableProjectile {
     protected static final double TANGENT_KEEP = 0.9D;
     protected static final double REST_SPEED_TICKS = ShellSettings.REST_SPEED / 20.0D;
-    protected static final double SURFACE_OFFSET = 0.02D;
+    protected static final double SURFACE_OFFSET = 0.12D;
 
     protected ShellSettings settings = ShellSettings.DEFAULT;
     protected int fuseTicks = -1;
@@ -95,12 +95,12 @@ public abstract class ShellProjectile extends ThrowableProjectile {
         if (this.detonated || this.level().isClientSide()) {
             return;
         }
-        if (this.settings.sticky()) {
-            this.stickToSurface(hit);
-            return;
-        }
         if (this.settings.impactFuse()) {
             this.detonate();
+            return;
+        }
+        if (this.settings.sticky()) {
+            this.stickToSurface(hit);
             return;
         }
         this.bounce(hit);
@@ -111,12 +111,12 @@ public abstract class ShellProjectile extends ThrowableProjectile {
         if (this.detonated || this.level().isClientSide()) {
             return;
         }
-        if (this.settings.sticky()) {
-            this.attachTo(hit.getEntity());
-            return;
-        }
         if (this.settings.impactFuse()) {
             this.detonate();
+            return;
+        }
+        if (this.settings.sticky()) {
+            this.attachTo(hit.getEntity());
         }
     }
 
@@ -164,6 +164,11 @@ public abstract class ShellProjectile extends ThrowableProjectile {
         if (Math.abs(normalSpeed * coefficient) < REST_SPEED_TICKS || next.length() < REST_SPEED_TICKS) {
             this.setDeltaMovement(Vec3.ZERO);
             this.resting = true;
+            /* 触发式引信只要停下来就当作撞上, 避免永远不炸 */
+            if (this.settings.impactFuse()) {
+                this.detonate();
+                return;
+            }
         } else {
             this.setDeltaMovement(next);
         }

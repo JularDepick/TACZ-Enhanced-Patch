@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import com.taczenhancedpatch.grenade.GrenadeProjectile;
 import com.taczenhancedpatch.item.PatchItems;
+import com.taczenhancedpatch.shell.ShellItem;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
@@ -22,7 +23,6 @@ import net.minecraft.world.phys.Vec3;
  */
 public class GrenadeRenderer extends EntityRenderer<GrenadeProjectile> {
     private final ItemRenderer itemRenderer;
-    private final ItemStack stack = new ItemStack(PatchItems.GRENADE.get());
 
     public GrenadeRenderer(EntityRendererProvider.Context context) {
         super(context);
@@ -46,7 +46,12 @@ public class GrenadeRenderer extends EntityRenderer<GrenadeProjectile> {
         }
         /* 缓慢自转, 让静止的手雷也有立体感 */
         poseStack.mulPose(Axis.YP.rotationDegrees((entity.tickCount + partialTick) * 6.0F));
-        this.itemRenderer.renderStatic(this.stack, ItemDisplayContext.GROUND, light, OverlayTexture.NO_OVERLAY,
+        /* 按投掷物自己的属性重建物品栈, 颜色与手雷实际属性一致 */
+        ItemStack stack = new ItemStack(PatchItems.GRENADE.get());
+        if (stack.getItem() instanceof ShellItem shell) {
+            shell.setSettings(stack, entity.settings());
+        }
+        this.itemRenderer.renderStatic(stack, ItemDisplayContext.GROUND, light, OverlayTexture.NO_OVERLAY,
                 poseStack, buffers, entity.level(), entity.getId());
         poseStack.popPose();
         super.render(entity, yaw, partialTick, poseStack, buffers, light);
