@@ -1,5 +1,6 @@
 package com.taczenhancedpatch.config;
 
+import net.minecraft.util.RandomSource;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.fml.config.ModConfig;
 
@@ -92,6 +93,13 @@ public final class ServerConfig {
     private static final ForgeConfigSpec.IntValue TANK_CANNON_COOLDOWN;
     private static final ForgeConfigSpec.IntValue TANK_EXPLOSION_POWER;
     private static final ForgeConfigSpec.DoubleValue TANK_CANNON_RANGE;
+
+    /* 手雷与幻机 */
+    private static final ForgeConfigSpec.DoubleValue GRENADE_GRAVITY;
+    private static final ForgeConfigSpec.IntValue PHANTOM_THROW_INTERVAL_MIN;
+    private static final ForgeConfigSpec.IntValue PHANTOM_THROW_INTERVAL_MAX;
+    private static final ForgeConfigSpec.IntValue PHANTOM_CHARGE_MIN;
+    private static final ForgeConfigSpec.IntValue PHANTOM_CHARGE_MAX;
 
     public static final ForgeConfigSpec SPEC;
 
@@ -344,6 +352,24 @@ public final class ServerConfig {
         VILLAGER_GUN_DAMAGE = BUILDER
                 .comment("持械村民射击的伤害比例, 只作用于村民")
                 .defineInRange("gunDamage", 0.5D, 0.1D, 1.0D);
+        BUILDER.pop();
+
+        BUILDER.comment("手雷与幻机").push("grenade");
+        GRENADE_GRAVITY = BUILDER
+                .comment("手雷飞行时的重力加速度, 单位 格/秒平方, 只影响投掷物弹道")
+                .defineInRange("gravity", 9.8D, 5.0D, 20.0D);
+        PHANTOM_THROW_INTERVAL_MIN = BUILDER
+                .comment("幻机两次投掷之间的最短间隔, 单位秒")
+                .defineInRange("phantomThrowIntervalMin", 2, 1, 30);
+        PHANTOM_THROW_INTERVAL_MAX = BUILDER
+                .comment("幻机两次投掷之间的最长间隔, 单位秒")
+                .defineInRange("phantomThrowIntervalMax", 4, 1, 30);
+        PHANTOM_CHARGE_MIN = BUILDER
+                .comment("幻机投掷时的最短蓄力时长, 单位 tick, 六十即三秒")
+                .defineInRange("phantomChargeMin", 0, 0, 60);
+        PHANTOM_CHARGE_MAX = BUILDER
+                .comment("幻机投掷时的最长蓄力时长, 单位 tick, 六十即三秒")
+                .defineInRange("phantomChargeMax", 60, 0, 60);
         BUILDER.pop();
 
         SPEC = BUILDER.build();
@@ -629,6 +655,33 @@ public final class ServerConfig {
         return value(VILLAGER_GUN_DAMAGE, 0.5D);
     }
 
+    /* 手雷飞行重力, 单位 格/秒平方 */
+    public static double grenadeGravity() {
+        return value(GRENADE_GRAVITY, 9.8D);
+    }
+
+    /* 幻机两次投掷的间隔区间, 单位秒 */
+    public static int[] phantomThrowInterval() {
+        return range(PHANTOM_THROW_INTERVAL_MIN, PHANTOM_THROW_INTERVAL_MAX, 2, 4);
+    }
+
+    /* 幻机投掷时的蓄力区间, 单位 tick */
+    public static int[] phantomChargeRange() {
+        return range(PHANTOM_CHARGE_MIN, PHANTOM_CHARGE_MAX, 0, 60);
+    }
+
+    /* 在配置区间内取一个蓄力时长 */
+    public static int phantomCharge(RandomSource random) {
+        int[] range = phantomChargeRange();
+        return range[1] <= range[0] ? range[0] : range[0] + random.nextInt(range[1] - range[0] + 1);
+    }
+
+    /* 在配置区间内取一个投掷间隔, 单位秒 */
+    public static int phantomThrowDelay(RandomSource random) {
+        int[] range = phantomThrowInterval();
+        return range[1] <= range[0] ? range[0] : range[0] + random.nextInt(range[1] - range[0] + 1);
+    }
+
     public static List<ConfigOptionGroup> groups() {
         return List.of(
                 new ConfigOptionGroup(GROUP_UI, List.of(
@@ -661,6 +714,12 @@ public final class ServerConfig {
                         new ConfigOption.DoubleOption("opt.villager_player_threshold", VILLAGER_PLAYER_THRESHOLD, 0.3D, 0.9D, 0.05D),
                         new ConfigOption.DoubleOption("opt.villager_mob_threshold", VILLAGER_MOB_THRESHOLD, 0.5D, 1.0D, 0.05D),
                         new ConfigOption.DoubleOption("opt.villager_gun_damage", VILLAGER_GUN_DAMAGE, 0.1D, 1.0D, 0.05D))),
+                new ConfigOptionGroup("group.grenade", List.of(
+                        new ConfigOption.DoubleOption("opt.grenade_gravity", GRENADE_GRAVITY, 5.0D, 20.0D, 0.1D),
+                        new ConfigOption.IntOption("opt.phantom_throw_min", PHANTOM_THROW_INTERVAL_MIN, 1, 30),
+                        new ConfigOption.IntOption("opt.phantom_throw_max", PHANTOM_THROW_INTERVAL_MAX, 1, 30),
+                        new ConfigOption.IntOption("opt.phantom_charge_min", PHANTOM_CHARGE_MIN, 0, 60),
+                        new ConfigOption.IntOption("opt.phantom_charge_max", PHANTOM_CHARGE_MAX, 0, 60))),
                 new ConfigOptionGroup("group.basic", List.of(
                         new ConfigOption.ToggleOption("opt.enabled", GUNNER_ENABLED),
                         new ConfigOption.ToggleOption("opt.difficulty", GUNNER_DIFFICULTY_SCALING))),

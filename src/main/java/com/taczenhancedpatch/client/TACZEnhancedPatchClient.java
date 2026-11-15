@@ -1,13 +1,21 @@
 package com.taczenhancedpatch.client;
 
 import com.taczenhancedpatch.TACZEnhancedPatch;
+import com.taczenhancedpatch.client.render.GrenadeRenderer;
 import com.taczenhancedpatch.client.render.GruntRenderer;
+import com.taczenhancedpatch.config.ClientConfig;
+import com.taczenhancedpatch.entity.PhantomRegistry;
+import com.taczenhancedpatch.grenade.GrenadeRegistry;
+import com.taczenhancedpatch.item.PatchItems;
 import com.taczenhancedpatch.client.render.TankModel;
 import com.taczenhancedpatch.client.render.TankRenderer;
 import com.taczenhancedpatch.entity.GruntRegistry;
 import com.taczenhancedpatch.entity.TankRegistry;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
+import net.minecraft.client.renderer.entity.PhantomRenderer;
+import net.minecraft.world.item.DyeColor;
+import net.minecraftforge.client.event.RegisterColorHandlersEvent;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -39,6 +47,22 @@ public final class TACZEnhancedPatchClient {
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(GruntRegistry.GUNNER_GRUNT.get(), GruntRenderer::new);
         event.registerEntityRenderer(TankRegistry.TANK_ELITE.get(), TankRenderer::new);
+        /* 手雷投掷物直接按物品渲染 */
+        event.registerEntityRenderer(GrenadeRegistry.GRENADE.get(), GrenadeRenderer::new);
+        /* 幻机沿用原版幻翼的模型与渲染器, 只换实体类型 */
+        event.registerEntityRenderer(PhantomRegistry.PHANTOM_ELITE.get(), PhantomRenderer::new);
+    }
+
+    /* 手雷的配色层: 第 0 层是本体, 第 1 层按当前配色染色 */
+    @SubscribeEvent
+    public static void onRegisterItemColors(RegisterColorHandlersEvent.Item event) {
+        event.register((stack, tintIndex) -> {
+            if (tintIndex != 1) {
+                return -1;
+            }
+            int rgb = DyeColor.byName(ClientConfig.grenadeColor(), DyeColor.GREEN).getFireworkColor();
+            return 0xFF000000 | rgb;
+        }, PatchItems.GRENADE.get());
     }
 
     /* 坦克精英怪的模型层 */

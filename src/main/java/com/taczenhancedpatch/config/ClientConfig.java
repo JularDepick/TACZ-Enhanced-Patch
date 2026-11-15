@@ -1,5 +1,6 @@
 package com.taczenhancedpatch.config;
 
+import net.minecraft.util.Mth;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.fml.config.ModConfig;
 
@@ -37,6 +38,37 @@ public final class ClientConfig {
                     "配置界面会实时预览所选颜色, 非法值回退到默认纯红")
             .define("headingRulerColor", "FF0000");
 
+    /* 手雷偏好: 六项属性由游戏内按键切换, 只存本机, 投掷时随包下发 */
+    private static final ForgeConfigSpec.IntValue GRENADE_FUSE = BUILDER
+            .comment("手雷引信档位, -1 表示触发式, 1 到 10 表示按下右键后多少秒爆炸",
+                    "手持手雷时用减号与等号切换")
+            .defineInRange("grenadeFuse", 3, -1, 10);
+
+    private static final ForgeConfigSpec.DoubleValue GRENADE_BOUNCE = BUILDER
+            .comment("手雷落地反弹系数, 即反弹后法向速度与原法向速度的比值, 零表示不反弹",
+                    "手持手雷时分号与单引号切换, 范围零到零点九, 步进零点一")
+            .defineInRange("grenadeBounce", 0.0D, 0.0D, 0.9D);
+
+    private static final ForgeConfigSpec.IntValue GRENADE_POWER = BUILDER
+            .comment("手雷爆炸威力, 零到十六, 对应破坏半径零到八格与中心伤害零到基础生命的两倍",
+                    "手持手雷时左方括号与右方括号切换")
+            .defineInRange("grenadePower", 4, 0, 16);
+
+    private static final ForgeConfigSpec.ConfigValue<String> GRENADE_TARGET = BUILDER
+            .comment("手雷杀伤对象档位, 取值 terrain_only player_only mob_only no_terrain no_player no_mob all",
+                    "默认 no_mob 表示破坏地形并杀伤玩家, 手持手雷时用反斜杠切换")
+            .define("grenadeTarget", "no_mob");
+
+    private static final ForgeConfigSpec.ConfigValue<String> GRENADE_COLOR = BUILDER
+            .comment("手雷配色, 取原版十六种旗帜颜色名, 只影响外观与爆炸特效",
+                    "默认 green 即墨绿, 手持手雷时用逗号与句号切换")
+            .define("grenadeColor", "green");
+
+    private static final ForgeConfigSpec.BooleanValue GRENADE_EFFECTS = BUILDER
+            .comment("手雷爆炸特效: 开启后炸点放出光线射线, 威力满档时额外有小型蘑菇云",
+                    "手持手雷时用斜杠切换")
+            .define("grenadeEffects", true);
+
     public static final ForgeConfigSpec SPEC = BUILDER.build();
 
     private ClientConfig() {
@@ -72,6 +104,69 @@ public final class ClientConfig {
             return parseRgb(HEADING_RULER_COLOR.get(), DEFAULT_HEADING_COLOR);
         } catch (IllegalStateException ignored) {
             return DEFAULT_HEADING_COLOR;
+        }
+    }
+
+    public static int grenadeFuse() {
+        try {
+            return GRENADE_FUSE.get();
+        } catch (IllegalStateException ignored) {
+            return 3;
+        }
+    }
+
+    public static double grenadeBounce() {
+        try {
+            return GRENADE_BOUNCE.get();
+        } catch (IllegalStateException ignored) {
+            return 0.0D;
+        }
+    }
+
+    public static int grenadePower() {
+        try {
+            return GRENADE_POWER.get();
+        } catch (IllegalStateException ignored) {
+            return 4;
+        }
+    }
+
+    public static String grenadeTarget() {
+        try {
+            return GRENADE_TARGET.get();
+        } catch (IllegalStateException ignored) {
+            return "no_mob";
+        }
+    }
+
+    public static String grenadeColor() {
+        try {
+            return GRENADE_COLOR.get();
+        } catch (IllegalStateException ignored) {
+            return "green";
+        }
+    }
+
+    public static boolean grenadeEffects() {
+        try {
+            return GRENADE_EFFECTS.get();
+        } catch (IllegalStateException ignored) {
+            return true;
+        }
+    }
+
+    /* 按键切换后整份写回, 避免六个键分头保存造成半新半旧 */
+    public static void setGrenade(int fuse, double bounce, int power, String target, String color, boolean effects) {
+        try {
+            GRENADE_FUSE.set(Mth.clamp(fuse, -1, 10));
+            GRENADE_BOUNCE.set(Math.round(Mth.clamp(bounce, 0.0D, 0.9D) * 10.0D) / 10.0D);
+            GRENADE_POWER.set(Mth.clamp(power, 0, 16));
+            GRENADE_TARGET.set(target == null || target.isEmpty() ? "no_mob" : target);
+            GRENADE_COLOR.set(color == null || color.isEmpty() ? "green" : color);
+            GRENADE_EFFECTS.set(effects);
+            save();
+        } catch (IllegalStateException ignored) {
+            /* 配置尚未加载时忽略, 下次切换会重新写入 */
         }
     }
 

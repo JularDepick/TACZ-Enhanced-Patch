@@ -5,6 +5,8 @@ import com.taczenhancedpatch.client.config.ModConfigScreen;
 import com.taczenhancedpatch.config.ClientConfig;
 import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.entity.GruntRegistry;
+import com.taczenhancedpatch.entity.PhantomRegistry;
+import com.taczenhancedpatch.grenade.GrenadeRegistry;
 import com.taczenhancedpatch.entity.TankRegistry;
 import com.taczenhancedpatch.fastmag.FastMagCreativeTab;
 import com.taczenhancedpatch.item.PatchCreativeTab;
@@ -36,6 +38,8 @@ public final class TACZEnhancedPatch {
         FastMagCreativeTab.TABS.register(context.getModEventBus());
         GruntRegistry.register(context.getModEventBus());
         TankRegistry.register(context.getModEventBus());
+        PhantomRegistry.register(context.getModEventBus());
+        GrenadeRegistry.register(context.getModEventBus());
         PatchItems.register(context.getModEventBus());
         PatchCreativeTab.TABS.register(context.getModEventBus());
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ModConfigScreen.register(context));

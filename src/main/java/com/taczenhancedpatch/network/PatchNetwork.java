@@ -2,6 +2,7 @@ package com.taczenhancedpatch.network;
 
 import com.taczenhancedpatch.TACZEnhancedPatch;
 import net.minecraft.resources.ResourceLocation;
+import com.taczenhancedpatch.grenade.GrenadeSettings;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkDirection;
 import net.minecraftforge.network.NetworkRegistry;
@@ -15,8 +16,8 @@ import java.util.Objects;
  * 下行用于把枪击来源方向发给受击玩家, 上行用于玩家驾驶坦克时的开火请求; 协议版本变化时递增即可。
  */
 public final class PatchNetwork {
-    /* 0.2.0 新增了遗迹提示与兵力读数两个下行包, 协议版本随之递增, 避免旧客户端握手通过后解码失败 */
-    private static final String PROTOCOL = "2";
+    /* 0.3.0 新增了手雷按下与投掷两个上行包, 协议版本随之递增, 避免旧客户端握手通过后解码失败 */
+    private static final String PROTOCOL = "3";
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.ChannelBuilder
             .named(Objects.requireNonNull(ResourceLocation.tryParse(TACZEnhancedPatch.MOD_ID + ":main")))
@@ -45,6 +46,16 @@ public final class PatchNetwork {
                 .decoder(RuinStatusMessage::decode)
                 .consumerMainThread(RuinStatusMessage::handle)
                 .add();
+        CHANNEL.messageBuilder(GrenadePressMessage.class, id++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(GrenadePressMessage::encode)
+                .decoder(GrenadePressMessage::decode)
+                .consumerMainThread(GrenadePressMessage::handle)
+                .add();
+        CHANNEL.messageBuilder(GrenadeThrowMessage.class, id++, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(GrenadeThrowMessage::encode)
+                .decoder(GrenadeThrowMessage::decode)
+                .consumerMainThread(GrenadeThrowMessage::handle)
+                .add();
         CHANNEL.messageBuilder(TankFireMessage.class, id++, NetworkDirection.PLAY_TO_SERVER)
                 .encoder(TankFireMessage::encode)
                 .decoder(TankFireMessage::decode)
@@ -54,6 +65,16 @@ public final class PatchNetwork {
 
     public static void sendTankFire() {
         CHANNEL.sendToServer(new TankFireMessage());
+    }
+
+    /* 手雷按下右键时的属性快照 */
+    public static void sendGrenadePress(GrenadeSettings settings) {
+        CHANNEL.sendToServer(new GrenadePressMessage(settings));
+    }
+
+    /* 手雷投掷请求, 只带蓄力时长 */
+    public static void sendGrenadeThrow(int chargeTicks) {
+        CHANNEL.sendToServer(new GrenadeThrowMessage(chargeTicks));
     }
 
     public static void sendHitDirection(ServerPlayer player, float sourceYaw) {

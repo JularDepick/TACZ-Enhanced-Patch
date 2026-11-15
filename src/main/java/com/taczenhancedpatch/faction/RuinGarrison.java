@@ -3,6 +3,8 @@ package com.taczenhancedpatch.faction;
 import com.taczenhancedpatch.TACZEnhancedPatch;
 import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.entity.GruntRegistry;
+import com.taczenhancedpatch.entity.PhantomElite;
+import com.taczenhancedpatch.entity.PhantomRegistry;
 import com.taczenhancedpatch.entity.TankRegistry;
 import com.taczenhancedpatch.network.RuinNotice;
 import com.taczenhancedpatch.network.RuinStatus;
@@ -44,8 +46,10 @@ public final class RuinGarrison {
     /* 玩家进入该距离内才跑补兵与夺旗调度, 单位方块 */
     /* 活跃判定: 领地半径之外再加这么多格, 玩家在这段内也算附近 */
     private static final double ACTIVE_MARGIN = 32.0D;
-    /* 坦克在补兵里的权重: 每四只补兵出一辆坦克 */
-    private static final int TANK_ONE_IN = 4;
+    /* 补兵权重: 小兵三份, 坦克一份, 幻机一份 */
+    private static final int TANK_ROLL = 3;
+    private static final int PHANTOM_ROLL = 4;
+    private static final int REINFORCE_WEIGHT = 5;
     /* 玩家离开核心区后的宽限时长, 超过即退出夺旗状态 */
     private static final int GRACE_TICKS = 100;
     /* 倒计时前若干秒用大标题, 之后改用顶部小提示 */
@@ -202,13 +206,29 @@ public final class RuinGarrison {
      * 因此先在若干候选点上试放, 找到整箱无碰撞的位置再真正加入世界。
      */
     private static boolean spawnOne(ServerLevel level, RuinSites.Site site, RandomSource random) {
-        EntityType<?> type = random.nextInt(TANK_ONE_IN) == 0
-                ? TankRegistry.TANK_ELITE.get() : GruntRegistry.GUNNER_GRUNT.get();
+        int roll = random.nextInt(REINFORCE_WEIGHT);
+        EntityType<?> type = roll == TANK_ROLL ? TankRegistry.TANK_ELITE.get()
+                : (roll == PHANTOM_ROLL ? PhantomRegistry.PHANTOM_ELITE.get() : GruntRegistry.GUNNER_GRUNT.get());
         if (!(type.create(level) instanceof Mob mob)) {
             return false;
         }
         BlockPos pos = null;
-        for (int attempt = 0; attempt < 8; attempt++) {
+        /* 幻机是飞行单位: 直接在旗帜上方找一块没有碰撞的空间, 不走地表选址 */
+        if (mob instanceof PhantomElite) {
+            BlockPos banner = site.banner();
+            if (banner != null) {
+                for (int attempt = 0; attempt < 8; attempt++) {
+                    BlockPos candidate = banner.above(8 + random.nextInt(8));
+                    mob.moveTo(candidate.getX() + 0.5D, candidate.getY(), candidate.getZ() + 0.5D,
+                            random.nextFloat() * 360.0F, 0.0F);
+                    if (level.noCollision(mob, mob.getBoundingBox())) {
+                        pos = candidate;
+                        break;
+                    }
+                }
+            }
+        }
+        for (int attempt = 0; pos == null && attempt < 8; attempt++) {
             BlockPos candidate = RuinTerritory.randomSpawnPos(level, site, random);
             if (candidate == null) {
                 continue;

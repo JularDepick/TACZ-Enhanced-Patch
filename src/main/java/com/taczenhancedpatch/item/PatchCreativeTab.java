@@ -2,6 +2,7 @@ package com.taczenhancedpatch.item;
 
 import com.taczenhancedpatch.TACZEnhancedPatch;
 import com.taczenhancedpatch.entity.GruntRegistry;
+import com.taczenhancedpatch.entity.PhantomRegistry;
 import com.taczenhancedpatch.entity.TankRegistry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -33,8 +34,10 @@ public final class PatchCreativeTab {
                             }
                         }
                         output.accept(PatchItems.RUIN_COMPASS.get());
+                        output.accept(PatchItems.GRENADE.get());
                         output.accept(GruntRegistry.SPAWN_EGG.get());
                         output.accept(TankRegistry.SPAWN_EGG.get());
+                        output.accept(PhantomRegistry.SPAWN_EGG.get());
                     })
                     .build());
 

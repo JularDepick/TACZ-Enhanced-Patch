@@ -1,6 +1,7 @@
 package com.taczenhancedpatch.faction;
 
 import com.taczenhancedpatch.entity.GunnerGrunt;
+import com.taczenhancedpatch.entity.PhantomElite;
 import com.taczenhancedpatch.entity.TankElite;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -86,7 +87,7 @@ public final class RuinTerritory {
     }
 
     public static boolean isRuinMob(Mob mob) {
-        return mob instanceof GunnerGrunt || mob instanceof TankElite;
+        return mob instanceof GunnerGrunt || mob instanceof TankElite || mob instanceof PhantomElite;
     }
 
     /* 参与遗迹机制的玩家: 创造与旁观不参与夺旗与统计, 与敌意口径保持一致 */

@@ -1,6 +1,7 @@
 package com.taczenhancedpatch.item;
 
 import com.taczenhancedpatch.TACZEnhancedPatch;
+import com.taczenhancedpatch.grenade.GrenadeItem;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.registries.DeferredRegister;
@@ -17,6 +18,10 @@ public final class PatchItems {
 
     public static final RegistryObject<Item> RUIN_COMPASS = ITEMS.register("ruin_compass",
             () -> new RuinCompassItem(new Item.Properties().stacksTo(1)));
+
+    /* 手雷: 全模组只有这一种, 属性存在客户端偏好里, 因此物品本身不带任何数据 */
+    public static final RegistryObject<Item> GRENADE = ITEMS.register("grenade",
+            () -> new GrenadeItem(new Item.Properties().stacksTo(64)));
 
     private PatchItems() {
     }
