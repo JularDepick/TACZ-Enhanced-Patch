@@ -92,7 +92,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 
 | Mechanic | Description |
 |:---:|:---|
-| Single item | One grenade item for the whole mod with a stack size of 64; its six properties live in the client config and bind to the thrown grenade |
+| Single item | One grenade item for the whole mod with a stack size of 64; its six properties live on the stack itself and show in the tooltip |
 | 3D appearance | The grenade uses a three-dimensional item model and the color only tints the item texture; the projectile is oriented by its flight direction and no longer follows the camera |
 | Charged throw | Hold the right button to charge and release to throw; charging caps at three seconds, the hand pose switches to a bow draw and the field of view narrows with the charge |
 | Launch speed | Linear in charge between the server configured bounds, four to sixteen blocks per second by default and adjustable to four to sixty-four |
@@ -107,6 +107,19 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Targets | Seven combinations: terrain only, players only, mobs only, no terrain, no players, no mobs, all |
 | Panel and countdown | The right side lists grenade, fuse, power, targets, sticky, effects and color; after a throw it shows the remaining fuse of the newest grenade |
 | Crafting | Iron ingots in the four corners, gunpowder in a cross, string in the center, four grenades per craft |
+
+### Mortar
+
+| Mechanic | Description |
+|:---:|:---|
+| Block | One block tall and must rest on a solid block; the base is fixed while the barrel is adjustable, and the whole mortar falls when its support breaks |
+| Angles | Yaw zero to three hundred sixty in the heading ruler convention and pitch zero to ninety; placement snaps yaw to the nearest of eight directions and starts at forty-five |
+| Loading and firing | Right-click with a mortar shell to load, right-click a loaded mortar to fire one second later, left-click to eject the shell |
+| Aiming | Empty hand left-click raises yaw by five degrees, sneaking left-click raises pitch; empty hand right-click enters driving |
+| Driving | Yaw follows the view, W and S adjust pitch, A and D fine tune yaw, Q and E change caliber, R and space fire, sneak exits |
+| Caliber | Sixty to two hundred forty millimetres, mapped linearly to one hundred twenty to four hundred eighty blocks per second |
+| Panel | The left side shows angles, caliber, horizontal range and flight time, next to the shell panel on the right |
+| Remote | Bind or unbind with the remote item, then right-click air to control it; several remotes may bind the same mortar |
 
 ### Phantom Elite
 
@@ -145,7 +158,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Item | Description |
 |:---:|:---|
 | Client configuration | Local preferences such as automatic reload, the incoming fire indicator, the heading ruler and its color, stored per player |
-| Server configuration | 74 parameters adjustable in the screen plus 5 keys that live only in the config file, grouped into debug, ruins, armed neutral villagers, grenade and phantom, basics, retaliation, spawning, targeting, ammo, toughness, loot, armed grunt and tank elite, with pure-button and switch groups listed before numeric ones and synced from the server |
+| Server configuration | 75 parameters adjustable in the screen plus 5 keys that live only in the config file, grouped into debug, ruins, armed neutral villagers, grenade and phantom, basics, retaliation, spawning, targeting, ammo, toughness, loot, armed grunt and tank elite, with pure-button and switch groups listed before numeric ones and synced from the server |
 | Configuration screen | Opens the config screen directly, with tabs at the top to switch between client and server; the server tab only appears for the world owner |
 | Shortcut | Shift + C opens the config screen by default; it is a standard key binding, so it can be rebound or cleared in the vanilla controls |
 | Mob arming config | The first row of the server page scans every mob into one switchable list, shows each mob's name and entity ID, and lets group toggles flip those switches in bulk |
