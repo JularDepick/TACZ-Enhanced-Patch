@@ -32,12 +32,18 @@ public class MortarBlockEntity extends BlockEntity {
     public static final float PITCH_MIN = 0.0F;
     public static final float PITCH_MAX = 90.0F;
     private static final int FIRE_DELAY = 20;
+    private static final int SYNC_INTERVAL = 2;
 
     private float yawDeg;
     private float pitchDeg = 45.0F;
     private int caliberMm = 120;
     private ItemStack loaded = ItemStack.EMPTY;
     private int fireTicks;
+    /* 迁移中: 清方块会触发 onRemove, 那时不能弹出炮弹也不能拆座位 */
+    private boolean migrating;
+    /* 角度与口径的同步节流, 驾驶时每 tick 变化一次, 不必每 tick 都发全量包 */
+    private boolean syncPending;
+    private int syncCooldown;
     @Nullable
     private UUID controller;
     @Nullable
@@ -74,20 +80,27 @@ public class MortarBlockEntity extends BlockEntity {
 
     public void setYaw(float value) {
         this.yawDeg = ((value % 360.0F) + 360.0F) % 360.0F;
-        this.setChanged();
-        this.sync();
+        this.markSynced();
     }
 
     public void setPitch(float value) {
         this.pitchDeg = Math.max(PITCH_MIN, Math.min(PITCH_MAX, value));
-        this.setChanged();
-        this.sync();
+        this.markSynced();
     }
 
     public void setCaliber(int value) {
         this.caliberMm = Math.max(CALIBER_MIN, Math.min(CALIBER_MAX, value));
+        this.markSynced();
+    }
+
+    /* 连续调节只记脏, 由 tick 合并成较少的同步包 */
+    private void markSynced() {
         this.setChanged();
-        this.sync();
+        this.syncPending = true;
+    }
+
+    public boolean migrating() {
+        return this.migrating;
     }
 
     /* 口径线性映射到出射速度, 单位 格/秒 */
@@ -141,6 +154,11 @@ public class MortarBlockEntity extends BlockEntity {
                 entity.fire((ServerLevel) level, pos);
             }
         }
+        if (entity.syncPending && ++entity.syncCooldown >= SYNC_INTERVAL) {
+            entity.syncPending = false;
+            entity.syncCooldown = 0;
+            entity.sync();
+        }
     }
 
     /* 下方没有支撑时整体下落一格, 角度与装填保留 */
@@ -149,18 +167,38 @@ public class MortarBlockEntity extends BlockEntity {
         if (below.getY() <= level.getMinBuildHeight()) {
             return;
         }
-        level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
-        level.setBlock(below, state, Block.UPDATE_ALL);
+        /* 先把要带走的状态取到局部: 清方块会触发 onRemove, 把这一份的装填与控制者清掉 */
+        float yaw = this.yawDeg;
+        float pitch = this.pitchDeg;
+        int caliber = this.caliberMm;
+        ItemStack loaded = this.loaded;
+        int fireTicks = this.fireTicks;
+        UUID controller = this.controller;
+        UUID seat = this.seat;
+        this.migrating = true;
+        try {
+            level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
+            level.setBlock(below, state, Block.UPDATE_ALL);
+        } finally {
+            this.migrating = false;
+        }
         if (level.getBlockEntity(below) instanceof MortarBlockEntity moved) {
-            moved.yawDeg = this.yawDeg;
-            moved.pitchDeg = this.pitchDeg;
-            moved.caliberMm = this.caliberMm;
-            moved.loaded = this.loaded;
-            moved.fireTicks = this.fireTicks;
-            moved.controller = this.controller;
-            moved.seat = this.seat;
+            moved.yawDeg = yaw;
+            moved.pitchDeg = pitch;
+            moved.caliberMm = caliber;
+            moved.loaded = loaded;
+            moved.fireTicks = fireTicks;
+            moved.controller = controller;
+            moved.seat = seat;
             moved.setChanged();
             moved.sync();
+        }
+        /* 座位跟着下移一格, 驾驶者不会悬在旧位置 */
+        if (seat != null && level instanceof ServerLevel server) {
+            Entity seatEntity = server.getEntity(seat);
+            if (seatEntity != null) {
+                seatEntity.setPos(below.getX() + 0.5D, below.getY() + 0.2D, below.getZ() + 0.5D);
+            }
         }
     }
 

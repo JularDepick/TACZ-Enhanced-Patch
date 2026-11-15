@@ -3,6 +3,9 @@ package com.taczenhancedpatch.shell;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -36,6 +39,9 @@ public abstract class ShellProjectile extends ThrowableProjectile {
     @Nullable
     protected UUID attachedEntityId;
     protected Vec3 attachOffset = Vec3.ZERO;
+    /* 属性打包下发: 客户端渲染与面板都要读同一份, 只靠 NBT 客户端拿不到 */
+    private static final EntityDataAccessor<Integer> DATA_SHELL =
+            SynchedEntityData.defineId(ShellProjectile.class, EntityDataSerializers.INT);
 
     protected ShellProjectile(EntityType<? extends ShellProjectile> type, Level level) {
         super(type, level);
@@ -49,10 +55,49 @@ public abstract class ShellProjectile extends ThrowableProjectile {
         this.settings = ShellSettings.sanitize(settings);
         this.setOwner(owner);
         this.fuseTicks = fuseTicks;
+        this.pushSettings();
     }
 
     @Override
     protected void defineSynchedData() {
+        this.getEntityData().define(DATA_SHELL, pack(ShellSettings.DEFAULT));
+    }
+
+    @Override
+    public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
+        super.onSyncedDataUpdated(key);
+        if (DATA_SHELL.equals(key)) {
+            this.settings = unpack(this.getEntityData().get(DATA_SHELL));
+        }
+    }
+
+    /* 属性打包成整数: 引信 4 位, 威力 5 位, 杀伤档 3 位, 配色 5 位, 粘性与特效各 1 位 */
+    private static int pack(ShellSettings settings) {
+        int fuse = Mth.clamp(settings.fuseSeconds() + 1, 0, 15);
+        int power = Mth.clamp(settings.power(), ShellSettings.POWER_MIN, ShellSettings.POWER_MAX);
+        int target = settings.target() == null ? 0 : settings.target().ordinal();
+        int color = settings.color() == null ? 0 : settings.color().ordinal();
+        return fuse | (power << 4) | (target << 9) | (color << 12)
+                | ((settings.sticky() ? 1 : 0) << 17) | ((settings.effects() ? 1 : 0) << 18);
+    }
+
+    private static ShellSettings unpack(int value) {
+        ShellTarget[] targets = ShellTarget.values();
+        ShellColor[] colors = ShellColor.values();
+        return ShellSettings.sanitize(new ShellSettings(
+                (value & 0xF) - 1,
+                ((value >> 17) & 1) != 0,
+                (value >> 4) & 0x1F,
+                targets[((value >> 9) & 0x7) % targets.length],
+                colors[((value >> 12) & 0x1F) % colors.length],
+                ((value >> 18) & 1) != 0));
+    }
+
+    /* 服务端改动属性后调用, 让客户端拿到最新一份 */
+    protected void pushSettings() {
+        if (!this.level().isClientSide()) {
+            this.getEntityData().set(DATA_SHELL, pack(this.settings));
+        }
     }
 
     /* 共用状态推进; 返回真表示本 tick 不需要再走运动 */
@@ -238,6 +283,7 @@ public abstract class ShellProjectile extends ThrowableProjectile {
         if (tag.contains("Shell")) {
             this.settings = ShellSettings.fromTag(tag.getCompound("Shell"));
         }
+        this.pushSettings();
         this.fuseTicks = tag.getInt("FuseTicks");
         this.resting = tag.getBoolean("Resting");
         this.attachedEntityId = tag.hasUUID("Attached") ? tag.getUUID("Attached") : null;

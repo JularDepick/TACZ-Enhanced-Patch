@@ -31,16 +31,26 @@ import java.util.Map;
 public final class ShellBreaker {
     /* 单批方块数上限, 超过就拆到下一 tick */
     private static final int BATCH_SIZE = 512;
-    private static final Map<ResourceKey<Level>, Deque<List<BlockPos>>> JOBS = new HashMap<>();
+    /* 每个维度最多排队的批次: 连续爆炸时宁可少炸一些, 也不让队列与内存无限增长 */
+    private static final int MAX_BATCHES = 8;
+    private static final Map<ResourceKey<Level>, Deque<List<Planned>>> JOBS = new HashMap<>();
 
     private ShellBreaker() {
     }
 
+    /* 排队时记下当时的方块状态, 执行时方块变了就跳过, 免得删掉玩家后来放下的东西 */
+    private record Planned(BlockPos pos, BlockState state) {
+    }
+
     public static void enqueue(ServerLevel level, Vec3 center, double radius, int power) {
+        Deque<List<Planned>> queue = JOBS.computeIfAbsent(level.dimension(), key -> new ArrayDeque<>());
+        if (queue.size() >= MAX_BATCHES) {
+            return;
+        }
         int range = Mth.ceil(radius);
         BlockPos origin = BlockPos.containing(center);
         /* 圈号由扁球归一化距离决定, 圈与圈之间相差一格 */
-        List<List<BlockPos>> rings = new ArrayList<>();
+        List<List<Planned>> rings = new ArrayList<>();
         for (int ring = 0; ring <= range + 1; ring++) {
             rings.add(new ArrayList<>());
         }
@@ -64,11 +74,13 @@ public final class ShellBreaker {
                 continue;
             }
             int ring = Mth.clamp((int) Math.ceil(normalized * radius), 0, rings.size() - 1);
-            rings.get(ring).add(pos.immutable());
+            rings.get(ring).add(new Planned(pos.immutable(), state));
         }
-        Deque<List<BlockPos>> queue = JOBS.computeIfAbsent(level.dimension(), key -> new ArrayDeque<>());
-        for (List<BlockPos> ring : rings) {
+        for (List<Planned> ring : rings) {
             for (int from = 0; from < ring.size(); from += BATCH_SIZE) {
+                if (queue.size() >= MAX_BATCHES) {
+                    return;
+                }
                 queue.add(new ArrayList<>(ring.subList(from, Math.min(ring.size(), from + BATCH_SIZE))));
             }
         }
@@ -79,28 +91,28 @@ public final class ShellBreaker {
         if (event.phase != TickEvent.Phase.END || JOBS.isEmpty()) {
             return;
         }
-        for (Map.Entry<ResourceKey<Level>, Deque<List<BlockPos>>> entry : JOBS.entrySet()) {
+        for (Map.Entry<ResourceKey<Level>, Deque<List<Planned>>> entry : JOBS.entrySet()) {
             ServerLevel level = event.getServer().getLevel(entry.getKey());
-            Deque<List<BlockPos>> queue = entry.getValue();
+            Deque<List<Planned>> queue = entry.getValue();
             if (level == null) {
                 queue.clear();
                 continue;
             }
-            List<BlockPos> batch = queue.poll();
+            List<Planned> batch = queue.poll();
             if (batch == null) {
                 continue;
             }
             boolean broken = false;
-            for (BlockPos pos : batch) {
-                BlockState state = level.getBlockState(pos);
-                if (state.isAir() || !state.getFluidState().isEmpty()) {
+            for (Planned planned : batch) {
+                BlockState current = level.getBlockState(planned.pos());
+                if (current != planned.state()) {
                     continue;
                 }
-                level.removeBlock(pos, false);
+                level.removeBlock(planned.pos(), false);
                 broken = true;
             }
             if (broken) {
-                BlockPos at = batch.get(0);
+                BlockPos at = batch.get(0).pos();
                 level.playSound(null, at.getX() + 0.5D, at.getY() + 0.5D, at.getZ() + 0.5D,
                         SoundEvents.STONE_BREAK, SoundSource.BLOCKS, 0.8F, 0.8F + level.getRandom().nextFloat() * 0.4F);
             }

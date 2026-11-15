@@ -10,10 +10,14 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /*
  * 炮弹爆炸的表现。
  * 全部由服务端生成并广播给周围玩家, 旁观者看到的是同一份效果。
  * 特效随威力缩放: 外壳高度等于水平半径, 边缘叠加四分之一半径以内的波形抖动, 不再是一个整齐的球。
+ * 接收者名单在每次爆炸时只算一遍, 不随每个粒子点重复遍历在线玩家。
  */
 public final class ShellEffects {
     /* 广播半径, 单位方块 */
@@ -32,17 +36,34 @@ public final class ShellEffects {
         if (radius <= 0.0D) {
             return;
         }
+        List<ServerPlayer> audience = audience(level, center);
+        if (audience.isEmpty()) {
+            return;
+        }
         DustParticleOptions dust = new DustParticleOptions(new Vector3f(1.0F, 0.72F, 0.32F), 1.6F);
-        send(level, center, ParticleTypes.EXPLOSION_EMITTER, center, 1, 0.0D, 0.0D, 0.0D, 0.0D);
-        shell(level, center, radius, dust);
-        rays(level, center, radius);
+        send(audience, ParticleTypes.EXPLOSION_EMITTER, center, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+        shell(level, audience, center, radius, dust);
+        rays(level, audience, center, radius);
         if (power >= 8) {
-            mushroom(level, center, radius, dust);
+            mushroom(level, audience, center, radius, dust);
         }
     }
 
+    /* 只挑爆炸附近的玩家, 名单在整次爆炸里复用 */
+    private static List<ServerPlayer> audience(ServerLevel level, Vec3 center) {
+        List<ServerPlayer> players = new ArrayList<>();
+        double limit = RANGE * RANGE;
+        for (ServerPlayer player : level.players()) {
+            if (player.distanceToSqr(center) <= limit) {
+                players.add(player);
+            }
+        }
+        return players;
+    }
+
     /* 半球外壳: 高度等于水平半径, 每点再往外抖 0 到 四分之一半径 */
-    private static void shell(ServerLevel level, Vec3 center, double radius, DustParticleOptions dust) {
+    private static void shell(ServerLevel level, List<ServerPlayer> audience, Vec3 center, double radius,
+                              DustParticleOptions dust) {
         int points = 24 + Mth.ceil(radius * 8.0D);
         double jitter = radius * JITTER_RATIO;
         for (int i = 0; i < points; i++) {
@@ -52,15 +73,15 @@ public final class ShellEffects {
             double horizontal = shell * Math.sqrt(Math.max(0.0D, 1.0D - up * up));
             Vec3 at = new Vec3(center.x + Math.cos(theta) * horizontal, center.y + shell * up,
                     center.z + Math.sin(theta) * horizontal);
-            send(level, center, dust, at, 2, 0.12D, 0.12D, 0.12D, 0.01D);
+            send(audience, dust, at, 2, 0.12D, 0.12D, 0.12D, 0.01D);
             if (i % 3 == 0) {
-                send(level, center, ParticleTypes.LARGE_SMOKE, at, 1, 0.08D, 0.04D, 0.08D, 0.01D);
+                send(audience, ParticleTypes.LARGE_SMOKE, at, 1, 0.08D, 0.04D, 0.08D, 0.01D);
             }
         }
     }
 
     /* 由中心向外的光线: 数量取四倍半径, 方向按球面均匀铺开, 立体各个方向都有 */
-    private static void rays(ServerLevel level, Vec3 center, double radius) {
+    private static void rays(ServerLevel level, List<ServerPlayer> audience, Vec3 center, double radius) {
         int count = Math.max(8, Mth.ceil(radius * 4.0D));
         double golden = Math.PI * (3.0D - Math.sqrt(5.0D));
         for (int i = 0; i < count; i++) {
@@ -75,18 +96,19 @@ public final class ShellEffects {
             for (int point = 1; point <= 4; point++) {
                 double distance = length * point / 4.0D;
                 Vec3 at = new Vec3(center.x + dx * distance, center.y + dy * distance, center.z + dz * distance);
-                send(level, center, ParticleTypes.END_ROD, at, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+                send(audience, ParticleTypes.END_ROD, at, 1, 0.0D, 0.0D, 0.0D, 0.0D);
             }
         }
     }
 
     /* 蘑菇云随半径缩放: 柱高约半径, 伞盖半径约半径的一半 */
-    private static void mushroom(ServerLevel level, Vec3 center, double radius, DustParticleOptions dust) {
+    private static void mushroom(ServerLevel level, List<ServerPlayer> audience, Vec3 center, double radius,
+                                 DustParticleOptions dust) {
         int layers = 3 + Mth.ceil(radius * 0.4D);
         for (int layer = 0; layer < layers; layer++) {
             Vec3 at = new Vec3(center.x, center.y + radius * layer / layers, center.z);
-            send(level, center, ParticleTypes.CAMPFIRE_COSY_SMOKE, at, 4, 0.3D, 0.1D, 0.3D, 0.02D);
-            send(level, center, dust, at, 2, 0.2D, 0.1D, 0.2D, 0.01D);
+            send(audience, ParticleTypes.CAMPFIRE_COSY_SMOKE, at, 4, 0.3D, 0.1D, 0.3D, 0.02D);
+            send(audience, dust, at, 2, 0.2D, 0.1D, 0.2D, 0.01D);
         }
         double capY = center.y + radius;
         for (int ring = 0; ring < 2; ring++) {
@@ -96,20 +118,17 @@ public final class ShellEffects {
                 double angle = Math.PI * 2.0D * i / count;
                 Vec3 at = new Vec3(center.x + Math.cos(angle) * capRadius, capY + ring * 0.4D,
                         center.z + Math.sin(angle) * capRadius);
-                send(level, center, ParticleTypes.LARGE_SMOKE, at, 1, 0.0D, 0.02D, 0.0D, 0.01D);
+                send(audience, ParticleTypes.LARGE_SMOKE, at, 1, 0.0D, 0.02D, 0.0D, 0.01D);
             }
         }
     }
 
-    /* 只发给爆炸附近能看到效果的玩家, 不依赖原版 32 格的默认广播距离 */
-    private static void send(ServerLevel level, Vec3 origin, ParticleOptions type, Vec3 at, int count,
+    private static void send(List<ServerPlayer> audience, ParticleOptions type, Vec3 at, int count,
                              double dx, double dy, double dz, double speed) {
         ClientboundLevelParticlesPacket packet = new ClientboundLevelParticlesPacket(type, false,
                 at.x, at.y, at.z, (float) dx, (float) dy, (float) dz, (float) speed, count);
-        for (ServerPlayer player : level.players()) {
-            if (player.distanceToSqr(origin) <= RANGE * RANGE) {
-                player.connection.send(packet);
-            }
+        for (ServerPlayer player : audience) {
+            player.connection.send(packet);
         }
     }
 }

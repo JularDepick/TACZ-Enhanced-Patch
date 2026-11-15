@@ -21,7 +21,9 @@ public final class MortarInteractionHandler {
         if (!(event.getLevel().getBlockState(event.getPos()).getBlock() instanceof MortarBlock)) {
             return;
         }
-        MortarBlock.attack(event.getLevel(), event.getPos(), event.getEntity());
-        event.setCanceled(true);
+        /* 只有真正被本方块消费的点击才取消, 否则迫击炮就无法被工具挖掉 */
+        if (MortarBlock.attack(event.getLevel(), event.getPos(), event.getEntity())) {
+            event.setCanceled(true);
+        }
     }
 }

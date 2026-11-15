@@ -25,8 +25,9 @@ import java.util.List;
  */
 public class MortarShellProjectile extends ShellProjectile {
     private static final double TICK_SECONDS = 1.0D / 20.0D;
-    private static final double SUBSTEP = 0.25D;
-    private static final int MAX_SUBSTEPS = 24;
+    /* 子步取半格, 最高初速下每 tick 最多四十八步, 薄墙与栅栏不会被穿透 */
+    private static final double SUBSTEP = 0.5D;
+    private static final int MAX_SUBSTEPS = 48;
 
     public MortarShellProjectile(EntityType<? extends MortarShellProjectile> type, Level level) {
         super(type, level);
@@ -108,13 +109,13 @@ public class MortarShellProjectile extends ShellProjectile {
     private boolean hitEntity() {
         AABB area = this.getBoundingBox().inflate(0.3D);
         List<Entity> hits = this.level().getEntities(this, area,
-                entity -> entity instanceof net.minecraft.world.entity.LivingEntity && entity.isAlive()
-                        && !entity.equals(this.getOwner()));
+                entity -> entity instanceof net.minecraft.world.entity.LivingEntity && this.canHitEntity(entity));
         if (hits.isEmpty()) {
             return false;
         }
         this.onHitEntity(new EntityHitResult(hits.get(0)));
-        return true;
+        /* 定时引信且不粘的炮弹只是擦过生物, 应当继续飞; 只有粘附或起爆才停下 */
+        return this.resting() || this.isRemoved();
     }
 
     @Override

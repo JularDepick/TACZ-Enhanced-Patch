@@ -13,6 +13,8 @@ import net.minecraft.world.level.block.BaseEntityBlock;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.shapes.CollisionContext;
@@ -45,6 +47,16 @@ public class MortarBlock extends BaseEntityBlock {
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new MortarBlockEntity(pos, state);
+    }
+
+    /* 发射倒计时与下方支撑检查都在方块实体的 tick 里, 不注册 ticker 就永远不推进 */
+    @Override
+    @Nullable
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
+        if (level.isClientSide()) {
+            return null;
+        }
+        return createTickerHelper(type, MortarRegistry.MORTAR_ENTITY.get(), MortarBlockEntity::tick);
     }
 
     @Override
@@ -82,7 +94,7 @@ public class MortarBlock extends BaseEntityBlock {
     @Override
     public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
         if (!state.is(newState.getBlock()) && !level.isClientSide()
-                && level.getBlockEntity(pos) instanceof MortarBlockEntity mortar) {
+                && level.getBlockEntity(pos) instanceof MortarBlockEntity mortar && !mortar.migrating()) {
             mortar.dismount();
             ItemStack loaded = mortar.ejectShell();
             if (!loaded.isEmpty()) {
@@ -92,20 +104,20 @@ public class MortarBlock extends BaseEntityBlock {
         super.onRemove(state, level, pos, newState, movedByPiston);
     }
 
-    /* 左键: 有炮弹时弹出, 空手时调角 */
-    public static void attack(Level level, BlockPos pos, Player player) {
+    /* 左键: 有炮弹时弹出, 空手时调角; 返回真表示这次点击被本方块消费掉 */
+    public static boolean attack(Level level, BlockPos pos, Player player) {
         if (level.isClientSide() || !(level.getBlockEntity(pos) instanceof MortarBlockEntity mortar)) {
-            return;
+            return false;
         }
         if (mortar.loadedShell()) {
             ItemStack ejected = mortar.ejectShell();
             if (!ejected.isEmpty()) {
                 Block.popResource(level, pos.above(), ejected);
             }
-            return;
+            return true;
         }
         if (!player.getMainHandItem().isEmpty()) {
-            return;
+            return false;
         }
         if (player.isShiftKeyDown()) {
             float next = mortar.pitchDeg() + 5.0F;
@@ -113,5 +125,6 @@ public class MortarBlock extends BaseEntityBlock {
         } else {
             mortar.setYaw(mortar.yawDeg() + 5.0F);
         }
+        return true;
     }
 }

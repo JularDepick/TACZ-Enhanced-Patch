@@ -62,12 +62,19 @@ public final class MortarClientHandler {
         infoPos = pos.equals(infoPos) ? null : pos;
     }
 
+    /* 遥控是开关: 再按一次同一台就退出, 否则玩家会被锁在原地无法移动 */
     public static void enterRemote(ItemStack stack) {
         BlockPos pos = MortarRemoteItem.boundPos(stack);
-        if (pos != null) {
-            active = pos;
-            remote = true;
+        if (pos == null) {
+            return;
         }
+        if (remote && pos.equals(active)) {
+            active = null;
+            remote = false;
+            return;
+        }
+        active = pos;
+        remote = true;
     }
 
     @SubscribeEvent
@@ -93,6 +100,12 @@ public final class MortarClientHandler {
         if (active == null) {
             return;
         }
+        /* 遥控模式蹲下即退出, 与驾驶模式一致 */
+        if (remote && minecraft.player.isShiftKeyDown()) {
+            active = null;
+            remote = false;
+            return;
+        }
         if (!(minecraft.level.getBlockEntity(active) instanceof MortarBlockEntity)) {
             active = null;
             remote = false;
@@ -113,7 +126,7 @@ public final class MortarClientHandler {
         step(window, active, GLFW.GLFW_KEY_D, ACTION_YAW, -ANGLE_STEP);
         step(window, active, GLFW.GLFW_KEY_Q, ACTION_CALIBER, CALIBER_STEP);
         step(window, active, GLFW.GLFW_KEY_E, ACTION_CALIBER, -CALIBER_STEP);
-        if (pressed(window, GLFW.GLFW_KEY_R) || pressed(window, GLFW.GLFW_KEY_SPACE)) {
+        if (firePressed(window, GLFW.GLFW_KEY_R) || firePressed(window, GLFW.GLFW_KEY_SPACE)) {
             PatchNetwork.sendMortarControl(active, ACTION_FIRE, 0.0F);
         }
     }
@@ -142,7 +155,7 @@ public final class MortarClientHandler {
         event.getInput().forwardImpulse = 0.0F;
         event.getInput().leftImpulse = 0.0F;
         event.getInput().jumping = false;
-        event.getInput().shiftKeyDown = false;
+        /* 蹲下要留给退出遥控, 不能一起清零 */
     }
 
     /* 长按加速: 前十 tick 每四 tick 一步, 之后每两 tick, 二十五 tick 之后每 tick 一步 */
@@ -161,11 +174,15 @@ public final class MortarClientHandler {
         }
     }
 
-    private static boolean held(long window, int key) {
-        return InputConstants.isKeyDown(window, key);
-    }
-
-    private static boolean pressed(long window, int key) {
-        return InputConstants.isKeyDown(window, key);
+    /* 开火只在按下沿发一次, 按住不会每 tick 都发包 */
+    private static boolean firePressed(long window, int key) {
+        boolean down = InputConstants.isKeyDown(window, key);
+        int held = HOLDS.getOrDefault(key, 0);
+        if (!down) {
+            HOLDS.remove(key);
+            return false;
+        }
+        HOLDS.put(key, held + 1);
+        return held == 0;
     }
 }

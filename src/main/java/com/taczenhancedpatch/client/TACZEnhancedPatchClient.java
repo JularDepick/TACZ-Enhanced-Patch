@@ -51,6 +51,9 @@ public final class TACZEnhancedPatchClient {
                 com.taczenhancedpatch.client.render.MortarBlockEntityRenderer::new);
         /* 手雷投掷物直接按物品渲染 */
         event.registerEntityRenderer(GrenadeRegistry.GRENADE.get(), GrenadeRenderer::new);
+        /* 迫击炮炮弹与手雷同一套渲染, 只是物品来源不同; 漏注册会让客户端在炮弹入镜时崩 */
+        event.registerEntityRenderer(com.taczenhancedpatch.mortar.MortarRegistry.MORTAR_SHELL_ENTITY.get(),
+                context -> new GrenadeRenderer(context, () -> com.taczenhancedpatch.mortar.MortarRegistry.MORTAR_SHELL.get()));
         /* 幻机沿用原版幻翼的模型, 只换贴图与实体类型 */
         event.registerEntityRenderer(PhantomRegistry.PHANTOM_ELITE.get(), PhantomEliteRenderer::new);
     }

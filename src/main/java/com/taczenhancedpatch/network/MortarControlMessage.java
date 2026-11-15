@@ -5,6 +5,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.network.NetworkEvent;
 
 import java.util.function.Supplier;
@@ -14,6 +15,8 @@ import java.util.function.Supplier;
  * 动作: 0 进入驾驶, 1 退出, 2 水平角跟随视角, 3 仰角步进, 4 水平角步进, 5 口径步进, 6 发射, 7 装填并发射。
  */
 public record MortarControlMessage(BlockPos pos, int action, float value) {
+    /* 操作距离上限的平方, 超出即忽略, 防止远程操纵别人的迫击炮 */
+    private static final double MAX_DISTANCE_SQR = 64.0D;
     public static void encode(MortarControlMessage message, FriendlyByteBuf buffer) {
         buffer.writeBlockPos(message.pos());
         buffer.writeVarInt(message.action());
@@ -29,7 +32,9 @@ public record MortarControlMessage(BlockPos pos, int action, float value) {
         ServerPlayer player = ctx.getSender();
         if (player != null) {
             BlockEntity entity = player.level().getBlockEntity(message.pos());
-            if (entity instanceof MortarBlockEntity mortar) {
+            if (entity instanceof MortarBlockEntity mortar
+                    && player.distanceToSqr(Vec3.atCenterOf(message.pos())) <= MAX_DISTANCE_SQR
+                    && (message.action() == 0 || player.getUUID().equals(mortar.controller()))) {
                 switch (message.action()) {
                     case 0 -> mortar.mount(player);
                     case 1 -> {

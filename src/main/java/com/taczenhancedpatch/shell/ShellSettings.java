@@ -98,7 +98,7 @@ public record ShellSettings(int fuseSeconds, boolean sticky, int power, ShellTar
                 tag.getInt("Fuse"),
                 tag.getBoolean("Sticky"),
                 tag.getInt("Power"),
-                ShellTarget.byId(tag.getString("Target"), ShellTarget.NO_MOB),
+                ShellTarget.byId(tag.getString("Target"), ShellTarget.NO_DAMAGE),
                 ShellColor.byId(tag.getString("Color"), ShellColor.GREEN),
                 !tag.contains("Effects") || tag.getBoolean("Effects")));
     }
