@@ -227,7 +227,10 @@ public class PhantomElite extends Phantom {
         ShellTarget mode = againstPlayer ? ShellTarget.PLAYER_ONLY : ShellTarget.MOB_ONLY;
         int fuse = 1 + this.getRandom().nextInt(MAX_FUSE_SECONDS);
         DyeColor color = DyeColor.byName(site.bannerColor(), DyeColor.GREEN);
-        ShellSettings settings = new ShellSettings(fuse, false, DEFAULT_POWER, mode, color, true);
+        ShellSettings settings = PhantomShells.take(this);
+        if (settings == null) {
+            return;
+        }
         int charge = ServerConfig.phantomCharge(this.getRandom());
         double[] range = ServerConfig.grenadeSpeedRange();
         Vec3 start = this.getEyePosition();

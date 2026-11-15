@@ -188,6 +188,8 @@
   "tacz_enhanced_patch.shell.on": "开",
   "tacz_enhanced_patch.shell.off": "关",
   "tacz_enhanced_patch.opt.mortar_gravity": "迫击炮炮弹重力",
+  "tacz_enhanced_patch.opt.phantom_shell_min": "幻机背包手雷 下限",
+  "tacz_enhanced_patch.opt.phantom_shell_max": "幻机背包手雷 上限",
   "tacz_enhanced_patch.mortar.hud.title": "迫击炮",
   "tacz_enhanced_patch.mortar.remote_bound": "已绑定迫击炮",
   "tacz_enhanced_patch.mortar.remote_unbound": "已解绑迫击炮",

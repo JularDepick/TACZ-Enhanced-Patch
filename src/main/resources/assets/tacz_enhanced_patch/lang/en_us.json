@@ -188,6 +188,8 @@
   "tacz_enhanced_patch.shell.on": "on",
   "tacz_enhanced_patch.shell.off": "off",
   "tacz_enhanced_patch.opt.mortar_gravity": "Mortar shell gravity",
+  "tacz_enhanced_patch.opt.phantom_shell_min": "Phantom shells min",
+  "tacz_enhanced_patch.opt.phantom_shell_max": "Phantom shells max",
   "tacz_enhanced_patch.mortar.hud.title": "Mortar",
   "tacz_enhanced_patch.mortar.remote_bound": "Mortar bound",
   "tacz_enhanced_patch.mortar.remote_unbound": "Mortar unbound",

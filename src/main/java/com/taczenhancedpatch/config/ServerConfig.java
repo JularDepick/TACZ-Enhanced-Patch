@@ -98,6 +98,8 @@ public final class ServerConfig {
     private static final ForgeConfigSpec.DoubleValue GRENADE_SPEED_MIN;
     private static final ForgeConfigSpec.DoubleValue GRENADE_SPEED_MAX;
     private static final ForgeConfigSpec.DoubleValue MORTAR_GRAVITY;
+    private static final ForgeConfigSpec.IntValue PHANTOM_SHELL_MIN;
+    private static final ForgeConfigSpec.IntValue PHANTOM_SHELL_MAX;
     private static final ForgeConfigSpec.IntValue PHANTOM_THROW_INTERVAL_MIN;
     private static final ForgeConfigSpec.IntValue PHANTOM_THROW_INTERVAL_MAX;
     private static final ForgeConfigSpec.IntValue PHANTOM_CHARGE_MIN;
@@ -366,6 +368,12 @@ public final class ServerConfig {
         MORTAR_GRAVITY = BUILDER
                 .comment("迫击炮炮弹的重力加速度, 单位 格/秒平方, 面板射程与飞行时长按同一数值计算")
                 .defineInRange("mortarGravity", 9.8D, 5.0D, 20.0D);
+        PHANTOM_SHELL_MIN = BUILDER
+                .comment("幻机背包手雷数量的下限, 合法范围 1 到 30")
+                .defineInRange("phantomShellMin", 1, 1, 30);
+        PHANTOM_SHELL_MAX = BUILDER
+                .comment("幻机背包手雷数量的上限, 合法范围 1 到 30; 每座遗迹落地时在区间内取一个子区间")
+                .defineInRange("phantomShellMax", 3, 1, 30);
         PHANTOM_THROW_INTERVAL_MIN = BUILDER
                 .comment("幻机两次投掷之间的最短间隔, 单位秒")
                 .defineInRange("phantomThrowIntervalMin", 2, 1, 30);
@@ -663,6 +671,13 @@ public final class ServerConfig {
         return value(VILLAGER_GUN_DAMAGE, 0.5D);
     }
 
+    /* 幻机背包手雷的数量区间; 配置写反时按大小排序 */
+    public static int[] phantomShellRange() {
+        int min = value(PHANTOM_SHELL_MIN, 1);
+        int max = value(PHANTOM_SHELL_MAX, 3);
+        return new int[]{Math.max(1, Math.min(min, max)), Math.min(30, Math.max(min, max))};
+    }
+
     /* 迫击炮炮弹重力, 单位 格/秒平方 */
     public static double mortarGravity() {
         return value(MORTAR_GRAVITY, 9.8D);
@@ -735,6 +750,8 @@ public final class ServerConfig {
                         new ConfigOption.DoubleOption("opt.grenade_speed_min", GRENADE_SPEED_MIN, 4.0D, 64.0D, 1.0D),
                         new ConfigOption.DoubleOption("opt.grenade_speed_max", GRENADE_SPEED_MAX, 4.0D, 64.0D, 1.0D),
                         new ConfigOption.DoubleOption("opt.mortar_gravity", MORTAR_GRAVITY, 5.0D, 20.0D, 0.1D),
+                        new ConfigOption.IntOption("opt.phantom_shell_min", PHANTOM_SHELL_MIN, 1, 30),
+                        new ConfigOption.IntOption("opt.phantom_shell_max", PHANTOM_SHELL_MAX, 1, 30),
                         new ConfigOption.IntOption("opt.phantom_throw_min", PHANTOM_THROW_INTERVAL_MIN, 1, 30),
                         new ConfigOption.IntOption("opt.phantom_throw_max", PHANTOM_THROW_INTERVAL_MAX, 1, 30),
                         new ConfigOption.IntOption("opt.phantom_charge_min", PHANTOM_CHARGE_MIN, 0, 60),
