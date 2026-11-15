@@ -70,7 +70,7 @@ public final class GrenadeThrowHandler {
         player.stopUsingItem();
         consume(player, using);
         if (player.level() instanceof ServerLevel level) {
-            ShellExplosion.detonate(level, player.getEyePosition(), settings, player);
+            ShellExplosion.detonate(level, player.getEyePosition(), settings, player, 0.4D);
         }
     }
 

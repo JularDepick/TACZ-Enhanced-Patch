@@ -112,6 +112,11 @@ public final class TankCrew {
 
     private static void apply(LivingEntity entity, double ratio) {
         double bonus = ratio - 1.0D;
+        /* 没有乘员时羁绊直接消失, 不能顺手把血补满 */
+        if (bonus <= 0.0D) {
+            clear(entity);
+            return;
+        }
         AttributeInstance health = entity.getAttribute(Attributes.MAX_HEALTH);
         if (health != null) {
             UUID id = modifierId(entity, "health");

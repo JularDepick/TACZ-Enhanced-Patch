@@ -27,6 +27,6 @@ public class GrenadeProjectile extends ShellProjectile {
 
     @Override
     protected void explode(ServerLevel level) {
-        ShellExplosion.detonate(level, this.position(), this.settings, this.getOwner());
+        ShellExplosion.detonate(level, this.position(), this.settings, this.getOwner(), 0.4D);
     }
 }

@@ -59,18 +59,22 @@ public final class ShellEffects {
         }
     }
 
-    /* 由中心向外的光线, 长度随半径 */
+    /* 由中心向外的光线: 数量取四倍半径, 方向按球面均匀铺开, 立体各个方向都有 */
     private static void rays(ServerLevel level, Vec3 center, double radius) {
-        int count = 10 + Mth.ceil(radius);
+        int count = Math.max(8, Mth.ceil(radius * 4.0D));
+        double golden = Math.PI * (3.0D - Math.sqrt(5.0D));
         for (int i = 0; i < count; i++) {
-            double theta = level.getRandom().nextDouble() * Math.PI * 2.0D;
-            double up = level.getRandom().nextDouble() * 0.8D;
-            double length = radius * (0.6D + level.getRandom().nextDouble() * 0.4D);
-            for (int step = 1; step <= 4; step++) {
-                double distance = length * step / 4.0D;
-                Vec3 at = new Vec3(center.x + Math.cos(theta) * distance * (1.0D - up * 0.3D),
-                        center.y + distance * up * 0.6D,
-                        center.z + Math.sin(theta) * distance * (1.0D - up * 0.3D));
+            /* 黄金角螺旋: 球面上近似均匀的方向分布 */
+            double up = 1.0D - 2.0D * (i + 0.5D) / count;
+            double ring = Math.sqrt(Math.max(0.0D, 1.0D - up * up));
+            double theta = golden * i;
+            double dx = Math.cos(theta) * ring;
+            double dz = Math.sin(theta) * ring;
+            double dy = up;
+            double length = radius * (0.55D + level.getRandom().nextDouble() * 0.45D);
+            for (int point = 1; point <= 4; point++) {
+                double distance = length * point / 4.0D;
+                Vec3 at = new Vec3(center.x + dx * distance, center.y + dy * distance, center.z + dz * distance);
                 send(level, center, ParticleTypes.END_ROD, at, 1, 0.0D, 0.0D, 0.0D, 0.0D);
             }
         }

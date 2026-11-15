@@ -48,12 +48,16 @@ public class MortarRemoteItem extends Item {
             tag.remove(TAG + "Pos");
             tag.remove(TAG + "Dim");
             context.getPlayer().displayClientMessage(
-                    Component.translatable("tacz_enhanced_patch.mortar.remote_unbound"), true);
+                    Component.translatable("tacz_enhanced_patch.mortar.remote_unbound"), false);
+            level.playSound(null, pos, net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK.value(),
+                    net.minecraft.sounds.SoundSource.PLAYERS, 0.6F, 0.8F);
         } else {
             tag.putLong(TAG + "Pos", pos.asLong());
             tag.putString(TAG + "Dim", level.dimension().location().toString());
             context.getPlayer().displayClientMessage(
-                    Component.translatable("tacz_enhanced_patch.mortar.remote_bound"), true);
+                    Component.translatable("tacz_enhanced_patch.mortar.remote_bound"), false);
+            level.playSound(null, pos, net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK.value(),
+                    net.minecraft.sounds.SoundSource.PLAYERS, 0.6F, 1.2F);
         }
         return InteractionResult.CONSUME;
     }

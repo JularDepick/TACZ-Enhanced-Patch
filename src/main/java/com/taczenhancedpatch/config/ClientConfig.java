@@ -27,6 +27,11 @@ public final class ClientConfig {
                     "只影响本客户端显示, 停止受击一秒后自动淡出")
             .define("hitIndicator", false);
 
+    private static final ForgeConfigSpec.BooleanValue HEALTH_BARS = BUILDER
+            .comment("生物血量显示: 在生物与玩家头顶渲染血条与具体数值",
+                    "默认开启, 只影响本客户端显示")
+            .define("healthBars", true);
+
     private static final ForgeConfigSpec.BooleanValue HEADING_RULER = BUILDER
             .comment("方向标尺: 屏幕正上方显示横向方位标尺, 随视角滚动并标注基本方向与角度",
                     "只影响本客户端显示, 不改变任何玩法判定")
@@ -87,6 +92,14 @@ public final class ClientConfig {
             return HIT_INDICATOR.get();
         } catch (IllegalStateException ignored) {
             return false;
+        }
+    }
+
+    public static boolean healthBars() {
+        try {
+            return HEALTH_BARS.get();
+        } catch (IllegalStateException ignored) {
+            return true;
         }
     }
 

@@ -120,10 +120,10 @@ public class TankElite extends Monster {
         }
         int index = Math.floorMod(this.getPassengers().indexOf(passenger), 4);
         double[][] offsets = {
-                {-0.95D, 1.55D, -0.55D},
-                {0.95D, 1.55D, -0.55D},
-                {-0.95D, 1.55D, 0.65D},
-                {0.95D, 1.55D, 0.65D}
+                {-1.15D, 2.15D, -0.7D},
+                {1.15D, 2.15D, -0.7D},
+                {-1.15D, 2.15D, 0.8D},
+                {1.15D, 2.15D, 0.8D}
         };
         double[] offset = offsets[index];
         double yaw = Math.toRadians(this.getYRot());

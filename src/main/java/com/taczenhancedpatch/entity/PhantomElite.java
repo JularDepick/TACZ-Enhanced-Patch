@@ -278,6 +278,10 @@ public class PhantomElite extends Phantom {
         if (!level.getLevel().isClientSide()) {
             this.setPhantomSize(1);
             this.setHealth(this.getMaxHealth());
+            /* 刷怪蛋生成的幻机没有遗迹归属, 就地记一个家, 否则它只会悬在原地 */
+            if (spawnType == MobSpawnType.SPAWN_EGG && FactionData.homeOf(this) == null) {
+                FactionData.setHome(this, this.blockPosition());
+            }
         }
         return data;
     }

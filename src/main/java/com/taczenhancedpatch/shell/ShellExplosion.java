@@ -1,6 +1,11 @@
 package com.taczenhancedpatch.shell;
 
+import com.taczenhancedpatch.TACZEnhancedPatch;
 import com.taczenhancedpatch.faction.Factions;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.damagesource.DamageType;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -29,17 +34,21 @@ public final class ShellExplosion {
     private static final double KNOCK_RATIO = 0.5D;
     /* 震退位移上限, 兜住异常半径 */
     private static final double KNOCK_LIMIT = 8.0D;
+    /* 破甲伤害类型, 只跳过护甲点数, 仍受附魔保护影响 */
+    private static final ResourceKey<DamageType> PIERCE = ResourceKey.create(Registries.DAMAGE_TYPE,
+            new ResourceLocation(TACZEnhancedPatch.MOD_ID, "shell_pierce"));
 
     private ShellExplosion() {
     }
 
-    public static void detonate(ServerLevel level, Vec3 center, ShellSettings settings, @Nullable Entity owner) {
+    public static void detonate(ServerLevel level, Vec3 center, ShellSettings settings, @Nullable Entity owner,
+                                double penetration) {
         int power = settings.power();
         double radius = settings.radius();
         if (settings.target().terrain() && radius > 0.0D) {
             ShellBreaker.enqueue(level, center, radius, power);
         }
-        damageEntities(level, center, radius, settings, owner);
+        damageEntities(level, center, radius, settings, owner, penetration);
         /* 震退与杀伤档位无关: 半径内的玩家与生物都会被推开, 震退本身不造成伤害 */
         knockBack(level, center, radius);
         ShellEffects.burst(level, center, power, settings);
@@ -59,7 +68,7 @@ public final class ShellExplosion {
     }
 
     private static void damageEntities(ServerLevel level, Vec3 center, double radius, ShellSettings settings,
-                                       @Nullable Entity owner) {
+                                       @Nullable Entity owner, double penetration) {
         if (radius <= 0.0D) {
             return;
         }
@@ -93,9 +102,22 @@ public final class ShellExplosion {
             if (damage <= 0.0F) {
                 continue;
             }
-            DamageSource source = level.damageSources().explosion(null, owner);
-            target.hurt(source, damage);
+            /* 破甲部分跳过护甲点数, 其余照常结算; 两次结算之间清掉无敌帧, 否则第二段会被吞掉 */
+            float pierced = (float) (damage * penetration);
+            float normal = damage - pierced;
+            if (pierced > 0.0F) {
+                target.hurt(pierce(level, owner), pierced);
+                target.invulnerableTime = 0;
+            }
+            if (normal > 0.0F) {
+                target.hurt(level.damageSources().explosion(null, owner), normal);
+            }
         }
+    }
+
+    private static DamageSource pierce(ServerLevel level, @Nullable Entity owner) {
+        return new DamageSource(level.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE).getHolderOrThrow(PIERCE),
+                null, owner);
     }
 
     /*
