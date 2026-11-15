@@ -780,7 +780,10 @@ public final class ServerConfig {
                         new ConfigOption.DoubleOption("opt.high_tier_chance", GUNNER_HIGH_TIER_AMMO_CHANCE, 0.0D, 1.0D, 0.01D),
                         new ConfigOption.DoubleOption("opt.gun_drop", GUNNER_GUN_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
                         new ConfigOption.DoubleOption("opt.attachment_drop", GUNNER_ATTACHMENT_DROP_CHANCE, 0.0D, 1.0D, 0.01D),
-                        new ConfigOption.DoubleOption("opt.armed_drop_cap", GUNNER_ARMED_DROP_CAP, 1.0D, 10.0D, 0.1D))),
+                        new ConfigOption.DoubleOption("opt.armed_drop_cap", GUNNER_ARMED_DROP_CAP, 1.0D, 10.0D, 0.1D),
+                        new ConfigOption.IntOption("opt.tier_weight_low", GUNNER_TIER_WEIGHT_LOW, 0, 10000),
+                        new ConfigOption.IntOption("opt.tier_weight_mid", GUNNER_TIER_WEIGHT_MID, 0, 10000),
+                        new ConfigOption.IntOption("opt.tier_weight_high", GUNNER_TIER_WEIGHT_HIGH, 0, 10000))),
                 new ConfigOptionGroup("group.grunt", List.of(
                         new ConfigOption.DoubleOption("opt.grunt_ammo_mult", GRUNT_AMMO_DROP_MULTIPLIER, 0.0D, 5.0D, 0.1D),
                         new ConfigOption.DoubleOption("opt.grunt_high_tier", GRUNT_HIGH_TIER_AMMO_CHANCE, 0.0D, 1.0D, 0.01D),

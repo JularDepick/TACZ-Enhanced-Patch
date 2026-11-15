@@ -152,7 +152,8 @@ public final class PatchConfigScreen extends Screen {
         rows.clear();
         colorFields.clear();
         textFields.clear();
-        if (serverSection) {
+        /* 生物持械名单写在本机 config 目录, 只有存档创建者改得动, 其他人显示入口等于给个假开关 */
+        if (serverSection && com.taczenhancedpatch.client.ConfigAccess.isWorldOwner()) {
             Button mobListButton = Button.builder(UiText.of("screen.open"), button -> {
                 if (minecraft != null) {
                     minecraft.setScreen(new MobListScreen(this));
@@ -445,7 +446,7 @@ public final class PatchConfigScreen extends Screen {
     }
 
     private static Component toggleText(ConfigOption.ToggleOption option) {
-        return UiText.of(Boolean.TRUE.equals(option.value().get()) ? "screen.on" : "screen.off");
+        return UiText.of(Boolean.TRUE.equals(read(option)) ? "screen.on" : "screen.off");
     }
 
     /* 枚举项: 按钮文本取当前取值的界面键, 点击按声明顺序切到下一个 */
@@ -481,7 +482,16 @@ public final class PatchConfigScreen extends Screen {
         return (E) value;
     }
 
+    /* 配置尚未加载时统一返回空, 界面按默认值展示, 不让异常冒到打开界面的调用栈 */
     private static Object read(ConfigOption option) {
+        try {
+            return readUnchecked(option);
+        } catch (IllegalStateException ignored) {
+            return null;
+        }
+    }
+
+    private static Object readUnchecked(ConfigOption option) {
         if (option instanceof ConfigOption.ToggleOption toggle) {
             return toggle.value().get();
         }
