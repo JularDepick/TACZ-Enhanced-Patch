@@ -83,7 +83,7 @@ public final class RuinGarrison {
         if (sites.isEmpty()) {
             return;
         }
-        int now = (int) level.getGameTime();
+        long now = level.getGameTime();
         /* 先算出每座活跃遗迹里的参与玩家, 用于判断谁留在这座, 谁已经转到别处 */
         Map<BlockPos, List<ServerPlayer>> insideBySite = new HashMap<>();
         for (RuinSites.Site site : sites) {
@@ -186,11 +186,11 @@ public final class RuinGarrison {
         BlockPos center = new BlockPos(min.getX() + width / 2, baseY, min.getZ() + depth / 2);
         RuinBanner.place(level, site, center, baseY, height, random);
         site.setPasted(true);
-        site.setNextReinforceTick((int) level.getGameTime() + CHECK_INTERVAL);
+        site.setNextReinforceTick(level.getGameTime() + CHECK_INTERVAL);
         data.setDirty();
     }
 
-    private static void reinforce(ServerLevel level, RuinSites.Site site, int count, int now, RuinSites data) {
+    private static void reinforce(ServerLevel level, RuinSites.Site site, int count, long now, RuinSites data) {
         int base = baseOf(site);
         if (count >= base * site.reinforcePercent()) {
             return;
@@ -260,7 +260,7 @@ public final class RuinGarrison {
     }
 
     private static void capture(ServerLevel level, RuinSites.Site site, List<ServerPlayer> inside,
-                                int count, int now, RuinSites data) {
+                                int count, long now, RuinSites data) {
         BlockPos banner = site.banner();
         if (banner == null) {
             return;
@@ -288,7 +288,7 @@ public final class RuinGarrison {
                 /* 反向计时: 每次检查把截止时刻按真实经过时间往后推, 不再乘二, 避免反复进出无限延长 */
                 site.setCaptureEndTick(site.captureEndTick() + CHECK_INTERVAL);
                 site.setTitleSecond(-1);
-                int graceLeft = Math.max(1, (site.graceEndTick() - now) / 20 + 1);
+                int graceLeft = (int) Math.max(1L, (site.graceEndTick() - now) / 20L + 1L);
                 RuinNotice.sendNear(level, Vec3.atCenterOf(banner),
                         site.radius() + RuinTerritory.PURSUIT_MARGIN, "hud.ruin.capture_reversed", graceLeft);
                 data.setDirty();
@@ -299,7 +299,7 @@ public final class RuinGarrison {
                 tellNear(level, site, "tacz_enhanced_patch.ruin.capture_resumed");
                 data.setDirty();
             }
-            int remaining = site.captureEndTick() - now;
+            int remaining = (int) (site.captureEndTick() - now);
             if (remaining <= 0) {
                 judge(level, site, base, count, inside, now, data);
                 return;
@@ -324,7 +324,7 @@ public final class RuinGarrison {
     }
 
     private static void judge(ServerLevel level, RuinSites.Site site, int base, int count,
-                              List<ServerPlayer> inside, int now, RuinSites data) {
+                              List<ServerPlayer> inside, long now, RuinSites data) {
         site.setCaptureEndTick(0);
         site.setGraceEndTick(0);
         site.setTitleSecond(-1);

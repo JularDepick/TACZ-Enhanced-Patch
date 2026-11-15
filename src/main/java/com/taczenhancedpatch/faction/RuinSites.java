@@ -53,11 +53,12 @@ public final class RuinSites extends SavedData {
         /* 蓝图全部不可用时放弃本座遗迹, 不再补兵与补旗 */
         private boolean abandoned;
         private boolean captured;
-        private int nextReinforceTick;
-        private int captureEndTick;
-        private int cooldownEndTick;
+        /* 计时一律用 long 存游戏时间, 长期存档的 tick 数会超出 int 范围 */
+        private long nextReinforceTick;
+        private long captureEndTick;
+        private long cooldownEndTick;
         /* 离开核心区后的宽限截止时刻, 0 表示不在宽限中 */
-        private int graceEndTick;
+        private long graceEndTick;
         /* 最近一次已提示的剩余秒数, 避免同一秒重复下发 */
         private int titleSecond = -1;
         private boolean hadPlayers;
@@ -172,35 +173,35 @@ public final class RuinSites extends SavedData {
             this.captured = captured;
         }
 
-        public int nextReinforceTick() {
+        public long nextReinforceTick() {
             return nextReinforceTick;
         }
 
-        public void setNextReinforceTick(int tick) {
+        public void setNextReinforceTick(long tick) {
             this.nextReinforceTick = tick;
         }
 
-        public int captureEndTick() {
+        public long captureEndTick() {
             return captureEndTick;
         }
 
-        public void setCaptureEndTick(int tick) {
+        public void setCaptureEndTick(long tick) {
             this.captureEndTick = tick;
         }
 
-        public int cooldownEndTick() {
+        public long cooldownEndTick() {
             return cooldownEndTick;
         }
 
-        public void setCooldownEndTick(int tick) {
+        public void setCooldownEndTick(long tick) {
             this.cooldownEndTick = tick;
         }
 
-        public int graceEndTick() {
+        public long graceEndTick() {
             return graceEndTick;
         }
 
-        public void setGraceEndTick(int tick) {
+        public void setGraceEndTick(long tick) {
             this.graceEndTick = tick;
         }
 
@@ -324,8 +325,11 @@ public final class RuinSites extends SavedData {
             entry.putBoolean("suppliesPlaced", site.suppliesPlaced());
             entry.putBoolean("abandoned", site.abandoned());
             entry.putBoolean("captured", site.captured());
-            entry.putInt("nextReinforceTick", site.nextReinforceTick());
-            entry.putInt("cooldownEndTick", site.cooldownEndTick());
+            entry.putLong("nextReinforceTick", site.nextReinforceTick());
+            entry.putLong("cooldownEndTick", site.cooldownEndTick());
+            /* 进行中的夺旗与宽限也要落盘, 否则重启会静默丢掉倒计时 */
+            entry.putLong("captureEndTick", site.captureEndTick());
+            entry.putLong("graceEndTick", site.graceEndTick());
             if (site.stats() != null) {
                 entry.put("stats", site.stats().save(new CompoundTag()));
             }
@@ -356,8 +360,10 @@ public final class RuinSites extends SavedData {
             site.suppliesPlaced = entry.getBoolean("suppliesPlaced");
             site.abandoned = entry.getBoolean("abandoned");
             site.captured = entry.getBoolean("captured");
-            site.nextReinforceTick = entry.getInt("nextReinforceTick");
-            site.cooldownEndTick = entry.getInt("cooldownEndTick");
+            site.nextReinforceTick = entry.getLong("nextReinforceTick");
+            site.cooldownEndTick = entry.getLong("cooldownEndTick");
+            site.captureEndTick = entry.getLong("captureEndTick");
+            site.graceEndTick = entry.getLong("graceEndTick");
             if (entry.contains("stats", Tag.TAG_COMPOUND)) {
                 site.stats = RuinStats.load(entry.getCompound("stats"));
             }
