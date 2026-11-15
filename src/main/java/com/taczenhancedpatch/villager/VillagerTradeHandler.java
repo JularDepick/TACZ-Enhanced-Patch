@@ -117,7 +117,15 @@ public final class VillagerTradeHandler {
 
     /* 界面已经关闭或村民已移除, 此时重建商品不会打乱客户端列表 */
     private static void settle(Villager villager) {
-        if (!villager.isRemoved() && ArmedVillager.isArmed(villager)) {
+        if (villager.isRemoved()) {
+            return;
+        }
+        /* 库存售罄的退化也在这里落地, 与商品重建同样避开交易回调 */
+        if (villager.getPersistentData().getBoolean(ArmedVillager.TAG_DEGRADE)) {
+            ArmedVillager.degrade(villager);
+            return;
+        }
+        if (ArmedVillager.isArmed(villager)) {
             ArmedVillager.refreshOffers(villager);
         }
     }

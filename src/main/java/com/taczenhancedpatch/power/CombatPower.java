@@ -53,7 +53,9 @@ public final class CombatPower {
         if (entity == null) {
             return 0.0D;
         }
-        return gunScore(entity) + ammoScore(entity) + weaponScore(entity)
+        /* 背包只取一次, 三个分项共用: 每次受击都复制三份玩家背包的分配压力太大 */
+        List<ItemStack> containers = containers(entity);
+        return gunScore(entity, containers) + ammoScore(entity, containers) + weaponScore(containers)
                 + healthScore(entity) + fistScore(entity);
     }
 
@@ -70,13 +72,13 @@ public final class CombatPower {
     }
 
     /* 枪械: 枪手读身份标记里的那把枪, 玩家扫背包 */
-    private static double gunScore(LivingEntity entity) {
+    private static double gunScore(LivingEntity entity, List<ItemStack> containers) {
         GunnerMarker.Loadout loadout = GunnerMarker.loadout(entity);
         if (loadout != null) {
             return GUN_BASE * tierFactor(loadout.tier());
         }
         double score = 0.0D;
-        for (ItemStack stack : containers(entity)) {
+        for (ItemStack stack : containers) {
             if (stack.isEmpty() || !TaczApi.isGun(stack)) {
                 continue;
             }
@@ -89,13 +91,13 @@ public final class CombatPower {
     }
 
     /* 弹药: 枪手读剩余备弹, 玩家按背包里的弹药物品计数 */
-    private static double ammoScore(LivingEntity entity) {
+    private static double ammoScore(LivingEntity entity, List<ItemStack> containers) {
         GunnerMarker.Loadout loadout = GunnerMarker.loadout(entity);
         if (loadout != null) {
             return Math.max(0, loadout.ammoPool()) * AMMO_UNIT;
         }
         int rounds = 0;
-        for (ItemStack stack : containers(entity)) {
+        for (ItemStack stack : containers) {
             if (isAmmo(stack)) {
                 rounds += stack.getCount();
             }
@@ -104,9 +106,9 @@ public final class CombatPower {
     }
 
     /* 普通武器: 近战, 远程与三叉戟分档计分, 枪械不计入本项 */
-    private static double weaponScore(LivingEntity entity) {
+    private static double weaponScore(List<ItemStack> containers) {
         double score = 0.0D;
-        for (ItemStack stack : containers(entity)) {
+        for (ItemStack stack : containers) {
             if (stack.isEmpty() || TaczApi.isGun(stack)) {
                 continue;
             }

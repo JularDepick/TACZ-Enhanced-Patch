@@ -31,6 +31,8 @@ import java.util.List;
  */
 public final class ArmedVillager {
     private static final String ROOT = "tacz_enhanced_patch_villager";
+    /* 库存售罄后的待退化标记: 交易回调里只置位, 由下一 tick 真正退化 */
+    public static final String TAG_DEGRADE = "tacz_enhanced_patch_villager_degrade";
     private static final String STOCK = "stock";
     private static final String QUOTA = "quota";
     private static final String TOTAL = "total";
@@ -160,7 +162,8 @@ public final class ArmedVillager {
         }
         villager.getPersistentData().put(ROOT, data);
         if (countAll(stock) <= 0) {
-            degrade(villager);
+            /* 交易回调里不能直接改商品列表, 客户端还停在旧列表上; 标记后由下一 tick 结算 */
+            villager.getPersistentData().putBoolean(TAG_DEGRADE, true);
             return true;
         }
         /* 不在交易回调里重建商品: 客户端还停在旧列表上, 重建会让索引错位;
@@ -213,6 +216,7 @@ public final class ArmedVillager {
     /* 退化为原版村民 */
     public static void degrade(Villager villager) {
         CompoundTag persistent = villager.getPersistentData();
+        persistent.remove(TAG_DEGRADE);
         persistent.remove(ROOT);
         GunnerMarker.clear(villager);
         villager.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
