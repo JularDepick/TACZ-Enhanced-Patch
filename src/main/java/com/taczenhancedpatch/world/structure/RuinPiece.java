@@ -41,12 +41,16 @@ public class RuinPiece extends StructurePiece {
     public RuinPiece(String schematic, BlockPos min, int width, int height, int depth, long seed) {
         super(RuinStructures.RUIN_PIECE.get(), 0, new BoundingBox(min.getX(), min.getY(), min.getZ(),
                 min.getX() + width - 1, min.getY() + height - 1, min.getZ() + depth - 1));
+        /* 片段按世界坐标写入, 朝向取空值即恒等映射; 不设朝向时基类的镜像与旋转字段为 null, 写墙类方块会崩在镜像变换 */
+        this.setOrientation((Direction) null);
         this.schematic = schematic;
         this.seed = seed;
     }
 
     public RuinPiece(StructurePieceSerializationContext context, CompoundTag tag) {
         super(RuinStructures.RUIN_PIECE.get(), tag);
+        /* 存档回读同样按恒等映射写入, 与生成期保持一致 */
+        this.setOrientation((Direction) null);
         this.schematic = tag.getString(TAG_SCHEMATIC);
         this.seed = tag.getLong(TAG_SEED);
     }
