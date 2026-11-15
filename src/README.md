@@ -78,7 +78,7 @@ src/main/
 │   │   ├── RuinGarrison.java              # 补兵, 夺旗状态机与战绩转移
 │   │   ├── RuinLoot.java                  # 夺旗战利品, 物资箱与经验换算
 │   │   ├── RuinRout.java                  # 溃军标记与战力缩放
-│   │   ├── RuinSites.java                 # 遗迹站点, 旗帜, 统计字段与间距登记
+│   │   ├── RuinSites.java                 # 遗迹站点, 旗帜与统计字段
 │   │   ├── RuinStats.java                 # 战斗统计持久化
 │   │   └── RuinTerritory.java             # 领地几何, 参与玩家与在编守军统计
 │   ├── fastmag/
@@ -89,13 +89,9 @@ src/main/
 │   │   └── FastMagTooltipHandler.java    # 物品提示
 │   ├── grenade/
 │   │   ├── GrenadeClientHandler.java     # 手雷按键切换, 蓄力与投掷
-│   │   ├── GrenadeEffects.java           # 爆炸光线射线与蘑菇云
-│   │   ├── GrenadeExplosion.java         # 受控爆炸: 地形与实体分开处理
 │   │   ├── GrenadeItem.java              # 手雷物品
-│   │   ├── GrenadeProjectile.java        # 手雷投掷物与反弹
+│   │   ├── GrenadeProjectile.java        # 手雷投掷物
 │   │   ├── GrenadeRegistry.java          # 投掷物实体注册
-│   │   ├── GrenadeSettings.java          # 六项属性的快照与档位表
-│   │   ├── GrenadeTarget.java            # 七个杀伤对象档位
 │   │   └── GrenadeThrowHandler.java      # 服务端投掷与手持引信
 │   ├── gunner/
 │   │   ├── GunnerArming.java             # 枪械装配与随机配件, 随机备弹
@@ -189,11 +185,12 @@ src/main/
     │   ├── textures/entity/              # 生物贴图
     │   └── textures/item/                # 物品贴图与指南针帧
     └── data/tacz_enhanced_patch/         # 世界生成与战利品数据
-        ├── forge/biome_modifier/         # 群系注入
         ├── loot_tables/chests/           # 宝箱战利品
         ├── loot_tables/entities/         # 生物战利品
         ├── recipes/                      # 合成配方
-        └── worldgen/                     # 特性与放置规则
+        └── worldgen/
+            ├── structure/                # 遗迹结构定义
+            └── structure_set/            # 遗迹结构集, 决定间距与密度
 ```
 
 ## 组织约定

@@ -78,7 +78,7 @@ src/main/
 │   │   ├── RuinGarrison.java              # Reinforcement, capture state machine and stats handoff
 │   │   ├── RuinLoot.java                  # Capture loot, supply crates and experience
 │   │   ├── RuinRout.java                  # Routed marking and combat scaling
-│   │   ├── RuinSites.java                 # Ruin sites, banners, statistics and spacing registry
+│   │   ├── RuinSites.java                 # Ruin sites, banners and statistics
 │   │   ├── RuinStats.java                 # Combat statistics persistence
 │   │   └── RuinTerritory.java             # Territory geometry, participants and garrison counting
 │   ├── fastmag/
@@ -89,13 +89,9 @@ src/main/
 │   │   └── FastMagTooltipHandler.java    # Item tooltip
 │   ├── grenade/
 │   │   ├── GrenadeClientHandler.java     # Key switching, charging and throwing
-│   │   ├── GrenadeEffects.java           # Explosion light rays and mushroom cloud
-│   │   ├── GrenadeExplosion.java         # Controlled blast for terrain and entities
 │   │   ├── GrenadeItem.java              # Grenade item
-│   │   ├── GrenadeProjectile.java        # Grenade projectile and bouncing
+│   │   ├── GrenadeProjectile.java        # Grenade projectile
 │   │   ├── GrenadeRegistry.java          # Projectile entity registration
-│   │   ├── GrenadeSettings.java          # Six property snapshot and step tables
-│   │   ├── GrenadeTarget.java            # Seven target modes
 │   │   └── GrenadeThrowHandler.java      # Server side throwing and fuse in hand
 │   ├── gunner/
 │   │   ├── GunnerArming.java             # Gun arming with random attachments and ammo
@@ -189,11 +185,12 @@ src/main/
     │   ├── textures/entity/              # Entity textures
     │   └── textures/item/                # Item textures and compass frames
     └── data/tacz_enhanced_patch/         # World generation and loot data
-        ├── forge/biome_modifier/         # Biome injection
         ├── loot_tables/chests/           # Chest loot
         ├── loot_tables/entities/         # Entity loot
         ├── recipes/                      # Crafting recipes
-        └── worldgen/                     # Features and placement rules
+        └── worldgen/
+            ├── structure/                # Ruin structure definition
+            └── structure_set/            # Ruin structure set driving spacing and density
 ```
 
 ## Conventions
