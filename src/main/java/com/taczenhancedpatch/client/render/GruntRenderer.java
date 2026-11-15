@@ -16,8 +16,6 @@ import net.minecraft.resources.ResourceLocation;
  * 整体按小尺寸绘制, 手中的枪械通过手持物品图层显示。
  */
 public class GruntRenderer extends MobRenderer<GunnerGrunt, HumanoidModel<GunnerGrunt>> {
-    private static final ResourceLocation TEXTURE =
-            new ResourceLocation(TACZEnhancedPatch.MOD_ID + ":textures/entity/gunner_grunt.png");
     /* 相对成人模型的缩放, 与 0.95 格高的碰撞箱匹配 */
     private static final float MODEL_SCALE = 0.6F;
 
@@ -28,7 +26,7 @@ public class GruntRenderer extends MobRenderer<GunnerGrunt, HumanoidModel<Gunner
 
     @Override
     public ResourceLocation getTextureLocation(GunnerGrunt entity) {
-        return TEXTURE;
+        return CamoTextures.of("gunner_grunt", entity);
     }
 
     @Override

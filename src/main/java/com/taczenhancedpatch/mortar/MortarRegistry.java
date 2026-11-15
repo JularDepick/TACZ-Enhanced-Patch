@@ -3,7 +3,6 @@ package com.taczenhancedpatch.mortar;
 import com.taczenhancedpatch.TACZEnhancedPatch;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
-import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
@@ -38,7 +37,7 @@ public final class MortarRegistry {
                     .sound(SoundType.METAL).noOcclusion().noLootTable()));
 
     public static final RegistryObject<Item> MORTAR_ITEM = ITEMS.register("mortar",
-            () -> new BlockItem(MORTAR.get(), new Item.Properties()));
+            () -> new MortarBlockItem(MORTAR.get(), new Item.Properties()));
 
     public static final RegistryObject<Item> MORTAR_SHELL = ITEMS.register("mortar_shell",
             () -> new MortarShellItem(new Item.Properties().stacksTo(16)));

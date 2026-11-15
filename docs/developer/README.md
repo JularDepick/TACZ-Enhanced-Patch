@@ -48,7 +48,7 @@
 - 另有五项不在界面, 只能改配置文件: 三项分档权重 `tierWeightLow` `tierWeightMid` `tierWeightHigh` 决定枪械按档位抽取的比例, 两个黑名单 `mobBlacklist` `dimensionBlacklist` 排除不参与枪手的生物与维度
 - 手雷与幻机组的九项: 手雷初速度下限与上限, 迫击炮炮弹重力, 幻机背包手雷数量下限与上限, 幻机投掷间隔下限与上限, 幻机蓄力时长下限与上限
 - 世界生成配置独立成一份文件, 只有两项: `ruin.maxChunks` 单座遗迹覆盖区块数上限, `ruin.maxSolidBlocks` 单座遗迹实心方块数上限; 该文件不进配置界面, 只能局外修改
-- 客户端页只有一组本机偏好, 含自动换弹, 枪击来源提示, 方向标尺与颜色
+- 客户端页只有一组本机偏好, 含自动换弹, 枪击来源提示, 方向标尺与颜色, 以及默认开启的血量显示
 - 每项的默认值与取值范围以配置文件为准, 界面只暴露可在游戏内调整的部分
 - 服务端参数只有存档创建者可以修改, 普通客户端只接收同步值
 
@@ -63,6 +63,11 @@
 - 站点保存生成时选定的蓝图名, 外部来源带 `external:` 前缀; 蓝图被删除或格式不合法时弃用该文件并换一座可用的蓝图, 记一条运行日志
 - 运行期由 `SchematicCatalog` 扫描目录并随机选取, `SchematicReader` 解析; 进存档时同步预解析全部可用蓝图, 因为世界生成阶段不能等后台线程
 - 遗迹注册为原版结构: 数据包里的 `worldgen/structure/ruined_outpost.json` 指向结构类型, `worldgen/structure_set/ruined_outposts.json` 决定间距与密度; 放置类型用原版 `minecraft:random_spread`, 盐值 20261115, spacing 34, separation 8, 每格最多一座遗迹, 相邻格最小间隔 8 个区块
+- 炮弹配色由 shell/ShellColor 枚举提供: 前十六项沿用原版旗帜色, 后四项是迷彩; 配色只影响物品染色与文案, 物品数据里存配色 id
+- 炮弹破甲走自定义伤害类型 tacz_enhanced_patch:shell_pierce, 只追加进 minecraft:bypasses_armor 标签; 破甲部分与常规部分分两段结算, 中间清掉无敌帧
+- 爆炸的地形破坏由 ShellBreaker 排队执行: 按扁球归一化距离分圈, 每游戏刻推进一圈并播放击碎音效, 单圈过大自动拆批
+- 遗迹生物贴图各有四种迷彩变体, 渲染器按实体 UUID 取图, 见 client/render/CamoTextures
+- 客户端血量显示在 client/hud/HealthBarOverlay, 开关是客户端配置项 healthBars, 默认开启
 - 遗迹选址另有索引: `RuinSiteIndex` 按格记录候选区块, 地表高度, 建筑名与生成状态, 每个维度一份 `tacz_enhanced_patch_ruin_index.dat`, 与 `region` 目录同级; 判定只用种子与噪声采样, 不加载区块; `RuinSiteIndexManager` 由区块加载与指南针查询共同扩展索引, 生成期的真实结果回写纠正预测
 - 方块由结构片段在区块自己的生成阶段写入, 每个区块只写与自己相交的部分, 越界写入自动丢弃; 蓝图里的空气一并写入, 用于清空建筑内部
 - 单座规模由世界生成配置文件兜底: 覆盖区块数超过 `ruin.maxChunks` 或实心方块数超过 `ruin.maxSolidBlocks` 的蓝图在选择时跳过并记一条日志

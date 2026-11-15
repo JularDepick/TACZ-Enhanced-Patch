@@ -28,6 +28,7 @@ src/main/
 │   │   │   ├── PatchConfigScreen.java    # 配置页(客户端与服务端双页签)
 │   │   │   └── ScrollBar.java            # 可拖动滚动条
 │   │   ├── hud/
+│   │   │   ├── HealthBarOverlay.java     # 生物血量显示
 │   │   │   ├── HeadingRulerOverlay.java  # 方向标尺绘制
 │   │   │   ├── RuinGarrisonOverlay.java  # 右上角遗迹守军读数
 │   │   │   ├── RuinNoticeOverlay.java    # 顶部居中的遗迹提示
@@ -36,6 +37,7 @@ src/main/
 │   │   └── render/
 │   │       ├── ArmedHumanoidLayer.java    # 非人形持械的人形骨架图层
 │   │       ├── ArmedShapeAttach.java      # 给原版渲染器挂载该图层
+│   │       ├── CamoTextures.java           # 遗迹生物迷彩贴图选取
 │   │       ├── GruntRenderer.java        # 持枪小兵渲染
 │   │       ├── PhantomEliteRenderer.java # 幻机渲染(同色系迷彩贴图)
 │   │       ├── TankModel.java            # 坦克模型
@@ -127,6 +129,7 @@ src/main/
 │   ├── mortar/
 │   │   ├── MortarBlock.java              # 迫击炮方块与交互
 │   │   ├── MortarBlockEntity.java        # 角度, 口径, 装填与驾驶
+│   │   ├── MortarBlockItem.java          # 迫击炮方块物品与交互提示
 │   │   ├── MortarInteractionHandler.java # 左键弹出与调角
 │   │   ├── MortarRegistry.java           # 方块, 实体与物品注册
 │   │   ├── MortarRemoteItem.java         # 遥控物品与绑定
@@ -149,6 +152,8 @@ src/main/
 │   ├── runtime/
 │   │   └── RuntimeStateCleaner.java      # 服务端停止时清理进程级状态
 │   ├── shell/
+│   │   ├── ShellBreaker.java             # 地形破坏分圈排队
+│   │   ├── ShellColor.java               # 炮弹配色与迷彩色
 │   │   ├── ShellEffects.java             # 爆炸光线射线与蘑菇云
 │   │   ├── ShellExplosion.java           # 受控爆炸与震退
 │   │   ├── ShellItem.java                # 炮弹物品基类与悬浮提示

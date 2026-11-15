@@ -48,6 +48,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Always armed | Carries a random gun from the moment it spawns, ignoring the gunner master switch and the mob list |
 | Supply drops | Kills always drop matching ammo, with a chance at the gun and an attachment, plus random food and scrap in random amounts |
 | Appearance | A zombie villager body with a hand-drawn camouflage texture, complete with a head, limbs and facial features, holding a visible gun |
+| Camouflage | Four camo textures, green, desert, urban and snow, one picked per individual at spawn and kept for its whole life |
 | Ruin guards | Guards bind to the ruin faction, fight back in melee inside their territory and ride tanks as a combined unit |
 | Attributes | Health and armor follow difficulty presets at a quarter of the tank and ignore mod config |
 ### Ruins
@@ -76,6 +77,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 |:---:|:---|
 | Elite shelling | A rarely spawning tank-shaped monster that guards its territory when it belongs to a faction, otherwise retaliates only, and fires periodic shells with far larger explosions than a ghast fireball |
 | Imposing bulk | A 3.4 x 2.4 hitbox with a custom model whose tracks sit on the ground and whose hull and turret stack upwards, immune to fire and fully knockback resistant |
+| Camouflage | The same four camo textures as the grunt, one picked per individual at spawn |
 | Loot | Drops iron, copper and gunpowder; cooldown and cannon range are configurable while health and power follow difficulty presets |
 | Combined unit | Up to four grunts ride on the shoulders, members share a health and armor bonus derived from their total health, and a faction tank revives factionless up to three times |
 | Player driving | A factionless tank can be mounted, aimed with the crosshair, driven with WASD and fired with the space bar |
@@ -94,6 +96,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Mechanic | Description |
 |:---:|:---|
 | Single item | One grenade item for the whole mod with a stack size of 64; its six properties live on the stack itself and show in the tooltip |
+| Colors | Sixteen vanilla banner colors plus four camouflage tones, affecting only the item tint and the readouts, cycling with overflow |
 | 3D appearance | The grenade uses a three-dimensional item model and the color only tints the item texture; the projectile is oriented by its flight direction and no longer follows the camera |
 | Charged throw | Hold the right button to charge and release to throw; charging caps at three seconds, the hand pose switches to a bow draw and the field of view narrows with the charge |
 | Launch speed | Linear in charge between the server configured bounds, four to sixteen blocks per second by default and adjustable to four to sixty-four |
@@ -102,7 +105,9 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Adaptive bounce | When sticky is off the bounce follows the block hardness, harder blocks bounce less, and a low normal speed comes to rest |
 | Six properties | Nine fixed keys switch fuse, power, targets, sticky, effects and color while holding it; paired keys stop at the bounds |
 | Fuse | Counted from the moment the right button goes down, either one to ten seconds or impact; an impact fuse detonates on the first block or mob it touches |
-| Explosion | Power zero to sixteen maps to a zero to sixteen block radius and zero to sixty-four points of center damage, falling off linearly with distance |
+| Explosion | Power zero to sixteen maps to a zero to sixteen block radius and zero to sixty-four points of center damage, falling off linearly with distance; the kill volume is an oblate spheroid whose vertical radius is two thirds of the horizontal one |
+| Armor penetration | Forty percent for grenades and sixty percent for mortar shells, not configurable; the pierced part skips armor points only, so enchantment protection still applies |
+| Knockback | Displacement equals half the horizontal radius, strongest at the center and zero at the rim, independent of the target tier |
 | Block damage | Power decays linearly to half at the edge, and only blocks whose hardness does not exceed the decayed power are destroyed |
 | Knockback | Players and mobs inside the radius are pushed away over a distance matching the radius, and the knockback deals no damage |
 | Targets | Seven combinations: terrain only, players only, mobs only, no terrain, no players, no mobs, all |
@@ -116,6 +121,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Block | One block tall and must rest on a solid block; the base is fixed while the barrel is adjustable, and the whole mortar falls when its support breaks |
 | Angles | Yaw zero to three hundred sixty in the heading ruler convention and pitch zero to ninety; placement snaps yaw to the nearest of eight directions and starts at forty-five |
 | Loading and firing | Right-click with a mortar shell to load, right-click a loaded mortar to fire one second later, left-click to eject the shell |
+| Armor penetration | Mortar shells pierce sixty percent of armor, sharing the same explosion resolution as grenades |
 | Aiming | Empty hand left-click raises yaw by five degrees, sneaking left-click raises pitch; empty hand right-click enters driving |
 | Driving | Yaw follows the view, W and S adjust pitch, A and D fine tune yaw, Q and E change caliber, R and space fire, sneak exits |
 | Caliber | Sixty to two hundred forty millimetres, mapped linearly to one hundred twenty to four hundred eighty blocks per second |
@@ -127,6 +133,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Mechanic | Description |
 |:---:|:---|
 | Body | A new flying entity reusing the vanilla phantom model and flight, textured in the same camouflage palette as the grunt and the tank |
+| Camouflage | Four camo textures, one picked per individual at spawn |
 | Patrol | Circles alternately along an inner and an outer ring of the ruin territory, keeping eight to sixteen blocks above the ground |
 | Alert | Notices survival players or hostile faction mobs entering the territory, sounds an alarm and reports the target to the rest of the garrison |
 | Throwing | Throws players-only grenades at players and mobs-only grenades at hostile mobs, with no bounce and random charge and fuse |
@@ -152,6 +159,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 |:---:|:---|
 | Incoming fire indicator | When hit by a gun, a soft-edged arc on screen points to the source, up to three directions at once, off by default |
 | Heading ruler | A horizontal compass tape flush with the top edge, nine tenths of the screen wide, showing cardinal directions and a bare bearing number, off by default |
+| Health bars | A bar plus current and maximum health above every mob and player, green when healthy and red when low, on by default within 48 blocks |
 | Ruler color | The accent color is plain red by default and can be set to any 6-digit hexadecimal RGB value in the client config |
 
 ### Configuration and permissions

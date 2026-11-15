@@ -28,6 +28,7 @@ src/main/
 │   │   │   ├── PatchConfigScreen.java    # Config screen (client and server tabs)
 │   │   │   └── ScrollBar.java            # Draggable scroll bar
 │   │   ├── hud/
+│   │   │   ├── HealthBarOverlay.java     # Health bars above entities
 │   │   │   ├── HeadingRulerOverlay.java  # Heading ruler rendering
 │   │   │   ├── RuinGarrisonOverlay.java  # Top right garrison readout
 │   │   │   ├── RuinNoticeOverlay.java    # Top centred ruin notice
@@ -36,6 +37,7 @@ src/main/
 │   │   └── render/
 │   │       ├── ArmedHumanoidLayer.java    # Humanoid skeleton layer for non-humanoid armed mobs
 │   │       ├── ArmedShapeAttach.java      # Attaches the layer to vanilla renderers
+│   │       ├── CamoTextures.java           # Camouflage texture selection
 │   │       ├── GruntRenderer.java        # Armed grunt renderer
 │   │       ├── PhantomEliteRenderer.java # Phantom Elite renderer with the shared camouflage texture
 │   │       ├── TankModel.java            # Tank model
@@ -127,6 +129,7 @@ src/main/
 │   ├── mortar/
 │   │   ├── MortarBlock.java              # Mortar block and interactions
 │   │   ├── MortarBlockEntity.java        # Angles, caliber, loading and driving
+│   │   ├── MortarBlockItem.java          # Mortar block item with usage tooltip
 │   │   ├── MortarInteractionHandler.java # Left click eject and aiming
 │   │   ├── MortarRegistry.java           # Block, entity and item registration
 │   │   ├── MortarRemoteItem.java         # Remote item and binding
@@ -149,6 +152,8 @@ src/main/
 │   ├── runtime/
 │   │   └── RuntimeStateCleaner.java      # Clears process wide state when the server stops
 │   ├── shell/
+│   │   ├── ShellBreaker.java             # Staged terrain breaking queue
+│   │   ├── ShellColor.java               # Shell palette with camouflage tones
 │   │   ├── ShellEffects.java             # Explosion rays and mushroom cloud
 │   │   ├── ShellExplosion.java           # Controlled blast and knockback
 │   │   ├── ShellItem.java                # Shell item base and tooltip
