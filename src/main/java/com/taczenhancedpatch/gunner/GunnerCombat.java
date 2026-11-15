@@ -22,7 +22,7 @@ import net.minecraftforge.fml.common.Mod;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Map;
-import java.util.WeakHashMap;
+import java.util.HashMap;
 
 /**
  * 枪手战斗逻辑。
@@ -31,7 +31,11 @@ import java.util.WeakHashMap;
  */
 @Mod.EventBusSubscriber(modid = TACZEnhancedPatch.MOD_ID)
 public final class GunnerCombat {
-    private static final Map<LivingEntity, GunnerState> STATES = new WeakHashMap<>();
+    /*
+     * 状态表用普通表: 状态里持有的 Goal 反向引用实体, 弱引用键永远不会被回收,
+     * 因此清理只依赖死亡与离开世界两处显式移除, 不再假装靠弱引用兜底。
+     */
+    private static final Map<LivingEntity, GunnerState> STATES = new HashMap<>();
 
     /* 服务端停止时清空射击状态, 避免切换存档后残留 */
     public static void clearStates() {
