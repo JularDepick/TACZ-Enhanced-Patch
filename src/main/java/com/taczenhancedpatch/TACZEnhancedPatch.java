@@ -40,7 +40,6 @@ public final class TACZEnhancedPatch {
         PatchNetwork.register();
         RuinStructures.STRUCTURE_TYPES.register(context.getModEventBus());
         RuinStructures.PIECE_TYPES.register(context.getModEventBus());
-        RuinStructures.PLACEMENT_TYPES.register(context.getModEventBus());
         FastMagCreativeTab.TABS.register(context.getModEventBus());
         GruntRegistry.register(context.getModEventBus());
         TankRegistry.register(context.getModEventBus());

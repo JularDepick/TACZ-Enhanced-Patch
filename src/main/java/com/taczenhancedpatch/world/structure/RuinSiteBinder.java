@@ -55,12 +55,17 @@ public final class RuinSiteBinder {
             return;
         }
         ChunkPos chunk = event.getChunk().getPos();
+        boolean found = false;
         for (int section = level.getMinSection(); section < level.getMaxSection(); section++) {
             SectionPos pos = SectionPos.of(chunk.x, section, chunk.z);
             for (StructureStart start : level.structureManager().startsForStructure(pos, structure)) {
-                bind(level, start);
+                found |= bind(level, start);
             }
         }
+        if (!found) {
+            RuinSiteIndexManager.onChunkWithoutRuin(level, chunk);
+        }
+        RuinSiteIndexManager.onChunkLoaded(level, chunk);
     }
 
     /* 补区块: 只请求还没加载的, 已加载的直接跳过 */
@@ -99,7 +104,8 @@ public final class RuinSiteBinder {
         return level.registryAccess().registryOrThrow(Registries.STRUCTURE).get(RUIN_ID);
     }
 
-    private static void bind(ServerLevel level, StructureStart start) {
+    private static boolean bind(ServerLevel level, StructureStart start) {
+        boolean bound = false;
         for (StructurePiece piece : start.getPieces()) {
             if (!(piece instanceof RuinPiece ruin)) {
                 continue;
@@ -110,6 +116,8 @@ public final class RuinSiteBinder {
             int depth = box.getZSpan();
             BlockPos min = new BlockPos(box.minX(), box.minY(), box.minZ());
             BlockPos center = new BlockPos(box.minX() + width / 2, box.minY(), box.minZ() + depth / 2);
+            bound = true;
+            RuinSiteIndexManager.onSiteBound(level, center, ruin.schematic(), box);
             if (RuinSites.find(level, center) != null) {
                 continue;
             }
@@ -125,6 +133,7 @@ public final class RuinSiteBinder {
             enqueue(level, box);
             TACZEnhancedPatch.LOGGER.info("[ruin] site ready at {} ({}x{}x{})", center, width, height, depth);
         }
+        return bound;
     }
 
     /* 物资箱内容: 箱子已经由世界生成放好, 这里只填空箱, 重复进存档不会重填 */

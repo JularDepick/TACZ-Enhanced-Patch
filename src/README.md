@@ -173,9 +173,10 @@ src/main/
 │       └── structure/
 │           ├── RuinPiece.java            # 遗迹片段与按区块裁剪写入
 │           ├── RuinSiteBinder.java       # 区块加载后接线站点与补区块
-│           ├── RuinSpreadPlacement.java  # 选址: 按配置换算的网格采样
+│           ├── RuinSiteIndex.java        # 遗迹选址索引与按格持久化
+│           ├── RuinSiteIndexManager.java # 索引扩展调度与指南针查询
 │           ├── RuinStructure.java        # 遗迹结构选址与生成入口
-│           └── RuinStructures.java       # 结构, 片段与放置类型注册
+│           └── RuinStructures.java       # 结构与片段注册
 └── resources/
     ├── META-INF/mods.toml                # 模组元信息
     ├── pack.mcmeta                       # 资源包元信息

@@ -173,9 +173,10 @@ src/main/
 │       └── structure/
 │           ├── RuinPiece.java            # Ruin piece with per-chunk clipped writes
 │           ├── RuinSiteBinder.java       # Binds sites and fills chunks after load
-│           ├── RuinSpreadPlacement.java  # Placement sampling derived from config
+│           ├── RuinSiteIndex.java        # Site index with per-cell persistence
+│           ├── RuinSiteIndexManager.java # Index expansion and compass queries
 │           ├── RuinStructure.java        # Ruin structure placement and generation entry
-│           └── RuinStructures.java       # Structure, piece and placement registration
+│           └── RuinStructures.java       # Structure and piece registration
 └── resources/
     ├── META-INF/mods.toml                # Mod metadata
     ├── pack.mcmeta                       # Resource pack metadata

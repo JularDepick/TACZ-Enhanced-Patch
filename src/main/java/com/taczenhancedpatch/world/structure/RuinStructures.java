@@ -4,7 +4,6 @@ import com.taczenhancedpatch.TACZEnhancedPatch;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.levelgen.structure.StructureType;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-import net.minecraft.world.level.levelgen.structure.placement.StructurePlacementType;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.RegistryObject;
 
@@ -22,11 +21,6 @@ public final class RuinStructures {
             STRUCTURE_TYPES.register("ruined_outpost", () -> () -> RuinStructure.CODEC);
     public static final RegistryObject<StructurePieceType> RUIN_PIECE =
             PIECE_TYPES.register("ruin_piece", () -> RuinPiece::new);
-    public static final DeferredRegister<StructurePlacementType<?>> PLACEMENT_TYPES =
-            DeferredRegister.create(Registries.STRUCTURE_PLACEMENT, TACZEnhancedPatch.MOD_ID);
-    public static final RegistryObject<StructurePlacementType<RuinSpreadPlacement>> RUIN_SPREAD =
-            PLACEMENT_TYPES.register("ruin_spread", () -> () -> RuinSpreadPlacement.CODEC);
-
     private RuinStructures() {
     }
 }

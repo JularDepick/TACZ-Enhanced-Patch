@@ -98,11 +98,20 @@ public class RuinStructure extends Structure {
         return generator.getBaseHeight(x, z, Heightmap.Types.WORLD_SURFACE_WG, heightAccessor, randomState);
     }
 
-    /* 中心附近的地表高差不能太大, 否则大建筑会有一半埋在坡里; 指南针也用它校验候选点 */
+    /* 中心附近的地表高差不能太大, 否则大建筑会有一半埋在坡里; 选址索引也用它校验候选点 */
     public static boolean flatEnough(ChunkGenerator generator, LevelHeightAccessor heightAccessor,
                                      RandomState randomState, int x, int y, int z) {
+        return flatEnough(generator, heightAccessor, randomState, x, y, z, null);
+    }
+
+    /* 带采样计数的版本, 供选址索引按 tick 预算限流 */
+    public static boolean flatEnough(ChunkGenerator generator, LevelHeightAccessor heightAccessor,
+                                     RandomState randomState, int x, int y, int z, SampleCounter counter) {
         for (int dx = -FLAT_RADIUS; dx <= FLAT_RADIUS; dx++) {
             for (int dz = -FLAT_RADIUS; dz <= FLAT_RADIUS; dz++) {
+                if (counter != null) {
+                    counter.add();
+                }
                 int surface = surfaceAt(generator, heightAccessor, randomState, x + dx, z + dz);
                 if (Math.abs(surface - y) > FLAT_TOLERANCE) {
                     return false;
@@ -110,6 +119,19 @@ public class RuinStructure extends Structure {
             }
         }
         return true;
+    }
+
+    /* 地表采样计数, 让选址索引把开销摊到多个 tick */
+    public static final class SampleCounter {
+        private int value;
+
+        public void add() {
+            value++;
+        }
+
+        public int value() {
+            return value;
+        }
     }
 
     @Override

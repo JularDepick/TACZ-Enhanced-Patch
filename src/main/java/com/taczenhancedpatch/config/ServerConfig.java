@@ -80,7 +80,6 @@ public final class ServerConfig {
     private static final ForgeConfigSpec.DoubleValue GUNNER_ARMED_DROP_CAP;
     private static final ForgeConfigSpec.BooleanValue RUINS_ENABLED;
     private static final ForgeConfigSpec.EnumValue<RuinBlueprintSource> RUINS_BLUEPRINT_SOURCE;
-    private static final ForgeConfigSpec.IntValue RUIN_MIN_DISTANCE;
     private static final ForgeConfigSpec.DoubleValue GRUNT_AMMO_DROP_MULTIPLIER;
     private static final ForgeConfigSpec.DoubleValue GRUNT_HIGH_TIER_AMMO_CHANCE;
     private static final ForgeConfigSpec.DoubleValue GRUNT_GUN_DROP_CHANCE;
@@ -274,10 +273,6 @@ public final class ServerConfig {
                         "EXTERNAL 只从存档服务端配置目录下的 tacz_enhanced_patch_ruins 取蓝图",
                         "只影响之后新生成的遗迹, 已生成的遗迹沿用生成时选定的蓝图")
                 .defineEnum("blueprintSource", RuinBlueprintSource.BOTH);
-        RUIN_MIN_DISTANCE = BUILDER
-                .comment("两座遗迹之间的最小直线距离, 单位方块",
-                        "距离不足时新遗迹不生成, 已生成的遗迹不受影响")
-                .defineInRange("minDistance", 640, 300, 6400);
         BUILDER.pop();
 
         BUILDER.comment("遗迹守军与夺旗").push("ruin");
@@ -457,11 +452,6 @@ public final class ServerConfig {
     /* 遗迹建筑蓝图的来源 */
     public static RuinBlueprintSource ruinBlueprintSource() {
         return value(RUINS_BLUEPRINT_SOURCE, RuinBlueprintSource.BOTH);
-    }
-
-    /* 遗迹之间的最小直线距离 */
-    public static int ruinMinDistance() {
-        return value(RUIN_MIN_DISTANCE, 640);
     }
 
     /* 物资箱的基础出现概率, 单位百分比 */
@@ -721,7 +711,6 @@ public final class ServerConfig {
                 new ConfigOptionGroup("group.ruins", List.of(
                         new ConfigOption.ToggleOption("opt.ruins", RUINS_ENABLED),
                         new ConfigOption.EnumOption<>("opt.blueprint_source", RUINS_BLUEPRINT_SOURCE),
-                        new ConfigOption.IntOption("opt.ruin_min_distance", RUIN_MIN_DISTANCE, 300, 6400),
                         new ConfigOption.IntOption("opt.garrison_base_min", RUIN_GARRISON_BASE_MIN, 4, 128),
                         new ConfigOption.IntOption("opt.garrison_base_max", RUIN_GARRISON_BASE_MAX, 4, 128),
                         new ConfigOption.IntOption("opt.reinforce_percent_min", RUIN_REINFORCE_PERCENT_MIN, 10, 89),

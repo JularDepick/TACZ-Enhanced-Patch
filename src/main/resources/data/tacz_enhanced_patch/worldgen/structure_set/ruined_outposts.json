@@ -1,7 +1,9 @@
 {
   "placement": {
-    "type": "tacz_enhanced_patch:ruin_spread",
-    "salt": 10387313
+    "type": "minecraft:random_spread",
+    "salt": 20261115,
+    "spacing": 34,
+    "separation": 8
   },
   "structures": [
     {
