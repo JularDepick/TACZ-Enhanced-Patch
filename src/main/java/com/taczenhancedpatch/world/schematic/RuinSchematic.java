@@ -17,10 +17,13 @@ public record RuinSchematic(String id, int width, int height, int depth, short[]
         return (y * depth + z) * width + x;
     }
 
-    /* 索引处的方块状态, 空方块返回空 */
+    /* 索引处的方块状态, 空方块返回空; 越界一律当空, 防止蓝图被外部改动后尺寸对不上 */
     public BlockState stateAt(int index) {
+        if (index < 0 || index >= blocks.length) {
+            return null;
+        }
         short slot = blocks[index];
-        return slot <= 0 ? null : palette[slot];
+        return slot <= 0 || slot >= palette.length ? null : palette[slot];
     }
 
     public BlockState stateAt(int x, int y, int z) {

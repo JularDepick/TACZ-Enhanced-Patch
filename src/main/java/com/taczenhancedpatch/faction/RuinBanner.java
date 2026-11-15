@@ -57,6 +57,10 @@ public final class RuinBanner {
     /* 从建筑底面中心向上找第一个空气格, 必要时补一块支撑再放旗帜 */
     public static boolean place(ServerLevel level, RuinSites.Site site, BlockPos center, int baseY, int height,
                                 RandomSource random) {
+        /* 中心列可能落在另一个还没加载的区块里: 在区块加载事件里读写它会触发嵌套生成, 必须挡住 */
+        if (!level.hasChunkAt(center)) {
+            return false;
+        }
         BlockPos spot = null;
         int limit = Math.min(level.getMaxBuildHeight() - 1, baseY + Math.max(1, height));
         for (int y = baseY; y <= limit; y++) {

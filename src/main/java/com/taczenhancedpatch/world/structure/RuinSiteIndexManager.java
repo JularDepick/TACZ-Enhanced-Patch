@@ -159,8 +159,14 @@ public final class RuinSiteIndexManager {
         int cellX = index.cellOf(center.getX());
         int cellZ = index.cellOf(center.getZ());
         index.markBound(cellX, cellZ, center.getY(), name);
-        PENDING.computeIfAbsent(level.dimension(), key -> new ArrayList<>())
-                .add(new Completeness(cellX, cellZ, box));
+        /* 同一座遗迹的每个区块都会调到这里, 按格去重, 否则待检查列表会随区块数线性膨胀 */
+        List<Completeness> pending = PENDING.computeIfAbsent(level.dimension(), key -> new ArrayList<>());
+        for (Completeness item : pending) {
+            if (item.cellX() == cellX && item.cellZ() == cellZ) {
+                return;
+            }
+        }
+        pending.add(new Completeness(cellX, cellZ, box));
         checkCompleteness(level);
     }
 

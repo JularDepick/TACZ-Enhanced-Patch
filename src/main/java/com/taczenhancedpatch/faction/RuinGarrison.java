@@ -78,7 +78,8 @@ public final class RuinGarrison {
     private static void tickLevel(ServerLevel level) {
         RuinSites data = RuinSites.get(level);
         data.drainPending(level);
-        List<RuinSites.Site> sites = data.sites();
+        /* 区块加载事件可能在 tick 内重入并往列表里加站点, 这里必须用快照遍历 */
+        List<RuinSites.Site> sites = List.copyOf(data.sites());
         if (sites.isEmpty()) {
             return;
         }
@@ -162,6 +163,12 @@ public final class RuinGarrison {
             }
         }
         return false;
+    }
+
+    /* 下线即清掉进出记录, 否则换维度或重进会被当成还在里面 */
+    @SubscribeEvent
+    public static void onPlayerLogout(net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent event) {
+        PRESENCE.remove(event.getEntity().getUUID());
     }
 
     /* 建筑落地后初始化: 领地半径, 四个随机参数与旗帜 */
@@ -331,8 +338,6 @@ public final class RuinGarrison {
             return;
         }
         site.setCaptured(true);
-        /* 夺旗成功后旗帜交还玩家处理, 站点不再补放也不再兜底还原 */
-        site.setBanner(null, "");
         /* 势力瓦解: 剩余守军转为溃军, 阵营与归属保持不变 */
         RuinRout.rout(level, site);
         RuinLoot.placeChest(level, site, level.getRandom());

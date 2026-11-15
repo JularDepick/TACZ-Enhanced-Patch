@@ -274,6 +274,8 @@ public final class SchematicCatalog {
         external = null;
         CACHE.keySet().removeIf(name -> name.startsWith(EXTERNAL_PREFIX));
         FAILED.removeIf(name -> name.startsWith(EXTERNAL_PREFIX));
+        /* 世界生成阶段不能等后台线程, 丢弃缓存后必须同步补齐 */
+        preload();
     }
 
     /* 资源重载后丢弃全部列表与缓存, 下次生成时重新扫描 */

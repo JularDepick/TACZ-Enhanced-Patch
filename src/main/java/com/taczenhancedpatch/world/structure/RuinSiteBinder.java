@@ -44,6 +44,8 @@ public final class RuinSiteBinder {
     private static final ResourceLocation RUIN_ID = new ResourceLocation(TACZEnhancedPatch.MOD_ID, "ruined_outpost");
     /* 待填物资箱: 维度 -> 区块 -> 该区块内的箱子坐标 */
     private static final Map<ResourceKey<Level>, Map<Long, Set<BlockPos>>> PENDING_SUPPLY = new ConcurrentHashMap<>();
+    /* 已排过物资箱的站点, 避免同一座遗迹每加载一个区块就重算一遍位置 */
+    private static final Set<String> SUPPLY_SCHEDULED = ConcurrentHashMap.newKeySet();
 
     private RuinSiteBinder() {
     }
@@ -93,6 +95,11 @@ public final class RuinSiteBinder {
             BlockPos center = new BlockPos(box.minX() + width / 2, box.minY(), box.minZ() + depth / 2);
             bound = true;
             RuinSiteIndexManager.onSiteBound(level, center, ruin.schematic(), box);
+            /* 蓝图没解析好就先不接线: 否则会立起一座空壳遗迹与一批悬空的守军 */
+            if (SchematicCatalog.load(ruin.schematic()) == null) {
+                TACZEnhancedPatch.LOGGER.warn("[ruin] blueprint {} not ready, binding skipped", ruin.schematic());
+                continue;
+            }
             scheduleSupply(level, ruin, box);
             if (RuinSites.find(level, center) != null) {
                 continue;
@@ -117,6 +124,10 @@ public final class RuinSiteBinder {
     private static void scheduleSupply(ServerLevel level, RuinPiece ruin, BoundingBox box) {
         RuinSchematic blueprint = SchematicCatalog.load(ruin.schematic());
         if (blueprint == null) {
+            return;
+        }
+        String siteKey = level.dimension().location() + "@" + box.minX() + "," + box.minY() + "," + box.minZ();
+        if (!SUPPLY_SCHEDULED.add(siteKey)) {
             return;
         }
         BlockPos min = new BlockPos(box.minX(), box.minY(), box.minZ());
@@ -148,5 +159,6 @@ public final class RuinSiteBinder {
 
     public static void clear() {
         PENDING_SUPPLY.clear();
+        SUPPLY_SCHEDULED.clear();
     }
 }

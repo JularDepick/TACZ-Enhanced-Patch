@@ -25,6 +25,7 @@ public final class RuntimeStateCleaner {
         RuinSites.clearPending();
         com.taczenhancedpatch.world.structure.RuinSiteBinder.clear();
         RuinGarrison.clearPresence();
+        RuinExperience.clearPending();
         TankCrew.clearAll();
         GunnerCombat.clearStates();
         com.taczenhancedpatch.villager.VillagerTradeHandler.clearPending();

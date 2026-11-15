@@ -77,6 +77,11 @@ public class RuinPiece extends StructurePiece {
             TACZEnhancedPatch.LOGGER.warn("[ruin] blueprint {} unavailable at {}", this.schematic, this.boundingBox);
             return;
         }
+        if (blueprint.width() != this.boundingBox.getXSpan() || blueprint.height() != this.boundingBox.getYSpan()
+                || blueprint.depth() != this.boundingBox.getZSpan()) {
+            TACZEnhancedPatch.LOGGER.warn("[ruin] blueprint {} size changed, skip {}", this.schematic, this.boundingBox);
+            return;
+        }
         int minX = Math.max(this.boundingBox.minX(), box.minX());
         int maxX = Math.min(this.boundingBox.maxX(), box.maxX());
         int minY = Math.max(this.boundingBox.minY(), box.minY());
