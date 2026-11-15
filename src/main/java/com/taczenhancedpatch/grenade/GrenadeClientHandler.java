@@ -6,33 +6,31 @@ import com.taczenhancedpatch.config.ClientConfig;
 import com.taczenhancedpatch.network.PatchNetwork;
 import com.taczenhancedpatch.util.UiText;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.DyeColor;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.ComputeFovModifierEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 
 /*
  * 手雷的客户端交互。
- * 手持手雷时接管十个固定按键切换六项属性, 按下右键开始蓄力并下发属性快照, 松开投掷。
- * 切换结果写回客户端配置, 属于本机偏好; 斜杠键在原版是聊天命令键, 处理完切换后清掉这次按键。
+ * 手持手雷时接管九个固定按键切换六项属性, 成对按键到边界即停, 单键为开关或循环。
+ * 按住右键蓄力, 松开投掷; 蓄力时靠拉弓姿态与视野收缩给出反馈, 不再占用屏幕空间。
  */
 @Mod.EventBusSubscriber(modid = TACZEnhancedPatch.MOD_ID, value = Dist.CLIENT)
 public final class GrenadeClientHandler {
     private static final int[] KEYS = {
             GLFW.GLFW_KEY_MINUS, GLFW.GLFW_KEY_EQUAL,
-            GLFW.GLFW_KEY_SEMICOLON, GLFW.GLFW_KEY_APOSTROPHE,
             GLFW.GLFW_KEY_LEFT_BRACKET, GLFW.GLFW_KEY_RIGHT_BRACKET,
-            GLFW.GLFW_KEY_BACKSLASH, GLFW.GLFW_KEY_COMMA, GLFW.GLFW_KEY_PERIOD,
-            GLFW.GLFW_KEY_SLASH};
+            GLFW.GLFW_KEY_BACKSLASH, GLFW.GLFW_KEY_SEMICOLON, GLFW.GLFW_KEY_APOSTROPHE,
+            GLFW.GLFW_KEY_COMMA, GLFW.GLFW_KEY_PERIOD};
     private static final Map<Integer, Boolean> DOWN = new HashMap<>();
     /* 触发式没有倒计时, 面板上只留短暂提示 */
     private static final int IMPACT_HINT_TICKS = 40;
@@ -40,7 +38,6 @@ public final class GrenadeClientHandler {
     private static int chargeTicks = -1;
     private static int fuseTicks = -1;
     private static boolean impactFuse;
-    private static boolean slashConsumed;
 
     private GrenadeClientHandler() {
     }
@@ -49,7 +46,7 @@ public final class GrenadeClientHandler {
     public static GrenadeSettings settings() {
         return GrenadeSettings.sanitize(new GrenadeSettings(
                 ClientConfig.grenadeFuse(),
-                ClientConfig.grenadeBounce(),
+                ClientConfig.grenadeSticky(),
                 ClientConfig.grenadePower(),
                 GrenadeTarget.byId(ClientConfig.grenadeTarget(), GrenadeTarget.NO_MOB),
                 DyeColor.byName(ClientConfig.grenadeColor(), DyeColor.GREEN),
@@ -92,10 +89,19 @@ public final class GrenadeClientHandler {
         pollKeys(minecraft, holding);
         updateCharge(minecraft, holding);
         tickFuse();
-        guardChat(minecraft);
     }
 
-    /* 十个按键按按下沿触发, 按住不重复切换; 打开界面时只更新状态不处理 */
+    /* 蓄力时像拉弓一样收缩视野, 松开后恢复 */
+    @SubscribeEvent
+    public static void onComputeFov(ComputeFovModifierEvent event) {
+        if (chargeTicks < 0) {
+            return;
+        }
+        float ratio = Math.min(1.0F, chargeTicks / (float) GrenadeSettings.CHARGE_TICKS);
+        event.setNewFovModifier(event.getFovModifier() * (1.0F - 0.15F * ratio * ratio));
+    }
+
+    /* 九个按键按按下沿触发, 按住不重复切换; 打开界面时只更新状态不处理 */
     private static void pollKeys(Minecraft minecraft, boolean holding) {
         long window = minecraft.getWindow().getWindow();
         boolean canAct = holding && minecraft.screen == null;
@@ -115,57 +121,50 @@ public final class GrenadeClientHandler {
         String label;
         Component value;
         if (key == GLFW.GLFW_KEY_MINUS || key == GLFW.GLFW_KEY_EQUAL) {
-            int fuse = GrenadeSettings.nextFuse(current.fuseSeconds(), key == GLFW.GLFW_KEY_EQUAL);
-            next = new GrenadeSettings(fuse, current.bounce(), current.power(), current.target(),
+            int fuse = GrenadeSettings.stepFuse(current.fuseSeconds(), key == GLFW.GLFW_KEY_EQUAL);
+            next = new GrenadeSettings(fuse, current.sticky(), current.power(), current.target(),
                     current.color(), current.effects());
             label = "grenade.label.fuse";
             value = fuseText(fuse);
-        } else if (key == GLFW.GLFW_KEY_SEMICOLON || key == GLFW.GLFW_KEY_APOSTROPHE) {
-            double bounce = GrenadeSettings.stepBounce(current.bounce(), key == GLFW.GLFW_KEY_APOSTROPHE);
-            next = new GrenadeSettings(current.fuseSeconds(), bounce, current.power(), current.target(),
-                    current.color(), current.effects());
-            label = "grenade.label.bounce";
-            value = Component.literal(String.format(Locale.ROOT, "%.1f", bounce));
         } else if (key == GLFW.GLFW_KEY_LEFT_BRACKET || key == GLFW.GLFW_KEY_RIGHT_BRACKET) {
             int power = GrenadeSettings.stepPower(current.power(), key == GLFW.GLFW_KEY_RIGHT_BRACKET);
-            next = new GrenadeSettings(current.fuseSeconds(), current.bounce(), power, current.target(),
+            next = new GrenadeSettings(current.fuseSeconds(), current.sticky(), power, current.target(),
                     current.color(), current.effects());
             label = "grenade.label.power";
             value = Component.literal(String.valueOf(power));
         } else if (key == GLFW.GLFW_KEY_BACKSLASH) {
             GrenadeTarget target = current.target().next(true);
-            next = new GrenadeSettings(current.fuseSeconds(), current.bounce(), current.power(), target,
+            next = new GrenadeSettings(current.fuseSeconds(), current.sticky(), current.power(), target,
                     current.color(), current.effects());
             label = "grenade.label.target";
             value = UiText.of(target.labelKey());
-        } else if (key == GLFW.GLFW_KEY_COMMA || key == GLFW.GLFW_KEY_PERIOD) {
-            DyeColor color = nextColor(current.color(), key == GLFW.GLFW_KEY_PERIOD);
-            next = new GrenadeSettings(current.fuseSeconds(), current.bounce(), current.power(), current.target(),
-                    color, current.effects());
-            label = "grenade.label.color";
-            value = UiText.of("grenade.color." + color.getName());
-        } else if (key == GLFW.GLFW_KEY_SLASH) {
+        } else if (key == GLFW.GLFW_KEY_SEMICOLON) {
+            boolean sticky = !current.sticky();
+            next = new GrenadeSettings(current.fuseSeconds(), sticky, current.power(), current.target(),
+                    current.color(), current.effects());
+            label = "grenade.label.sticky";
+            value = UiText.of(sticky ? "grenade.on" : "grenade.off");
+        } else if (key == GLFW.GLFW_KEY_APOSTROPHE) {
             boolean effects = !current.effects();
-            next = new GrenadeSettings(current.fuseSeconds(), current.bounce(), current.power(), current.target(),
+            next = new GrenadeSettings(current.fuseSeconds(), current.sticky(), current.power(), current.target(),
                     current.color(), effects);
             label = "grenade.label.effects";
             value = UiText.of(effects ? "grenade.on" : "grenade.off");
-            slashConsumed = true;
+        } else if (key == GLFW.GLFW_KEY_COMMA || key == GLFW.GLFW_KEY_PERIOD) {
+            DyeColor color = GrenadeSettings.stepColor(current.color(), key == GLFW.GLFW_KEY_PERIOD);
+            next = new GrenadeSettings(current.fuseSeconds(), current.sticky(), current.power(), current.target(),
+                    color, current.effects());
+            label = "grenade.label.color";
+            value = UiText.of("grenade.color." + color.getName());
         } else {
             return;
         }
-        ClientConfig.setGrenade(next.fuseSeconds(), next.bounce(), next.power(),
+        ClientConfig.setGrenade(next.fuseSeconds(), next.sticky(), next.power(),
                 next.target().id(), next.color().getName(), next.effects());
         if (minecraft.player != null) {
             minecraft.player.displayClientMessage(Component.translatable("tacz_enhanced_patch.grenade.changed",
                     UiText.of(label), value), true);
         }
-    }
-
-    private static DyeColor nextColor(DyeColor current, boolean forward) {
-        DyeColor[] colors = DyeColor.values();
-        int index = current == null ? 0 : current.ordinal();
-        return colors[(index + (forward ? 1 : colors.length - 1)) % colors.length];
     }
 
     /*
@@ -206,18 +205,6 @@ public final class GrenadeClientHandler {
         } else if (fuseTicks == 0) {
             fuseTicks = -1;
             impactFuse = false;
-        }
-    }
-
-    /* 斜杠键兼作特效开关: 处理完把原版聊天命令键的这次点击吃掉, 已经打开聊天框则关掉 */
-    private static void guardChat(Minecraft minecraft) {
-        if (!slashConsumed) {
-            return;
-        }
-        slashConsumed = false;
-        minecraft.options.keyCommand.consumeClick();
-        if (minecraft.screen instanceof ChatScreen) {
-            minecraft.setScreen(null);
         }
     }
 

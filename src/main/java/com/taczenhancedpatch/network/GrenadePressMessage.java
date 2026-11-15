@@ -18,7 +18,7 @@ public record GrenadePressMessage(GrenadeSettings settings) {
     public static void encode(GrenadePressMessage message, FriendlyByteBuf buffer) {
         GrenadeSettings settings = message.settings();
         buffer.writeVarInt(settings.fuseSeconds() + 1);
-        buffer.writeDouble(settings.bounce());
+        buffer.writeBoolean(settings.sticky());
         buffer.writeVarInt(settings.power());
         buffer.writeUtf(settings.target().id());
         buffer.writeUtf(settings.color().getName());
@@ -27,13 +27,13 @@ public record GrenadePressMessage(GrenadeSettings settings) {
 
     public static GrenadePressMessage decode(FriendlyByteBuf buffer) {
         int fuse = buffer.readVarInt() - 1;
-        double bounce = buffer.readDouble();
+        boolean sticky = buffer.readBoolean();
         int power = buffer.readVarInt();
         GrenadeTarget target = GrenadeTarget.byId(buffer.readUtf(16), GrenadeTarget.NO_MOB);
         DyeColor color = DyeColor.byName(buffer.readUtf(16), DyeColor.GREEN);
         boolean effects = buffer.readBoolean();
         return new GrenadePressMessage(GrenadeSettings.sanitize(
-                new GrenadeSettings(fuse, bounce, power, target, color, effects)));
+                new GrenadeSettings(fuse, sticky, power, target, color, effects)));
     }
 
     public static void handle(GrenadePressMessage message, Supplier<NetworkEvent.Context> context) {

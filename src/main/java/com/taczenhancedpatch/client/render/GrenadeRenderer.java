@@ -13,10 +13,12 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.Vec3;
 
 /*
  * 手雷投掷物的渲染。
- * 投掷物本身只是一枚物品, 因此直接复用物品渲染, 朝向跟着镜头, 让玩家总能看清手里的东西飞出去。
+ * 用三维物品模型按飞行方向摆正, 不再朝着镜头贴一张平面图, 因此转视角时手雷不会跟着转。
+ * 静止后保持最后一次朝向, 只做缓慢自转。
  */
 public class GrenadeRenderer extends EntityRenderer<GrenadeProjectile> {
     private final ItemRenderer itemRenderer;
@@ -34,8 +36,16 @@ public class GrenadeRenderer extends EntityRenderer<GrenadeProjectile> {
                        MultiBufferSource buffers, int light) {
         poseStack.pushPose();
         poseStack.translate(0.0D, 0.2D, 0.0D);
-        poseStack.mulPose(this.entityRenderDispatcher.cameraOrientation());
-        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
+        Vec3 motion = entity.getDeltaMovement();
+        double horizontal = Math.sqrt(motion.x * motion.x + motion.z * motion.z);
+        if (horizontal > 0.01D) {
+            float heading = (float) (Math.toDegrees(Math.atan2(motion.x, motion.z)));
+            float pitch = (float) (Math.toDegrees(Math.atan2(motion.y, horizontal)));
+            poseStack.mulPose(Axis.YP.rotationDegrees(heading));
+            poseStack.mulPose(Axis.XP.rotationDegrees(-pitch));
+        }
+        /* 缓慢自转, 让静止的手雷也有立体感 */
+        poseStack.mulPose(Axis.YP.rotationDegrees((entity.tickCount + partialTick) * 6.0F));
         this.itemRenderer.renderStatic(this.stack, ItemDisplayContext.GROUND, light, OverlayTexture.NO_OVERLAY,
                 poseStack, buffers, entity.level(), entity.getId());
         poseStack.popPose();

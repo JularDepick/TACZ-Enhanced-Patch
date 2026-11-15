@@ -44,13 +44,13 @@ public final class ClientConfig {
                     "手持手雷时用减号与等号切换")
             .defineInRange("grenadeFuse", 3, -1, 10);
 
-    private static final ForgeConfigSpec.DoubleValue GRENADE_BOUNCE = BUILDER
-            .comment("手雷落地反弹系数, 即反弹后法向速度与原法向速度的比值, 零表示不反弹",
-                    "手持手雷时分号与单引号切换, 范围零到零点九, 步进零点一")
-            .defineInRange("grenadeBounce", 0.0D, 0.0D, 0.9D);
+    private static final ForgeConfigSpec.BooleanValue GRENADE_STICKY = BUILDER
+            .comment("手雷粘性: 开启后第一次碰撞就停住并跟随被撞到的方块, 生物或玩家",
+                    "关闭时按碰撞方块的硬度做自适应反弹, 越硬的方块反弹越弱")
+            .define("grenadeSticky", false);
 
     private static final ForgeConfigSpec.IntValue GRENADE_POWER = BUILDER
-            .comment("手雷爆炸威力, 零到十六, 对应破坏半径零到八格与中心伤害零到基础生命的两倍",
+            .comment("手雷爆炸威力, 零到十六, 对应杀伤半径零到十六格与中心伤害零到基础生命的百分之三百二十",
                     "手持手雷时左方括号与右方括号切换")
             .defineInRange("grenadePower", 4, 0, 16);
 
@@ -60,7 +60,7 @@ public final class ClientConfig {
             .define("grenadeTarget", "no_mob");
 
     private static final ForgeConfigSpec.ConfigValue<String> GRENADE_COLOR = BUILDER
-            .comment("手雷配色, 取原版十六种旗帜颜色名, 只影响外观与爆炸特效",
+            .comment("手雷配色, 取原版十六种旗帜颜色名, 只影响物品贴图颜色, 不影响爆炸",
                     "默认 green 即墨绿, 手持手雷时用逗号与句号切换")
             .define("grenadeColor", "green");
 
@@ -115,11 +115,11 @@ public final class ClientConfig {
         }
     }
 
-    public static double grenadeBounce() {
+    public static boolean grenadeSticky() {
         try {
-            return GRENADE_BOUNCE.get();
+            return GRENADE_STICKY.get();
         } catch (IllegalStateException ignored) {
-            return 0.0D;
+            return false;
         }
     }
 
@@ -156,10 +156,10 @@ public final class ClientConfig {
     }
 
     /* 按键切换后整份写回, 避免六个键分头保存造成半新半旧 */
-    public static void setGrenade(int fuse, double bounce, int power, String target, String color, boolean effects) {
+    public static void setGrenade(int fuse, boolean sticky, int power, String target, String color, boolean effects) {
         try {
             GRENADE_FUSE.set(Mth.clamp(fuse, -1, 10));
-            GRENADE_BOUNCE.set(Math.round(Mth.clamp(bounce, 0.0D, 0.9D) * 10.0D) / 10.0D);
+            GRENADE_STICKY.set(sticky);
             GRENADE_POWER.set(Mth.clamp(power, 0, 16));
             GRENADE_TARGET.set(target == null || target.isEmpty() ? "no_mob" : target);
             GRENADE_COLOR.set(color == null || color.isEmpty() ? "green" : color);

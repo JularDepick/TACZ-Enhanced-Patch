@@ -11,8 +11,9 @@ import net.minecraft.world.level.Level;
 
 /*
  * 手雷物品。
- * 全模组只有这一种手雷, 堆叠上限 64; 六项属性不存在物品数据里, 而是玩家偏好, 由客户端配置持有。
- * 右键开始蓄力, 松开投掷; 蓄力时长与属性快照都由客户端得出, 服务端只接收结果并模拟。
+ * 全模组只有这一种手雷, 堆叠上限 64; 六项属性不存在物品数据里, 而是玩家偏好, 由客户端配置持有,
+ * 投掷时随包下发并绑定到这一颗手雷上, 之后切换属性不会影响已经飞出去的那一颗。
+ * 蓄力沿用拉弓姿态, 视野同时收缩, 不占用屏幕空间。
  */
 public class GrenadeItem extends Item {
     public GrenadeItem(Properties properties) {
@@ -34,7 +35,7 @@ public class GrenadeItem extends Item {
 
     @Override
     public UseAnim getUseAnimation(ItemStack stack) {
-        return UseAnim.NONE;
+        return UseAnim.BOW;
     }
 
     @Override

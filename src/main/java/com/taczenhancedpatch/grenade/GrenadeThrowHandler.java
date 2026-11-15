@@ -1,6 +1,7 @@
 package com.taczenhancedpatch.grenade;
 
 import com.taczenhancedpatch.TACZEnhancedPatch;
+import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.item.PatchItems;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -50,7 +51,9 @@ public final class GrenadeThrowHandler {
         Press press = PRESS.remove(player.getUUID());
         GrenadeSettings settings = press == null ? GrenadeSettings.DEFAULT : press.settings();
         int charge = Mth.clamp(chargeTicks, 0, GrenadeSettings.CHARGE_TICKS);
-        double speed = GrenadeSettings.speedFor(charge);
+        double[] range = ServerConfig.grenadeSpeedRange();
+        /* 配置单位是 格/秒, 原版投掷物用 格/tick, 按二十换算 */
+        double speed = GrenadeSettings.speedFor(charge, range[0], range[1]) / 20.0D;
         Vec3 direction = player.getViewVector(1.0F).normalize();
         Vec3 start = player.getEyePosition().add(direction.scale(0.6D));
         /* 引信从按下右键开始计时, 蓄力用掉的秒数直接抵掉 */

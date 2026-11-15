@@ -95,7 +95,8 @@ public final class ServerConfig {
     private static final ForgeConfigSpec.DoubleValue TANK_CANNON_RANGE;
 
     /* 手雷与幻机 */
-    private static final ForgeConfigSpec.DoubleValue GRENADE_GRAVITY;
+    private static final ForgeConfigSpec.DoubleValue GRENADE_SPEED_MIN;
+    private static final ForgeConfigSpec.DoubleValue GRENADE_SPEED_MAX;
     private static final ForgeConfigSpec.IntValue PHANTOM_THROW_INTERVAL_MIN;
     private static final ForgeConfigSpec.IntValue PHANTOM_THROW_INTERVAL_MAX;
     private static final ForgeConfigSpec.IntValue PHANTOM_CHARGE_MIN;
@@ -355,9 +356,12 @@ public final class ServerConfig {
         BUILDER.pop();
 
         BUILDER.comment("手雷与幻机").push("grenade");
-        GRENADE_GRAVITY = BUILDER
-                .comment("手雷飞行时的重力加速度, 单位 格/秒平方, 只影响投掷物弹道")
-                .defineInRange("gravity", 9.8D, 5.0D, 20.0D);
+        GRENADE_SPEED_MIN = BUILDER
+                .comment("手雷零蓄力时的初速度, 单位 格/秒, 合法范围 4 到 64, 且不得大于上限")
+                .defineInRange("speedMin", 4.0D, 4.0D, 64.0D);
+        GRENADE_SPEED_MAX = BUILDER
+                .comment("手雷满蓄力时的初速度, 单位 格/秒, 合法范围 4 到 64, 且不得小于下限")
+                .defineInRange("speedMax", 16.0D, 4.0D, 64.0D);
         PHANTOM_THROW_INTERVAL_MIN = BUILDER
                 .comment("幻机两次投掷之间的最短间隔, 单位秒")
                 .defineInRange("phantomThrowIntervalMin", 2, 1, 30);
@@ -655,9 +659,13 @@ public final class ServerConfig {
         return value(VILLAGER_GUN_DAMAGE, 0.5D);
     }
 
-    /* 手雷飞行重力, 单位 格/秒平方 */
-    public static double grenadeGravity() {
-        return value(GRENADE_GRAVITY, 9.8D);
+    /* 手雷初速度区间, 单位 格/秒; 配置写反时自动按大小排序 */
+    public static double[] grenadeSpeedRange() {
+        double min = value(GRENADE_SPEED_MIN, 4.0D);
+        double max = value(GRENADE_SPEED_MAX, 16.0D);
+        double low = Math.min(min, max);
+        double high = Math.max(min, max);
+        return new double[]{Math.max(low, 4.0D), Math.min(high, 64.0D)};
     }
 
     /* 幻机两次投掷的间隔区间, 单位秒 */
@@ -715,7 +723,8 @@ public final class ServerConfig {
                         new ConfigOption.DoubleOption("opt.villager_mob_threshold", VILLAGER_MOB_THRESHOLD, 0.5D, 1.0D, 0.05D),
                         new ConfigOption.DoubleOption("opt.villager_gun_damage", VILLAGER_GUN_DAMAGE, 0.1D, 1.0D, 0.05D))),
                 new ConfigOptionGroup("group.grenade", List.of(
-                        new ConfigOption.DoubleOption("opt.grenade_gravity", GRENADE_GRAVITY, 5.0D, 20.0D, 0.1D),
+                        new ConfigOption.DoubleOption("opt.grenade_speed_min", GRENADE_SPEED_MIN, 4.0D, 64.0D, 1.0D),
+                        new ConfigOption.DoubleOption("opt.grenade_speed_max", GRENADE_SPEED_MAX, 4.0D, 64.0D, 1.0D),
                         new ConfigOption.IntOption("opt.phantom_throw_min", PHANTOM_THROW_INTERVAL_MIN, 1, 30),
                         new ConfigOption.IntOption("opt.phantom_throw_max", PHANTOM_THROW_INTERVAL_MAX, 1, 30),
                         new ConfigOption.IntOption("opt.phantom_charge_min", PHANTOM_CHARGE_MIN, 0, 60),

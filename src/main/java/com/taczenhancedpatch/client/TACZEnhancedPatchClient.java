@@ -3,6 +3,7 @@ package com.taczenhancedpatch.client;
 import com.taczenhancedpatch.TACZEnhancedPatch;
 import com.taczenhancedpatch.client.render.GrenadeRenderer;
 import com.taczenhancedpatch.client.render.GruntRenderer;
+import com.taczenhancedpatch.client.render.PhantomEliteRenderer;
 import com.taczenhancedpatch.config.ClientConfig;
 import com.taczenhancedpatch.entity.PhantomRegistry;
 import com.taczenhancedpatch.grenade.GrenadeRegistry;
@@ -13,7 +14,6 @@ import com.taczenhancedpatch.entity.GruntRegistry;
 import com.taczenhancedpatch.entity.TankRegistry;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
-import net.minecraft.client.renderer.entity.PhantomRenderer;
 import net.minecraft.world.item.DyeColor;
 import net.minecraftforge.client.event.RegisterColorHandlersEvent;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
@@ -49,15 +49,15 @@ public final class TACZEnhancedPatchClient {
         event.registerEntityRenderer(TankRegistry.TANK_ELITE.get(), TankRenderer::new);
         /* 手雷投掷物直接按物品渲染 */
         event.registerEntityRenderer(GrenadeRegistry.GRENADE.get(), GrenadeRenderer::new);
-        /* 幻机沿用原版幻翼的模型与渲染器, 只换实体类型 */
-        event.registerEntityRenderer(PhantomRegistry.PHANTOM_ELITE.get(), PhantomRenderer::new);
+        /* 幻机沿用原版幻翼的模型, 只换贴图与实体类型 */
+        event.registerEntityRenderer(PhantomRegistry.PHANTOM_ELITE.get(), PhantomEliteRenderer::new);
     }
 
     /* 手雷的配色层: 第 0 层是本体, 第 1 层按当前配色染色 */
     @SubscribeEvent
     public static void onRegisterItemColors(RegisterColorHandlersEvent.Item event) {
         event.register((stack, tintIndex) -> {
-            if (tintIndex != 1) {
+            if (tintIndex != 0) {
                 return -1;
             }
             int rgb = DyeColor.byName(ClientConfig.grenadeColor(), DyeColor.GREEN).getFireworkColor();

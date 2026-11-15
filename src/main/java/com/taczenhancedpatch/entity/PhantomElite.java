@@ -30,6 +30,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -46,15 +47,17 @@ public class PhantomElite extends Phantom {
     /* 内外巡逻圈相对领地半径的比例 */
     private static final double INNER_RATIO = 0.6D;
     private static final double OUTER_RATIO = 0.9D;
-    /* 巡逻高度相对旗帜的抬升与上下摆动幅度 */
-    private static final double FLY_HEIGHT = 10.0D;
-    private static final double FLY_WAVE = 2.0D;
+    /* 巡逻高度: 距地面的下限与上下摆动的幅度, 合计上限为十六格 */
+    private static final double FLY_MIN_HEIGHT = 8.0D;
+    private static final double FLY_HEIGHT_SPAN = 8.0D;
     private static final int SCAN_INTERVAL = 20;
     private static final int ALERT_COOLDOWN = 100;
     private static final double THROW_RANGE = 28.0D;
     private static final int MAX_FUSE_SECONDS = 5;
     private static final int DEFAULT_POWER = 4;
     private static final double PATROL_STEP = 0.02D;
+    /* 原版投掷物的重力, 单位 格/tick 的平方 */
+    private static final double THROW_GRAVITY = 0.03D;
 
     private double patrolAngle;
     private boolean outerRing = true;
@@ -106,6 +109,10 @@ public class PhantomElite extends Phantom {
         if (!(this.level() instanceof ServerLevel level)) {
             return;
         }
+        /* 出生点可能在方块里: 每 tick 向上抬一点, 直到脱离碰撞 */
+        if (!level.noCollision(this, this.getBoundingBox())) {
+            this.setPos(this.getX(), this.getY() + 0.4D, this.getZ());
+        }
         BlockPos home = FactionData.homeOf(this);
         if (home == null) {
             return;
@@ -114,15 +121,15 @@ public class PhantomElite extends Phantom {
         if (site == null || site.banner() == null) {
             return;
         }
-        this.patrol(site);
+        this.patrol(level, site);
         if (this.tickCount % SCAN_INTERVAL == 0) {
             this.scan(level, site);
         }
         this.tryThrow(level, site);
     }
 
-    /* 内外两圈交替: 绕满一圈换一圈, 高度按正弦上下浮动 */
-    private void patrol(RuinSites.Site site) {
+    /* 内外两圈交替: 绕满一圈换一圈, 高度取当前位置地面以上八到十六格之间往复 */
+    private void patrol(ServerLevel level, RuinSites.Site site) {
         BlockPos banner = site.banner();
         if (banner == null) {
             return;
@@ -135,7 +142,11 @@ public class PhantomElite extends Phantom {
         double radius = site.radius() * (this.outerRing ? OUTER_RATIO : INNER_RATIO);
         double x = banner.getX() + 0.5D + Math.cos(this.patrolAngle) * radius;
         double z = banner.getZ() + 0.5D + Math.sin(this.patrolAngle) * radius;
-        double y = banner.getY() + FLY_HEIGHT + Math.sin(this.patrolAngle * 2.0D) * FLY_WAVE;
+        BlockPos ground = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                new BlockPos((int) Math.floor(x), banner.getY(), (int) Math.floor(z)));
+        /* 离地高度在八到十六格之间按正弦往复 */
+        double wave = 0.5D + 0.5D * Math.sin(this.patrolAngle * 2.0D);
+        double y = ground.getY() + FLY_MIN_HEIGHT + FLY_HEIGHT_SPAN * wave;
         this.getMoveControl().setWantedPosition(x, y, z, 1.0D);
     }
 
@@ -216,10 +227,12 @@ public class PhantomElite extends Phantom {
         GrenadeTarget mode = againstPlayer ? GrenadeTarget.PLAYER_ONLY : GrenadeTarget.MOB_ONLY;
         int fuse = 1 + this.getRandom().nextInt(MAX_FUSE_SECONDS);
         DyeColor color = DyeColor.byName(site.bannerColor(), DyeColor.GREEN);
-        GrenadeSettings settings = new GrenadeSettings(fuse, 0.0D, DEFAULT_POWER, mode, color, true);
+        GrenadeSettings settings = new GrenadeSettings(fuse, false, DEFAULT_POWER, mode, color, true);
         int charge = ServerConfig.phantomCharge(this.getRandom());
+        double[] range = ServerConfig.grenadeSpeedRange();
         Vec3 start = this.getEyePosition();
-        Vec3 velocity = this.aimAt(start, target.getEyePosition(), GrenadeSettings.speedFor(charge));
+        Vec3 velocity = this.aimAt(start, target.getEyePosition(),
+                GrenadeSettings.speedFor(charge, range[0], range[1]) / 20.0D);
         GrenadeProjectile grenade = new GrenadeProjectile(level, start, velocity, settings, this, fuse * 20);
         level.addFreshEntity(grenade);
         level.playSound(null, this.getX(), this.getY(), this.getZ(),
@@ -231,7 +244,8 @@ public class PhantomElite extends Phantom {
      * 无解时直接朝目标投出, 观感上相当于贴脸直掷。
      */
     private Vec3 aimAt(Vec3 start, Vec3 end, double speed) {
-        double gravity = ServerConfig.grenadeGravity();
+        /* 与原版投掷物一致的重力, 单位 格/tick 的平方 */
+        double gravity = THROW_GRAVITY;
         Vec3 delta = end.subtract(start);
         double horizontal = Math.sqrt(delta.x * delta.x + delta.z * delta.z);
         if (horizontal < 0.1D) {
