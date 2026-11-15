@@ -20,6 +20,7 @@ src/main/
 │   │   ├── InfiniteMagTooltipHandler.java # Infinite magazine tooltip
 │   │   ├── RuinCompassAngle.java          # Compass needle angle
 │   │   ├── TACZEnhancedPatchClient.java  # Client entry point
+│   │   ├── MortarClientHandler.java       # Mortar driving and remote input
 │   │   ├── TankControlHandler.java        # Driving fire input for the tank
 │   │   ├── config/
 │   │   │   ├── MobListScreen.java        # Mob arming config screen
@@ -30,7 +31,8 @@ src/main/
 │   │   │   ├── HeadingRulerOverlay.java  # Heading ruler rendering
 │   │   │   ├── RuinGarrisonOverlay.java  # Top right garrison readout
 │   │   │   ├── RuinNoticeOverlay.java    # Top centred ruin notice
-│   │   │   └── GrenadeHudOverlay.java    # Grenade panel and fuse countdown
+│   │   │   ├── GrenadeHudOverlay.java    # Shell panel and fuse countdown
+│   │   │   └── MortarHudOverlay.java     # Mortar angles and range panel
 │   │   └── render/
 │   │       ├── ArmedHumanoidLayer.java    # Humanoid skeleton layer for non-humanoid armed mobs
 │   │       ├── ArmedShapeAttach.java      # Attaches the layer to vanilla renderers
@@ -38,7 +40,8 @@ src/main/
 │   │       ├── PhantomEliteRenderer.java # Phantom Elite renderer with the shared camouflage texture
 │   │       ├── TankModel.java            # Tank model
 │   │       ├── TankRenderer.java         # Tank elite renderer
-│   │       └── GrenadeRenderer.java      # Grenade projectile renderer
+│   │       ├── GrenadeRenderer.java      # Grenade projectile renderer
+│   │       └── MortarBlockEntityRenderer.java # Mortar base and barrel renderer
 │   ├── config/
 │   │   ├── ClientConfig.java             # Client configuration
 │   │   ├── ConfigEvents.java             # Configuration lifecycle and saving
@@ -58,6 +61,7 @@ src/main/
 │   │   ├── PhantomElite.java             # Phantom Elite patrol, alert and throwing
 │   │   ├── PhantomRegistration.java      # Phantom Elite attributes and spawn egg
 │   │   ├── PhantomRegistry.java          # Phantom Elite entity and item registration
+│   │   ├── PhantomShells.java            # Phantom shell inventory and range
 │   │   ├── RideTankGoal.java             # Grunt riding goal for tanks
 │   │   ├── TankCrew.java                 # Crew health and armor multipliers
 │   │   ├── TankElite.java                # Tank elite entity and shelling
@@ -124,8 +128,17 @@ src/main/
 │   ├── loot/
 │   │   ├── BattleLootHandler.java        # Gunner loot drops
 │   │   └── GruntLootHandler.java         # Armed grunt loot
+│   ├── mortar/
+│   │   ├── MortarBlock.java              # Mortar block and interactions
+│   │   ├── MortarBlockEntity.java        # Angles, caliber, loading and driving
+│   │   ├── MortarInteractionHandler.java # Left click eject and aiming
+│   │   ├── MortarRegistry.java           # Block, entity and item registration
+│   │   ├── MortarRemoteItem.java         # Remote item and binding
+│   │   ├── MortarShellItem.java          # Mortar shell item
+│   │   └── MortarShellProjectile.java    # Mortar shell projectile
 │   ├── network/
-│   │   ├── GrenadePressMessage.java      # Grenade property snapshot packet
+│   │   ├── MortarControlMessage.java     # Mortar control packet
+│   │   ├── ShellSettingsMessage.java     # Shell property sync packet
 │   │   ├── GrenadeThrowMessage.java      # Grenade throw request packet
 │   │   ├── HitDirectionMessage.java      # Hit direction sync packet
 │   │   ├── PatchNetwork.java             # Network channel registration
@@ -139,6 +152,13 @@ src/main/
 │   │   └── PowerTracker.java              # Peak combat power recording
 │   ├── runtime/
 │   │   └── RuntimeStateCleaner.java      # Clears process wide state when the server stops
+│   ├── shell/
+│   │   ├── ShellEffects.java             # Explosion rays and mushroom cloud
+│   │   ├── ShellExplosion.java           # Controlled blast and knockback
+│   │   ├── ShellItem.java                # Shell item base and tooltip
+│   │   ├── ShellProjectile.java          # Shell projectile base
+│   │   ├── ShellSettings.java            # Shell properties and item data
+│   │   └── ShellTarget.java              # Seven target modes
 │   ├── util/
 │   │   └── UiText.java                   # UI text wrapper
 │   ├── villager/

@@ -20,6 +20,7 @@ src/main/
 │   │   ├── InfiniteMagTooltipHandler.java # 无限弹匣提示
 │   │   ├── RuinCompassAngle.java          # 指南针指针角度
 │   │   ├── TACZEnhancedPatchClient.java  # 客户端入口
+│   │   ├── MortarClientHandler.java       # 迫击炮驾驶与遥控输入
 │   │   ├── TankControlHandler.java        # 玩家驾驶坦克的开火输入
 │   │   ├── config/
 │   │   │   ├── MobListScreen.java        # 生物持械配置页
@@ -30,7 +31,8 @@ src/main/
 │   │   │   ├── HeadingRulerOverlay.java  # 方向标尺绘制
 │   │   │   ├── RuinGarrisonOverlay.java  # 右上角遗迹守军读数
 │   │   │   ├── RuinNoticeOverlay.java    # 顶部居中的遗迹提示
-│   │   │   └── GrenadeHudOverlay.java    # 手雷面板与引信倒计时
+│   │   │   ├── GrenadeHudOverlay.java    # 炮弹面板与引信倒计时
+│   │   │   └── MortarHudOverlay.java     # 迫击炮角度与射程面板
 │   │   └── render/
 │   │       ├── ArmedHumanoidLayer.java    # 非人形持械的人形骨架图层
 │   │       ├── ArmedShapeAttach.java      # 给原版渲染器挂载该图层
@@ -38,7 +40,8 @@ src/main/
 │   │       ├── PhantomEliteRenderer.java # 幻机渲染(同色系迷彩贴图)
 │   │       ├── TankModel.java            # 坦克模型
 │   │       ├── TankRenderer.java         # 坦克精英怪渲染
-│   │       └── GrenadeRenderer.java      # 手雷投掷物渲染
+│   │       ├── GrenadeRenderer.java      # 手雷投掷物渲染
+│   │       └── MortarBlockEntityRenderer.java # 迫击炮基座与炮筒渲染
 │   ├── config/
 │   │   ├── ClientConfig.java             # 客户端配置
 │   │   ├── ConfigEvents.java             # 配置生命周期与保存
@@ -58,6 +61,7 @@ src/main/
 │   │   ├── PhantomElite.java             # 幻机: 巡逻, 警报与投掷
 │   │   ├── PhantomRegistration.java      # 幻机属性与刷怪蛋注册
 │   │   ├── PhantomRegistry.java          # 幻机实体与物品注册
+│   │   ├── PhantomShells.java            # 幻机背包手雷与区间取值
 │   │   ├── RideTankGoal.java             # 小兵骑乘坦克的寻路目标
 │   │   ├── TankCrew.java                 # 组合体乘员与生命护甲倍率
 │   │   ├── TankElite.java                # 坦克精英怪实体与炮击
@@ -124,8 +128,17 @@ src/main/
 │   ├── loot/
 │   │   ├── BattleLootHandler.java        # 枪手战利品掉落
 │   │   └── GruntLootHandler.java         # 持枪小兵战利品
+│   ├── mortar/
+│   │   ├── MortarBlock.java              # 迫击炮方块与交互
+│   │   ├── MortarBlockEntity.java        # 角度, 口径, 装填与驾驶
+│   │   ├── MortarInteractionHandler.java # 左键弹出与调角
+│   │   ├── MortarRegistry.java           # 方块, 实体与物品注册
+│   │   ├── MortarRemoteItem.java         # 遥控物品与绑定
+│   │   ├── MortarShellItem.java          # 迫击炮炮弹物品
+│   │   └── MortarShellProjectile.java    # 迫击炮炮弹投射物
 │   ├── network/
-│   │   ├── GrenadePressMessage.java      # 手雷属性快照包
+│   │   ├── MortarControlMessage.java     # 迫击炮控制包
+│   │   ├── ShellSettingsMessage.java     # 炮弹属性同步包
 │   │   ├── GrenadeThrowMessage.java      # 手雷投掷请求包
 │   │   ├── HitDirectionMessage.java      # 受击方向同步包
 │   │   ├── PatchNetwork.java             # 网络通道注册
@@ -139,6 +152,13 @@ src/main/
 │   │   └── PowerTracker.java              # 战斗峰值战力记录
 │   ├── runtime/
 │   │   └── RuntimeStateCleaner.java      # 服务端停止时清理进程级状态
+│   ├── shell/
+│   │   ├── ShellEffects.java             # 爆炸光线射线与蘑菇云
+│   │   ├── ShellExplosion.java           # 受控爆炸与震退
+│   │   ├── ShellItem.java                # 炮弹物品基类与悬浮提示
+│   │   ├── ShellProjectile.java          # 炮弹投射物基类
+│   │   ├── ShellSettings.java            # 炮弹属性与物品数据读写
+│   │   └── ShellTarget.java              # 七个杀伤对象档位
 │   ├── util/
 │   │   └── UiText.java                   # 界面文本包装
 │   ├── villager/
