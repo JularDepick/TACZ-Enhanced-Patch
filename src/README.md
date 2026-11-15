@@ -168,19 +168,18 @@ src/main/
 │   │   ├── VillagerRetaliation.java      # 玩家与生物的反击判定
 │   │   └── VillagerTradeHandler.java     # 交易结算与商品重建
 │   └── world/
-│       ├── RuinChunkGuard.java           # 新区块守卫: 遗迹只落在刚生成的区块
 │       ├── schematic/
 │       │   ├── LegacyBlocks.java         # 旧版方块编号映射(只服务外部旧文件)
-│       │   ├── RuinPasteHandler.java     # 分帧粘贴调度与容器摆放
 │       │   ├── RuinSchematic.java        # 建筑数据形态
 │       │   ├── SchematicCatalog.java     # 建筑目录扫描与缓存
 │       │   ├── SchematicCatalogRefreshHandler.java # 世界加载时重扫蓝图目录
-│       │   ├── SchematicPaster.java      # 按区块粘贴
 │       │   └── SchematicReader.java      # .schem 解析
 │       └── structure/
 │           ├── RuinPiece.java            # 遗迹片段与按区块裁剪写入
+│           ├── RuinSiteBinder.java       # 区块加载后接线站点与补区块
+│           ├── RuinSpreadPlacement.java  # 选址: 按配置换算的网格采样
 │           ├── RuinStructure.java        # 遗迹结构选址与生成入口
-│           └── RuinStructures.java       # 结构与片段类型注册
+│           └── RuinStructures.java       # 结构, 片段与放置类型注册
 └── resources/
     ├── META-INF/mods.toml                # 模组元信息
     ├── pack.mcmeta                       # 资源包元信息

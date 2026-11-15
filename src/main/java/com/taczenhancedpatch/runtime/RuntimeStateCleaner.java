@@ -6,7 +6,6 @@ import com.taczenhancedpatch.faction.RuinExperience;
 import com.taczenhancedpatch.faction.RuinGarrison;
 import com.taczenhancedpatch.faction.RuinSites;
 import com.taczenhancedpatch.gunner.GunnerCombat;
-import com.taczenhancedpatch.world.schematic.RuinPasteHandler;
 import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -24,12 +23,11 @@ public final class RuntimeStateCleaner {
     @SubscribeEvent
     public static void onServerStopping(ServerStoppingEvent event) {
         RuinSites.clearPending();
-        RuinPasteHandler.clearJobs();
+        com.taczenhancedpatch.world.structure.RuinSiteBinder.clear();
         RuinGarrison.clearPresence();
         TankCrew.clearAll();
         GunnerCombat.clearStates();
         com.taczenhancedpatch.villager.VillagerTradeHandler.clearPending();
-        com.taczenhancedpatch.world.RuinChunkGuard.clear();
         RuinSites.clearKnown();
     }
 }

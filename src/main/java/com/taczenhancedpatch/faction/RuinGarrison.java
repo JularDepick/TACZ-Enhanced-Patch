@@ -8,7 +8,6 @@ import com.taczenhancedpatch.entity.PhantomRegistry;
 import com.taczenhancedpatch.entity.TankRegistry;
 import com.taczenhancedpatch.network.RuinNotice;
 import com.taczenhancedpatch.network.RuinStatus;
-import com.taczenhancedpatch.world.schematic.RuinPasteHandler;
 import com.taczenhancedpatch.world.schematic.RuinSchematic;
 import com.taczenhancedpatch.world.schematic.SchematicCatalog;
 import net.minecraft.core.BlockPos;
@@ -88,8 +87,7 @@ public final class RuinGarrison {
         Map<BlockPos, List<ServerPlayer>> insideBySite = new HashMap<>();
         for (RuinSites.Site site : sites) {
             /* 死遗迹不再参与任何调度: 不补兵, 不夺旗, 不发提示, 也不补放旗帜 */
-            if (site.abandoned() || site.captured() || !site.pasted()
-                    || RuinPasteHandler.isPasting(level, site.origin())) {
+            if (site.abandoned() || site.captured() || !site.pasted()) {
                 continue;
             }
             /* 站点没有旗帜时补放一次, 老存档的遗迹因此重新参与领地与夺旗; 已夺旗的站点不再补放 */

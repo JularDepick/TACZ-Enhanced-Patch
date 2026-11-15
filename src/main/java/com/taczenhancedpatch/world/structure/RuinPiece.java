@@ -5,6 +5,7 @@ import com.taczenhancedpatch.world.schematic.RuinSchematic;
 import com.taczenhancedpatch.world.schematic.SchematicCatalog;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.StructureManager;
@@ -16,6 +17,8 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
 
+import java.util.Objects;
+
 /*
  * 遗迹片段。
  * 一段片段对应一整座建筑: 记录蓝图名与最小角, 每个区块在自己的生成阶段只写与自己相交的那一部分,
@@ -24,6 +27,8 @@ import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSeriali
  */
 public class RuinPiece extends StructurePiece {
     private static final String TAG_SCHEMATIC = "Schematic";
+    private static final ResourceLocation LOOT_TABLE =
+            Objects.requireNonNull(ResourceLocation.tryParse("tacz_enhanced_patch:chests/ruined_outpost"));
 
     private final String schematic;
 
@@ -36,6 +41,10 @@ public class RuinPiece extends StructurePiece {
     public RuinPiece(StructurePieceSerializationContext context, CompoundTag tag) {
         super(RuinStructures.RUIN_PIECE.get(), tag);
         this.schematic = tag.getString(TAG_SCHEMATIC);
+    }
+
+    public String schematic() {
+        return this.schematic;
     }
 
     @Override
@@ -75,5 +84,66 @@ public class RuinPiece extends StructurePiece {
                 }
             }
         }
+        placeLootChest(level, blueprint, box, random);
+    }
+
+    /* 战利品箱: 按蓝图数据找一处内部地面空位, 生成阶段直接带战利品表落地 */
+    private void placeLootChest(WorldGenLevel level, RuinSchematic blueprint, BoundingBox box, RandomSource random) {
+        BlockPos spot = findChestSpot(blueprint);
+        if (spot == null || !box.isInside(spot)) {
+            return;
+        }
+        this.createChest(level, box, random, spot.getX(), spot.getY(), spot.getZ(), LOOT_TABLE);
+    }
+
+    /*
+     * 从建筑中心向外一圈圈找: 脚下是实心, 当前位置与上方两格是空气, 八格内有天花板。
+     * 判定只看蓝图数据, 因此每次调用得到同一个位置, 各区块不会各自放一口箱子。
+     */
+    private BlockPos findChestSpot(RuinSchematic blueprint) {
+        int centerX = blueprint.width() / 2;
+        int centerZ = blueprint.depth() / 2;
+        for (int ring = 0; ring <= 12; ring++) {
+            for (int dx = -ring; dx <= ring; dx++) {
+                for (int dz = -ring; dz <= ring; dz++) {
+                    if (Math.max(Math.abs(dx), Math.abs(dz)) != ring) {
+                        continue;
+                    }
+                    int x = centerX + dx;
+                    int z = centerZ + dz;
+                    if (x < 1 || z < 1 || x >= blueprint.width() - 1 || z >= blueprint.depth() - 1) {
+                        continue;
+                    }
+                    for (int y = 1; y < blueprint.height() - 2; y++) {
+                        if (!solid(blueprint, x, y - 1, z)) {
+                            continue;
+                        }
+                        if (solid(blueprint, x, y, z) || solid(blueprint, x, y + 1, z)) {
+                            continue;
+                        }
+                        if (!ceiling(blueprint, x, y + 2, z)) {
+                            continue;
+                        }
+                        return new BlockPos(this.boundingBox.minX() + x, this.boundingBox.minY() + y,
+                                this.boundingBox.minZ() + z);
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private static boolean solid(RuinSchematic blueprint, int x, int y, int z) {
+        BlockState state = blueprint.stateAt(x, y, z);
+        return state != null && state.isSolid();
+    }
+
+    private static boolean ceiling(RuinSchematic blueprint, int x, int fromY, int z) {
+        for (int y = fromY; y <= fromY + 6 && y < blueprint.height(); y++) {
+            if (solid(blueprint, x, y, z)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
