@@ -177,7 +177,7 @@ src/main/
 │       │   └── SchematicReader.java      # .schem 解析
 │       └── structure/
 │           ├── RuinPiece.java            # 遗迹片段与按区块裁剪写入
-│           ├── RuinSiteBinder.java       # 区块加载后接线站点与补区块
+│           ├── RuinSiteBinder.java       # 区块加载后接线站点与回写索引
 │           ├── RuinSiteIndex.java        # 遗迹选址索引与按格持久化
 │           ├── RuinSiteIndexManager.java # 索引扩展调度与指南针查询
 │           ├── RuinStructure.java        # 遗迹结构选址与生成入口

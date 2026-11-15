@@ -166,7 +166,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 
 | Item | Description |
 |:---:|:---|
-| Client configuration | Local preferences such as automatic reload, the incoming fire indicator, the heading ruler and its color, stored per player |
+| Client configuration | Local preferences such as automatic reload, the incoming fire indicator, mob health bars, the heading ruler and its color, stored per player |
 | Server configuration | 76 parameters adjustable in the screen plus 5 keys that live only in the config file, grouped into debug, ruins, armed neutral villagers, grenade and phantom, basics, retaliation, spawning, targeting, ammo, toughness, loot, armed grunt and tank elite, with pure-button and switch groups listed before numeric ones and synced from the server; the per-ruin size caps live in a separate world generation config file bound to the save and cannot be changed in game |
 | Configuration screen | Opens the config screen directly, with tabs at the top to switch between client and server; the server tab only appears for the world owner |
 | Shortcut | Shift + C opens the config screen by default; it is a standard key binding, so it can be rebound or cleared in the vanilla controls |
