@@ -2,7 +2,7 @@
 
 # TACZ-Enhanced-Patch
 
-[![Version](https://img.shields.io/badge/Version-0.2.0-green)](https://github.com/JularDepick/TACZ-Enhanced-Patch/tree/v0.2.0)
+[![Version](https://img.shields.io/badge/Version-0.3.0--pre-green)](https://github.com/JularDepick/TACZ-Enhanced-Patch/tree/v0.3.0-pre)
 [![Copyright](https://img.shields.io/badge/Copyright-JularDepick-0066AA)](./COPYRIGHT)
 [![License](https://img.shields.io/badge/License-Apache--2.0-red)](./LICENSE)
 
@@ -87,6 +87,31 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Discount | Once the backpack is empty the remaining quota sells at half price and is conjured by the system |
 | Degrading | An empty backpack turns the villager back into a vanilla villager and voids the discounted quota |
 
+### Grenades
+
+| Mechanic | Description |
+|:---:|:---|
+| Single item | One grenade item for the whole mod with a stack size of 64; its six properties live in the client config as player preferences rather than item data |
+| Charged throw | Hold the right button to charge and release to throw; charging caps at three seconds, the launch speed rises linearly from two to sixteen blocks per second, and the direction follows the view on release |
+| Ballistic flight | Flies under 9.8 blocks per second squared of gravity and bounces by its coefficient, coming to rest once the normal speed falls below zero point one blocks per second |
+| Six properties | Ten fixed keys switch fuse, bounce, power, targets, color and effects while holding it, and every change is written back to the client config at once |
+| Fuse | Counted from the moment the right button goes down, either one to ten seconds or impact; an impact fuse detonates on the first block or mob it touches |
+| Explosion | Power zero to sixteen maps to a break radius of zero to eight blocks and a center damage of zero to thirty-two points, damage falls off linearly with distance and blast-resistant blocks survive |
+| Targets | Seven combinations: terrain only, players only, mobs only, no terrain, no players, no mobs, all |
+| Panel and countdown | The top left lists the current properties with their left and right keys; after a throw it shows the remaining fuse of the newest grenade |
+| Crafting | Iron ingots in the four corners, gunpowder in a cross, string in the center, four grenades per craft |
+
+### Phantom Elite
+
+| Mechanic | Description |
+|:---:|:---|
+| Body | A new flying entity reusing the vanilla phantom model and flight |
+| Patrol | Circles alternately along an inner and an outer ring of the ruin territory, bobbing above the banner |
+| Alert | Notices survival players or hostile faction mobs entering the territory, sounds an alarm and reports the target to the rest of the garrison |
+| Throwing | Throws players-only grenades at players and mobs-only grenades at hostile mobs, with no bounce and random charge and fuse |
+| Role | Counts toward the garrison base and is rolled during reinforcement at three grunts to one tank to one phantom |
+| Loot | Drops one or two grenades, with looting raising the count slightly |
+
 ### Fast extended magazines
 
 | Mechanic | Description |
@@ -113,7 +138,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Item | Description |
 |:---:|:---|
 | Client configuration | Local preferences such as automatic reload, the incoming fire indicator, the heading ruler and its color, stored per player |
-| Server configuration | 68 parameters adjustable in the screen plus 3 tier weights that live only in the config file, grouped into debug, ruins, armed neutral villagers, basics, retaliation, spawning, targeting, ammo, toughness, loot, armed grunt and tank elite, with pure-button and switch groups listed before numeric ones and synced from the server |
+| Server configuration | 73 parameters adjustable in the screen plus 5 keys that live only in the config file, grouped into debug, ruins, armed neutral villagers, grenade and phantom, basics, retaliation, spawning, targeting, ammo, toughness, loot, armed grunt and tank elite, with pure-button and switch groups listed before numeric ones and synced from the server |
 | Configuration screen | Opens the config screen directly, with tabs at the top to switch between client and server; the server tab only appears for the world owner |
 | Shortcut | Shift + C opens the config screen by default; it is a standard key binding, so it can be rebound or cleared in the vanilla controls |
 | Mob arming config | The first row of the server page scans every mob into one switchable list, shows each mob's name and entity ID, and lets group toggles flip those switches in bulk |
@@ -125,6 +150,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 - Think before hitting passive mobs: below half health they may pick up a gun, and both the chance and the threshold are configurable
 - High-tier guns are rare and much tougher to kill, so armor-piercing rounds and headshots are the fast answer
 - Ruin guards are reinforced over time, so clear them before looting; supply crates sit on the floors along the way
+- A grenade can be set to hit terrain only or players only, so pick the target mode before throwing in tight spaces
 - Disabling the gunner master switch returns everything to vanilla and leaves saves untouched
 
 ## Configuration

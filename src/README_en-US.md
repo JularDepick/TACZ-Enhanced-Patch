@@ -29,13 +29,15 @@ src/main/
 │   │   ├── hud/
 │   │   │   ├── HeadingRulerOverlay.java  # Heading ruler rendering
 │   │   │   ├── RuinGarrisonOverlay.java  # Top right garrison readout
-│   │   │   └── RuinNoticeOverlay.java    # Top centred ruin notice
+│   │   │   ├── RuinNoticeOverlay.java    # Top centred ruin notice
+│   │   │   └── GrenadeHudOverlay.java    # Grenade panel and fuse countdown
 │   │   └── render/
 │   │       ├── ArmedHumanoidLayer.java    # Humanoid skeleton layer for non-humanoid armed mobs
 │   │       ├── ArmedShapeAttach.java      # Attaches the layer to vanilla renderers
 │   │       ├── GruntRenderer.java        # Armed grunt renderer
 │   │       ├── TankModel.java            # Tank model
-│   │       └── TankRenderer.java         # Tank elite renderer
+│   │       ├── TankRenderer.java         # Tank elite renderer
+│   │       └── GrenadeRenderer.java      # Grenade projectile renderer
 │   ├── config/
 │   │   ├── ClientConfig.java             # Client configuration
 │   │   ├── ConfigEvents.java             # Configuration lifecycle and saving
@@ -52,6 +54,9 @@ src/main/
 │   │   ├── GunnerGrunt.java              # Armed grunt entity and arming
 │   │   ├── GruntRegistration.java        # Attributes, spawn rules and spawn egg
 │   │   ├── GruntRegistry.java            # Entity and item registration
+│   │   ├── PhantomElite.java             # Phantom Elite patrol, alert and throwing
+│   │   ├── PhantomRegistration.java      # Phantom Elite attributes and spawn egg
+│   │   ├── PhantomRegistry.java          # Phantom Elite entity and item registration
 │   │   ├── RideTankGoal.java             # Grunt riding goal for tanks
 │   │   ├── TankCrew.java                 # Crew health and armor multipliers
 │   │   ├── TankElite.java                # Tank elite entity and shelling
@@ -77,6 +82,16 @@ src/main/
 │   │   ├── FastMagCreativeTab.java       # Fast mag creative tab
 │   │   ├── FastMagReloadHandler.java     # Reload acceleration
 │   │   └── FastMagTooltipHandler.java    # Item tooltip
+│   ├── grenade/
+│   │   ├── GrenadeClientHandler.java     # Key switching, charging and throwing
+│   │   ├── GrenadeEffects.java           # Explosion light rays and mushroom cloud
+│   │   ├── GrenadeExplosion.java         # Controlled blast for terrain and entities
+│   │   ├── GrenadeItem.java              # Grenade item
+│   │   ├── GrenadeProjectile.java        # Grenade projectile and bouncing
+│   │   ├── GrenadeRegistry.java          # Projectile entity registration
+│   │   ├── GrenadeSettings.java          # Six property snapshot and step tables
+│   │   ├── GrenadeTarget.java            # Seven target modes
+│   │   └── GrenadeThrowHandler.java      # Server side throwing and fuse in hand
 │   ├── gunner/
 │   │   ├── GunnerArming.java             # Gun arming with random attachments and ammo
 │   │   ├── GunnerArsenal.java            # Gunner arsenal and balance constants
@@ -109,6 +124,8 @@ src/main/
 │   │   ├── BattleLootHandler.java        # Gunner loot drops
 │   │   └── GruntLootHandler.java         # Armed grunt loot
 │   ├── network/
+│   │   ├── GrenadePressMessage.java      # Grenade property snapshot packet
+│   │   ├── GrenadeThrowMessage.java      # Grenade throw request packet
 │   │   ├── HitDirectionMessage.java      # Hit direction sync packet
 │   │   ├── PatchNetwork.java             # Network channel registration
 │   │   ├── RuinNotice.java               # Ruin notice delivery
@@ -132,6 +149,7 @@ src/main/
 │   └── world/
 │       ├── ModFeatures.java              # World generation feature registration
 │       ├── RuinedOutpostFeature.java     # Ruined outpost generation
+│       ├── RuinChunkGuard.java           # New chunk guard so ruins only land in fresh chunks
 │       └── schematic/
 │           ├── LegacyBlocks.java         # Legacy block id mapping (external files only)
 │           ├── RuinPasteHandler.java     # Framed paste scheduling and containers
@@ -164,3 +182,4 @@ src/main/
 - Keep client preferences in `config/ClientConfig.java`; anything that affects gameplay belongs in the server configuration
 - Organize resources under `assets/tacz_enhanced_patch/` and `data/tacz_enhanced_patch/`
 - Put client-only code in the `client/` package and load it only for `Dist.CLIENT`
+- Grenade properties and throwing live in the `grenade/` package while the Phantom Elite lives in `entity/`, both sharing the same projectile and blast implementation

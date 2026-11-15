@@ -29,13 +29,15 @@ src/main/
 │   │   ├── hud/
 │   │   │   ├── HeadingRulerOverlay.java  # 方向标尺绘制
 │   │   │   ├── RuinGarrisonOverlay.java  # 右上角遗迹守军读数
-│   │   │   └── RuinNoticeOverlay.java    # 顶部居中的遗迹提示
+│   │   │   ├── RuinNoticeOverlay.java    # 顶部居中的遗迹提示
+│   │   │   └── GrenadeHudOverlay.java    # 手雷面板与引信倒计时
 │   │   └── render/
 │   │       ├── ArmedHumanoidLayer.java    # 非人形持械的人形骨架图层
 │   │       ├── ArmedShapeAttach.java      # 给原版渲染器挂载该图层
 │   │       ├── GruntRenderer.java        # 持枪小兵渲染
 │   │       ├── TankModel.java            # 坦克模型
-│   │       └── TankRenderer.java         # 坦克精英怪渲染
+│   │       ├── TankRenderer.java         # 坦克精英怪渲染
+│   │       └── GrenadeRenderer.java      # 手雷投掷物渲染
 │   ├── config/
 │   │   ├── ClientConfig.java             # 客户端配置
 │   │   ├── ConfigEvents.java             # 配置生命周期与保存
@@ -52,6 +54,9 @@ src/main/
 │   │   ├── GunnerGrunt.java              # 持枪小兵实体与装配
 │   │   ├── GruntRegistration.java        # 属性, 生成规则与刷怪蛋
 │   │   ├── GruntRegistry.java            # 实体与物品注册
+│   │   ├── PhantomElite.java             # 幻机: 巡逻, 警报与投掷
+│   │   ├── PhantomRegistration.java      # 幻机属性与刷怪蛋注册
+│   │   ├── PhantomRegistry.java          # 幻机实体与物品注册
 │   │   ├── RideTankGoal.java             # 小兵骑乘坦克的寻路目标
 │   │   ├── TankCrew.java                 # 组合体乘员与生命护甲倍率
 │   │   ├── TankElite.java                # 坦克精英怪实体与炮击
@@ -77,6 +82,16 @@ src/main/
 │   │   ├── FastMagCreativeTab.java       # 快速扩容弹匣物品页
 │   │   ├── FastMagReloadHandler.java     # 换弹加速
 │   │   └── FastMagTooltipHandler.java    # 物品提示
+│   ├── grenade/
+│   │   ├── GrenadeClientHandler.java     # 手雷按键切换, 蓄力与投掷
+│   │   ├── GrenadeEffects.java           # 爆炸光线射线与蘑菇云
+│   │   ├── GrenadeExplosion.java         # 受控爆炸: 地形与实体分开处理
+│   │   ├── GrenadeItem.java              # 手雷物品
+│   │   ├── GrenadeProjectile.java        # 手雷投掷物与反弹
+│   │   ├── GrenadeRegistry.java          # 投掷物实体注册
+│   │   ├── GrenadeSettings.java          # 六项属性的快照与档位表
+│   │   ├── GrenadeTarget.java            # 七个杀伤对象档位
+│   │   └── GrenadeThrowHandler.java      # 服务端投掷与手持引信
 │   ├── gunner/
 │   │   ├── GunnerArming.java             # 枪械装配与随机配件, 随机备弹
 │   │   ├── GunnerArsenal.java            # 枪手军械库与平衡常量
@@ -109,6 +124,8 @@ src/main/
 │   │   ├── BattleLootHandler.java        # 枪手战利品掉落
 │   │   └── GruntLootHandler.java         # 持枪小兵战利品
 │   ├── network/
+│   │   ├── GrenadePressMessage.java      # 手雷属性快照包
+│   │   ├── GrenadeThrowMessage.java      # 手雷投掷请求包
 │   │   ├── HitDirectionMessage.java      # 受击方向同步包
 │   │   ├── PatchNetwork.java             # 网络通道注册
 │   │   ├── RuinNotice.java               # 遗迹提示下发
@@ -132,6 +149,7 @@ src/main/
 │   └── world/
 │       ├── ModFeatures.java              # 世界生成特性注册
 │       ├── RuinedOutpostFeature.java     # 废弃前哨遗迹生成
+│       ├── RuinChunkGuard.java           # 新区块守卫: 遗迹只落在刚生成的区块
 │       └── schematic/
 │           ├── LegacyBlocks.java         # 旧版方块编号映射(只服务外部旧文件)
 │           ├── RuinPasteHandler.java     # 分帧粘贴调度与容器摆放
@@ -164,3 +182,4 @@ src/main/
 - 客户端偏好放 `config/ClientConfig.java`, 只放不影响服务端判定的项; 影响玩法的参数一律进服务端配置
 - 资源文件按 `assets/tacz_enhanced_patch/` 与 `data/tacz_enhanced_patch/` 组织
 - 客户端专用代码放在 `client/` 包内, 并通过 `Dist.CLIENT` 限定加载
+- 手雷的六项属性与投掷逻辑集中在 `grenade/` 包, 幻机在 `entity/` 包, 两者共用同一套投掷物与爆炸实现
