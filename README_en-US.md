@@ -2,7 +2,7 @@
 
 # TACZ-Enhanced-Patch
 
-[![Version](https://img.shields.io/badge/Version-0.3.0--pre-green)](https://github.com/JularDepick/TACZ-Enhanced-Patch/tree/v0.3.0-pre)
+[![Version](https://img.shields.io/badge/Version-0.3.0-green)](https://github.com/JularDepick/TACZ-Enhanced-Patch/tree/v0.3.0)
 [![Copyright](https://img.shields.io/badge/Copyright-JularDepick-0066AA)](./COPYRIGHT)
 [![License](https://img.shields.io/badge/License-Apache--2.0-red)](./LICENSE)
 
@@ -55,11 +55,12 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Mechanic | Description |
 |:---:|:---|
 | Building blueprints | The building itself is a WorldEdit .schem file, either the built-in blueprints shipped with the mod or the ones in the `tacz_enhanced_patch_ruins` folder of the world server config directory, one is picked at random per ruin; built-in files must be .schem while the external folder also accepts legacy .schematic |
-| Framed pasting | Blocks are written chunk by chunk across ticks and the space under the building is filled with a stone foundation, so a large ruin appears as the player approaches |
+| Immediate pasting | The building starts pasting as its chunks generate and the chunks it needs are loaded on demand, never pausing for the player; a ruin that cannot finish within ten seconds restores the terrain and drops the site, which may be picked again later |
 | Terrain fitting | The site requires a surface variation of at most two blocks around its center, never generates at or below sea level, and keeps a configurable straight-line distance (640 blocks by default) from existing ruins |
 | Chests and supply crates | The loot chest is placed at a covered spot inside the building; supply crates are scattered across the floors by chance and hold guns, ammo, armor and food with nothing guaranteed |
 | Banner and factions | A vanilla banner marks the building center and its color is the faction, so same-colored ruins are allied while different colors may ally or turn hostile |
 | Territory and reinforcement | A cylinder centred on the banner height whose height equals its horizontal diameter, with the radius fitted to the building; the garrison is reinforced at a fixed interval until it reaches the threshold |
+| Dead ruins | A captured ruin stops reinforcing, stops reporting entry and capture, and stops producing supply crates, yet still constrains the spacing of later ruins |
 | Capture | Players inside the core area start a shared countdown while the garrison is thin, leaving the core for more than five seconds aborts it while the countdown runs backwards in the meantime, and the garrison strength decides the outcome; every start, abort, failure and success reports the concrete reason and numbers; surviving guards become routed troops with reduced combat power |
 | Capture loot | A supply chest appears in the core area, with ammo and weapons converted from the kill tally plus experience for each participant |
 | Reward chest | Always holds a matching armor set and a sword, each piece has a fifty percent chance of strength-scaled enchantments, plus ender pearls, a chance at eyes of ender and bread |
@@ -91,22 +92,28 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 
 | Mechanic | Description |
 |:---:|:---|
-| Single item | One grenade item for the whole mod with a stack size of 64; its six properties live in the client config as player preferences rather than item data |
-| Charged throw | Hold the right button to charge and release to throw; charging caps at three seconds, the launch speed rises linearly from two to sixteen blocks per second, and the direction follows the view on release |
-| Ballistic flight | Flies under 9.8 blocks per second squared of gravity and bounces by its coefficient, coming to rest once the normal speed falls below zero point one blocks per second |
-| Six properties | Ten fixed keys switch fuse, bounce, power, targets, color and effects while holding it, and every change is written back to the client config at once |
+| Single item | One grenade item for the whole mod with a stack size of 64; its six properties live in the client config and bind to the thrown grenade |
+| 3D appearance | The grenade uses a three-dimensional item model and the color only tints the item texture; the projectile is oriented by its flight direction and no longer follows the camera |
+| Charged throw | Hold the right button to charge and release to throw; charging caps at three seconds, the hand pose switches to a bow draw and the field of view narrows with the charge |
+| Launch speed | Linear in charge between the server configured bounds, four to sixteen blocks per second by default and adjustable to four to sixty-four |
+| Ballistics | Motion is handed to the vanilla projectile logic, so gravity and drag use the game's own values while the position syncs every tick |
+| Sticky | When enabled the grenade stops on its first collision, resting on a block or following a mob or player until the fuse runs out |
+| Adaptive bounce | When sticky is off the bounce follows the block hardness, harder blocks bounce less, and a low normal speed comes to rest |
+| Six properties | Nine fixed keys switch fuse, power, targets, sticky, effects and color while holding it; paired keys stop at the bounds |
 | Fuse | Counted from the moment the right button goes down, either one to ten seconds or impact; an impact fuse detonates on the first block or mob it touches |
-| Explosion | Power zero to sixteen maps to a break radius of zero to eight blocks and a center damage of zero to thirty-two points, damage falls off linearly with distance and blast-resistant blocks survive |
+| Explosion | Power zero to sixteen maps to a zero to sixteen block radius and zero to sixty-four points of center damage, falling off linearly with distance |
+| Block damage | Power decays linearly to half at the edge, and only blocks whose hardness does not exceed the decayed power are destroyed |
+| Knockback | Players and mobs inside the radius are pushed away over a distance matching the radius, and the knockback deals no damage |
 | Targets | Seven combinations: terrain only, players only, mobs only, no terrain, no players, no mobs, all |
-| Panel and countdown | The top left lists the current properties with their left and right keys; after a throw it shows the remaining fuse of the newest grenade |
+| Panel and countdown | The right side lists grenade, fuse, power, targets, sticky, effects and color; after a throw it shows the remaining fuse of the newest grenade |
 | Crafting | Iron ingots in the four corners, gunpowder in a cross, string in the center, four grenades per craft |
 
 ### Phantom Elite
 
 | Mechanic | Description |
 |:---:|:---|
-| Body | A new flying entity reusing the vanilla phantom model and flight |
-| Patrol | Circles alternately along an inner and an outer ring of the ruin territory, bobbing above the banner |
+| Body | A new flying entity reusing the vanilla phantom model and flight, textured in the same camouflage palette as the grunt and the tank |
+| Patrol | Circles alternately along an inner and an outer ring of the ruin territory, keeping eight to sixteen blocks above the ground |
 | Alert | Notices survival players or hostile faction mobs entering the territory, sounds an alarm and reports the target to the rest of the garrison |
 | Throwing | Throws players-only grenades at players and mobs-only grenades at hostile mobs, with no bounce and random charge and fuse |
 | Role | Counts toward the garrison base and is rolled during reinforcement at three grunts to one tank to one phantom |
@@ -138,7 +145,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Item | Description |
 |:---:|:---|
 | Client configuration | Local preferences such as automatic reload, the incoming fire indicator, the heading ruler and its color, stored per player |
-| Server configuration | 73 parameters adjustable in the screen plus 5 keys that live only in the config file, grouped into debug, ruins, armed neutral villagers, grenade and phantom, basics, retaliation, spawning, targeting, ammo, toughness, loot, armed grunt and tank elite, with pure-button and switch groups listed before numeric ones and synced from the server |
+| Server configuration | 74 parameters adjustable in the screen plus 5 keys that live only in the config file, grouped into debug, ruins, armed neutral villagers, grenade and phantom, basics, retaliation, spawning, targeting, ammo, toughness, loot, armed grunt and tank elite, with pure-button and switch groups listed before numeric ones and synced from the server |
 | Configuration screen | Opens the config screen directly, with tabs at the top to switch between client and server; the server tab only appears for the world owner |
 | Shortcut | Shift + C opens the config screen by default; it is a standard key binding, so it can be rebound or cleared in the vanilla controls |
 | Mob arming config | The first row of the server page scans every mob into one switchable list, shows each mob's name and entity ID, and lets group toggles flip those switches in bulk |

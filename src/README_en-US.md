@@ -35,6 +35,7 @@ src/main/
 │   │       ├── ArmedHumanoidLayer.java    # Humanoid skeleton layer for non-humanoid armed mobs
 │   │       ├── ArmedShapeAttach.java      # Attaches the layer to vanilla renderers
 │   │       ├── GruntRenderer.java        # Armed grunt renderer
+│   │       ├── PhantomEliteRenderer.java # Phantom Elite renderer with the shared camouflage texture
 │   │       ├── TankModel.java            # Tank model
 │   │       ├── TankRenderer.java         # Tank elite renderer
 │   │       └── GrenadeRenderer.java      # Grenade projectile renderer
