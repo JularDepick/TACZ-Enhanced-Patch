@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import com.taczenhancedpatch.item.PatchItems;
 import com.taczenhancedpatch.shell.ShellItem;
+import com.taczenhancedpatch.shell.ShellSettings;
 import com.taczenhancedpatch.shell.ShellProjectile;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderer;
@@ -27,6 +28,9 @@ import java.util.function.Supplier;
 public class GrenadeRenderer extends EntityRenderer<ShellProjectile> {
     private final ItemRenderer itemRenderer;
     private final Supplier<? extends Item> item;
+    /* 属性不变时复用同一份物品栈, 避免每帧新建物品并写一遍属性标签 */
+    private ShellSettings cachedSettings;
+    private ItemStack cachedStack = ItemStack.EMPTY;
 
     public GrenadeRenderer(EntityRendererProvider.Context context) {
         this(context, PatchItems.GRENADE);
@@ -56,11 +60,15 @@ public class GrenadeRenderer extends EntityRenderer<ShellProjectile> {
         /* 缓慢自转, 让静止的炮弹也有立体感 */
         poseStack.mulPose(Axis.YP.rotationDegrees((entity.tickCount + partialTick) * 6.0F));
         /* 按投射物自己的属性重建物品栈, 颜色与炮弹实际属性一致 */
-        ItemStack stack = new ItemStack(this.item.get());
-        if (stack.getItem() instanceof ShellItem shell) {
-            shell.setSettings(stack, entity.settings());
+        if (!entity.settings().equals(this.cachedSettings)) {
+            ItemStack built = new ItemStack(this.item.get());
+            if (built.getItem() instanceof ShellItem shell) {
+                shell.setSettings(built, entity.settings());
+            }
+            this.cachedSettings = entity.settings();
+            this.cachedStack = built;
         }
-        this.itemRenderer.renderStatic(stack, ItemDisplayContext.GROUND, light, OverlayTexture.NO_OVERLAY,
+        this.itemRenderer.renderStatic(this.cachedStack, ItemDisplayContext.GROUND, light, OverlayTexture.NO_OVERLAY,
                 poseStack, buffers, entity.level(), entity.getId());
         poseStack.popPose();
         super.render(entity, yaw, partialTick, poseStack, buffers, light);
