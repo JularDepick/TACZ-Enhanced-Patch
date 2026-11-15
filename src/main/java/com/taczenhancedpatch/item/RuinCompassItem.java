@@ -1,8 +1,20 @@
 package com.taczenhancedpatch.item;
 
+import com.taczenhancedpatch.TACZEnhancedPatch;
+import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.faction.RuinSites;
+import com.taczenhancedpatch.world.structure.RuinSpreadPlacement;
+import com.taczenhancedpatch.world.structure.RuinStructure;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.chunk.ChunkGenerator;
+import net.minecraft.world.level.levelgen.RandomState;
+import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.level.levelgen.structure.StructureSet;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -15,6 +27,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * 遗迹指南针。
@@ -22,6 +37,10 @@ import javax.annotation.Nullable;
  * 找到后给出距离提示, 没有遗迹时给出提示且保持空指针。
  */
 public class RuinCompassItem extends Item {
+    /* 搜索半径, 单位是选址网格的格数; 24 格在默认间距下约合一万六千格 */
+    private static final int SEARCH_CELLS = 24;
+    private static final ResourceKey<Structure> RUIN_KEY =
+            ResourceKey.create(Registries.STRUCTURE, new ResourceLocation(TACZEnhancedPatch.MOD_ID, "ruined_outpost"));
     private static final String TAG_HAS = "RuinFound";
     private static final String TAG_X = "RuinX";
     private static final String TAG_Y = "RuinY";
@@ -82,20 +101,64 @@ public class RuinCompassItem extends Item {
         return new BlockPos(tag.getInt(TAG_X), tag.getInt(TAG_Y), tag.getInt(TAG_Z));
     }
 
-    /* 当前维度里距离玩家最近的遗迹中心 */
+    /*
+     * 当前维度里距离玩家最近的、尚未被夺旗的遗迹中心。
+     * 候选点按选址那套网格数学直接算出来, 因此没去过的遗迹也能指路;
+     * 已夺旗的站点跳过, 未登记过的一律视为未夺旗。
+     */
     @Nullable
     private static BlockPos nearestRuin(ServerLevel level, BlockPos from) {
-        RuinSites sites = RuinSites.get(level);
-        sites.drainPending(level);
-        BlockPos best = null;
-        double bestDistance = Double.MAX_VALUE;
-        for (RuinSites.Site site : sites.sites()) {
-            double distance = site.origin().distSqr(from);
-            if (distance < bestDistance) {
-                bestDistance = distance;
-                best = site.origin();
+        RuinSpreadPlacement placement = placement(level);
+        if (placement == null) {
+            return null;
+        }
+        long seed = level.getSeed();
+        int minDistance = ServerConfig.ruinMinDistance();
+        int spacing = RuinSpreadPlacement.spacingChunks(minDistance);
+        ChunkGenerator generator = level.getChunkSource().getGenerator();
+        RandomState randomState = level.getChunkSource().randomState();
+        int cellX0 = Math.floorDiv(from.getX() >> 4, spacing);
+        int cellZ0 = Math.floorDiv(from.getZ() >> 4, spacing);
+        List<BlockPos> candidates = new ArrayList<>();
+        for (int cellX = cellX0 - SEARCH_CELLS; cellX <= cellX0 + SEARCH_CELLS; cellX++) {
+            for (int cellZ = cellZ0 - SEARCH_CELLS; cellZ <= cellZ0 + SEARCH_CELLS; cellZ++) {
+                ChunkPos chunk = placement.candidate(seed, minDistance, cellX * spacing, cellZ * spacing);
+                int x = chunk.getMiddleBlockX();
+                int z = chunk.getMiddleBlockZ();
+                int surface = RuinStructure.surfaceAt(generator, level, randomState, x, z);
+                if (surface <= generator.getSeaLevel()) {
+                    continue;
+                }
+                candidates.add(new BlockPos(x, surface, z));
             }
         }
-        return best;
+        candidates.sort(Comparator.comparingDouble(pos -> pos.distSqr(from)));
+        for (BlockPos center : candidates) {
+            RuinSites.Site site = RuinSites.find(level, center);
+            if (site != null && site.captured()) {
+                continue;
+            }
+            if (!RuinStructure.flatEnough(generator, level, randomState, center.getX(), center.getY(), center.getZ())) {
+                continue;
+            }
+            return center;
+        }
+        return null;
+    }
+
+    /* 数据包里的结构集持有我们的放置类型, 从注册表取回来以便复用同一套候选数学 */
+    @Nullable
+    private static RuinSpreadPlacement placement(ServerLevel level) {
+        for (StructureSet set : level.registryAccess().registryOrThrow(Registries.STRUCTURE_SET)) {
+            if (!(set.placement() instanceof RuinSpreadPlacement spread)) {
+                continue;
+            }
+            for (StructureSet.StructureSelectionEntry entry : set.structures()) {
+                if (entry.structure().is(RUIN_KEY)) {
+                    return spread;
+                }
+            }
+        }
+        return null;
     }
 }

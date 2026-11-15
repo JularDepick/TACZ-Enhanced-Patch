@@ -1,6 +1,7 @@
 package com.taczenhancedpatch.world.structure;
 
 import com.taczenhancedpatch.TACZEnhancedPatch;
+import com.taczenhancedpatch.faction.RuinLoot;
 import com.taczenhancedpatch.world.schematic.RuinSchematic;
 import com.taczenhancedpatch.world.schematic.SchematicCatalog;
 import net.minecraft.core.BlockPos;
@@ -10,7 +11,9 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.StructureManager;
 import net.minecraft.world.level.WorldGenLevel;
+import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
@@ -27,29 +30,39 @@ import java.util.Objects;
  */
 public class RuinPiece extends StructurePiece {
     private static final String TAG_SCHEMATIC = "Schematic";
+    private static final String TAG_SEED = "Seed";
     private static final ResourceLocation LOOT_TABLE =
             Objects.requireNonNull(ResourceLocation.tryParse("tacz_enhanced_patch:chests/ruined_outpost"));
 
     private final String schematic;
+    /* 物资箱位置由这个种子决定, 世界生成与内容填充共用同一批坐标 */
+    private final long seed;
 
-    public RuinPiece(String schematic, BlockPos min, int width, int height, int depth) {
+    public RuinPiece(String schematic, BlockPos min, int width, int height, int depth, long seed) {
         super(RuinStructures.RUIN_PIECE.get(), 0, new BoundingBox(min.getX(), min.getY(), min.getZ(),
                 min.getX() + width - 1, min.getY() + height - 1, min.getZ() + depth - 1));
         this.schematic = schematic;
+        this.seed = seed;
     }
 
     public RuinPiece(StructurePieceSerializationContext context, CompoundTag tag) {
         super(RuinStructures.RUIN_PIECE.get(), tag);
         this.schematic = tag.getString(TAG_SCHEMATIC);
+        this.seed = tag.getLong(TAG_SEED);
     }
 
     public String schematic() {
         return this.schematic;
     }
 
+    public long seed() {
+        return this.seed;
+    }
+
     @Override
     protected void addAdditionalSaveData(StructurePieceSerializationContext context, CompoundTag tag) {
         tag.putString(TAG_SCHEMATIC, this.schematic);
+        tag.putLong(TAG_SEED, this.seed);
     }
 
     @Override
@@ -85,6 +98,19 @@ public class RuinPiece extends StructurePiece {
             }
         }
         placeLootChest(level, blueprint, box, random);
+        placeSupplyChests(level, blueprint, box);
+    }
+
+    /* 物资箱: 只放方块, 内容由站点接线在区块加载后填充一次 */
+    private void placeSupplyChests(WorldGenLevel level, RuinSchematic blueprint, BoundingBox box) {
+        BlockPos min = new BlockPos(this.boundingBox.minX(), this.boundingBox.minY(), this.boundingBox.minZ());
+        for (BlockPos spot : RuinLoot.supplySpots(blueprint, min, this.seed, level.getLevel().getDifficulty())) {
+            if (!box.isInside(spot)) {
+                continue;
+            }
+            this.placeBlock(level, Blocks.CHEST.defaultBlockState().setValue(ChestBlock.FACING, Direction.SOUTH),
+                    spot.getX(), spot.getY(), spot.getZ(), box);
+        }
     }
 
     /* 战利品箱: 按蓝图数据找一处内部地面空位, 生成阶段直接带战利品表落地 */

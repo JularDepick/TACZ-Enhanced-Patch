@@ -24,14 +24,6 @@ public final class SchematicCatalogRefreshHandler {
 
     @SubscribeEvent
     public static void onServerStarted(ServerStartedEvent event) {
-        /* 把存档里已有的遗迹中心灌进间距登记表, 新遗迹据此避让 */
-        for (ServerLevel level : event.getServer().getAllLevels()) {
-            List<BlockPos> origins = new ArrayList<>();
-            for (RuinSites.Site site : RuinSites.get(level).sites()) {
-                origins.add(site.origin());
-            }
-            RuinSites.seed(level.dimension(), origins);
-        }
         SchematicCatalog.refresh();
         /* 世界生成期间取蓝图不能等后台解析, 进存档时同步解析全部可用蓝图 */
         SchematicCatalog.preload();

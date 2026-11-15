@@ -52,6 +52,11 @@ public class RuinSpreadPlacement extends StructurePlacement {
         return new ChunkPos(cellX * spacing + offsetX, cellZ * spacing + offsetZ);
     }
 
+    /* 供指南针按同一套数学枚举候选, 不需要区块已经生成 */
+    public ChunkPos candidate(long seed, int minDistance, int chunkX, int chunkZ) {
+        return candidateChunk(seed, this.salt(), minDistance, chunkX, chunkZ);
+    }
+
     @Override
     protected boolean isPlacementChunk(ChunkGeneratorStructureState state, int chunkX, int chunkZ) {
         ChunkPos candidate = candidateChunk(state.getLevelSeed(), this.salt(),

@@ -2,7 +2,10 @@ package com.taczenhancedpatch.world.structure;
 
 import com.taczenhancedpatch.TACZEnhancedPatch;
 import com.taczenhancedpatch.faction.RuinGarrison;
+import com.taczenhancedpatch.faction.RuinLoot;
 import com.taczenhancedpatch.faction.RuinSites;
+import com.taczenhancedpatch.world.schematic.RuinSchematic;
+import com.taczenhancedpatch.world.schematic.SchematicCatalog;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.core.registries.Registries;
@@ -118,8 +121,21 @@ public final class RuinSiteBinder {
                 continue;
             }
             RuinGarrison.onPasted(level, site, data, width, height, depth, min, box.minY());
+            fillSupply(level, ruin, box);
             enqueue(level, box);
             TACZEnhancedPatch.LOGGER.info("[ruin] site ready at {} ({}x{}x{})", center, width, height, depth);
+        }
+    }
+
+    /* 物资箱内容: 箱子已经由世界生成放好, 这里只填空箱, 重复进存档不会重填 */
+    private static void fillSupply(ServerLevel level, RuinPiece ruin, BoundingBox box) {
+        RuinSchematic blueprint = SchematicCatalog.load(ruin.schematic());
+        if (blueprint == null) {
+            return;
+        }
+        BlockPos min = new BlockPos(box.minX(), box.minY(), box.minZ());
+        for (BlockPos spot : RuinLoot.supplySpots(blueprint, min, ruin.seed(), level.getDifficulty())) {
+            RuinLoot.fillSupplyChest(level, spot, level.getRandom(), level.getDifficulty());
         }
     }
 

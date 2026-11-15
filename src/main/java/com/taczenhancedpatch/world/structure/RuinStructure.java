@@ -8,7 +8,10 @@ import com.taczenhancedpatch.world.schematic.RuinSchematic;
 import com.taczenhancedpatch.world.schematic.SchematicCatalog;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.LevelHeightAccessor;
+import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureType;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
@@ -62,12 +65,13 @@ public class RuinStructure extends Structure {
         ChunkPos chunk = context.chunkPos();
         int centerX = chunk.getMiddleBlockX();
         int centerZ = chunk.getMiddleBlockZ();
-        int surface = context.chunkGenerator().getBaseHeight(centerX, centerZ, Heightmap.Types.WORLD_SURFACE_WG,
-                context.heightAccessor(), context.randomState());
+        int surface = surfaceAt(context.chunkGenerator(), context.heightAccessor(), context.randomState(),
+                centerX, centerZ);
         if (surface <= context.chunkGenerator().getSeaLevel()) {
             return Optional.empty();
         }
-        if (!flatEnough(context, centerX, surface, centerZ)) {
+        if (!flatEnough(context.chunkGenerator(), context.heightAccessor(), context.randomState(),
+                centerX, surface, centerZ)) {
             return Optional.empty();
         }
         int minX = centerX - width / 2;
@@ -83,16 +87,23 @@ public class RuinStructure extends Structure {
         }
         BlockPos min = new BlockPos(minX, surface, minZ);
         String name = picked.get();
+        long seed = context.random().nextLong();
         return Optional.of(new GenerationStub(new BlockPos(centerX, surface, centerZ),
-                (StructurePiecesBuilder builder) -> builder.addPiece(new RuinPiece(name, min, width, height, depth))));
+                (StructurePiecesBuilder builder) -> builder.addPiece(new RuinPiece(name, min, width, height, depth, seed))));
     }
 
-    /* 中心附近的地表高差不能太大, 否则大建筑会有一半埋在坡里 */
-    private static boolean flatEnough(GenerationContext context, int x, int y, int z) {
+    /* 某一列的世界表面高度 */
+    public static int surfaceAt(ChunkGenerator generator, LevelHeightAccessor heightAccessor,
+                                RandomState randomState, int x, int z) {
+        return generator.getBaseHeight(x, z, Heightmap.Types.WORLD_SURFACE_WG, heightAccessor, randomState);
+    }
+
+    /* 中心附近的地表高差不能太大, 否则大建筑会有一半埋在坡里; 指南针也用它校验候选点 */
+    public static boolean flatEnough(ChunkGenerator generator, LevelHeightAccessor heightAccessor,
+                                     RandomState randomState, int x, int y, int z) {
         for (int dx = -FLAT_RADIUS; dx <= FLAT_RADIUS; dx++) {
             for (int dz = -FLAT_RADIUS; dz <= FLAT_RADIUS; dz++) {
-                int surface = context.chunkGenerator().getBaseHeight(x + dx, z + dz,
-                        Heightmap.Types.WORLD_SURFACE_WG, context.heightAccessor(), context.randomState());
+                int surface = surfaceAt(generator, heightAccessor, randomState, x + dx, z + dz);
                 if (Math.abs(surface - y) > FLAT_TOLERANCE) {
                     return false;
                 }

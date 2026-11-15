@@ -4,6 +4,7 @@ import com.taczenhancedpatch.TACZEnhancedPatch;
 import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.gunner.GunnerArsenal;
 import com.taczenhancedpatch.integration.TaczApi;
+import com.taczenhancedpatch.world.schematic.RuinSchematic;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
@@ -21,6 +22,7 @@ import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -96,38 +98,37 @@ public final class RuinLoot {
     }
 
     /**
-     * 物资箱: 遗迹内部各层地面上按概率散布.
+     * 物资箱位置: 遗迹内部各层地面上按概率散布.
      * 概率由配置的基础值乘以生成时的游戏难度得到, 简单 0.6 倍, 困难 1.4 倍;
-     * 箱内枪械, 弹药, 护甲与食物各自独立判定, 没有必出项.
+     * 判定只看蓝图与种子, 因此世界生成与内容填充两次调用得到同一批位置.
      */
-    public static void placeSupplyChests(ServerLevel level, BlockPos min, int width, int height, int depth,
-                                         int baseY, RandomSource random, Difficulty difficulty) {
+    public static List<BlockPos> supplySpots(RuinSchematic blueprint, BlockPos min, long seed, Difficulty difficulty) {
         int cap = ServerConfig.ruinSupplyChestMax();
         int basePercent = ServerConfig.ruinSupplyChestChance();
+        List<BlockPos> spots = new ArrayList<>();
         if (cap <= 0 || basePercent <= 0) {
-            return;
+            return spots;
         }
         double chance = basePercent / 100.0D * difficultyFactor(difficulty);
+        int width = blueprint.width();
+        int height = blueprint.height();
+        int depth = blueprint.depth();
         int attempts = Math.max(200, Math.min(900, width * depth * height / 800));
-        List<BlockPos> placed = new ArrayList<>();
-        for (int i = 0; i < attempts && placed.size() < cap; i++) {
-            int x = min.getX() + 1 + random.nextInt(Math.max(1, width - 2));
-            int z = min.getZ() + 1 + random.nextInt(Math.max(1, depth - 2));
-            int y = baseY + 1 + random.nextInt(Math.max(1, height - 2));
-            BlockPos pos = new BlockPos(x, y, z);
-            if (!isInteriorFloor(level, pos) || tooCloseToChest(placed, pos)) {
+        RandomSource random = RandomSource.create(seed);
+        for (int i = 0; i < attempts && spots.size() < cap; i++) {
+            int x = 1 + random.nextInt(Math.max(1, width - 2));
+            int z = 1 + random.nextInt(Math.max(1, depth - 2));
+            int y = 1 + random.nextInt(Math.max(1, height - 2));
+            if (!isInteriorFloor(blueprint, x, y, z)) {
                 continue;
             }
-            if (random.nextDouble() >= chance) {
+            BlockPos pos = new BlockPos(min.getX() + x, min.getY() + y, min.getZ() + z);
+            if (tooCloseToChest(spots, pos) || random.nextDouble() >= chance) {
                 continue;
             }
-            if (placeSupplyChest(level, pos, random, difficulty)) {
-                placed.add(pos);
-            }
+            spots.add(pos);
         }
-        if (!placed.isEmpty()) {
-            TACZEnhancedPatch.LOGGER.info("[ruin] {} supply chests placed near {}", placed.size(), min);
-        }
+        return spots;
     }
 
     private static double difficultyFactor(Difficulty difficulty) {
@@ -138,23 +139,25 @@ public final class RuinLoot {
         };
     }
 
-    /* 只认建筑内部的地面: 脚下实体, 头顶两格空气, 八格内有天花板 */
-    private static boolean isInteriorFloor(ServerLevel level, BlockPos pos) {
-        BlockPos below = pos.below();
-        if (!level.getBlockState(below).isSolidRender(level, below)) {
+    /* 只认建筑内部的地面, 判定只看蓝图: 脚下实体, 本格与上一格空, 八格内有天花板 */
+    private static boolean isInteriorFloor(RuinSchematic blueprint, int x, int y, int z) {
+        if (!solid(blueprint, x, y - 1, z) || solid(blueprint, x, y, z) || solid(blueprint, x, y + 1, z)) {
             return false;
         }
-        if (!level.getBlockState(pos).isAir() || !level.getBlockState(pos.above()).isAir()) {
-            return false;
-        }
-        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
         for (int dy = 2; dy <= 8; dy++) {
-            cursor.set(pos.getX(), pos.getY() + dy, pos.getZ());
-            if (level.getBlockState(cursor).isSolidRender(level, cursor)) {
+            if (solid(blueprint, x, y + dy, z)) {
                 return true;
             }
         }
         return false;
+    }
+
+    private static boolean solid(RuinSchematic blueprint, int x, int y, int z) {
+        if (y < 0 || y >= blueprint.height()) {
+            return false;
+        }
+        BlockState state = blueprint.stateAt(x, y, z);
+        return state != null && state.isSolid();
     }
 
     private static boolean tooCloseToChest(List<BlockPos> placed, BlockPos pos) {
@@ -166,11 +169,10 @@ public final class RuinLoot {
         return false;
     }
 
-    private static boolean placeSupplyChest(ServerLevel level, BlockPos pos, RandomSource random,
-                                            Difficulty difficulty) {
-        level.setBlock(pos, Blocks.CHEST.defaultBlockState().setValue(ChestBlock.FACING, Direction.SOUTH), 3);
-        if (!(level.getBlockEntity(pos) instanceof ChestBlockEntity chest)) {
-            return false;
+    /* 箱子已经由世界生成放好, 这里只填空箱, 重复进存档不会重填 */
+    public static void fillSupplyChest(ServerLevel level, BlockPos pos, RandomSource random, Difficulty difficulty) {
+        if (!(level.getBlockEntity(pos) instanceof ChestBlockEntity chest) || !chest.isEmpty()) {
+            return;
         }
         int slot = 0;
         for (ItemStack stack : supplyLoot(random, difficulty)) {
@@ -179,7 +181,6 @@ public final class RuinLoot {
             }
             chest.setItem(slot++, stack);
         }
-        return true;
     }
 
     /* 枪械配对应口径弹药, 护甲与食物各自独立判定 */
