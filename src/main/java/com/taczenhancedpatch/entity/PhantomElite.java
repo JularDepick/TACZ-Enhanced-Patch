@@ -69,12 +69,18 @@ public class PhantomElite extends Phantom {
         this.xpReward = 12;
     }
 
-    /* 原版幻翼的属性写在默认属性表里, 这里自行声明生命, 索敌范围与飞行速度 */
+    /*
+     * 属性以原版幻翼为底再覆盖数值。
+     * 原版在设置体型时会直接给攻击力属性赋值, 飞行也读飞行速度属性,
+     * 从 Mob 的基底自己拼会漏掉这两项, 生成幻机时抛空指针。
+     */
     public static AttributeSupplier.Builder createAttributes() {
         return Mob.createMobAttributes()
                 .add(Attributes.MAX_HEALTH, 20.0D)
                 .add(Attributes.FOLLOW_RANGE, 48.0D)
-                .add(Attributes.MOVEMENT_SPEED, 0.35D);
+                .add(Attributes.MOVEMENT_SPEED, 0.35D)
+                .add(Attributes.FLYING_SPEED, 0.35D)
+                .add(Attributes.ATTACK_DAMAGE, 6.0D);
     }
 
     /* 遗迹守军不因和平难度消失, 否则遗迹在和平存档里会逐渐空掉 */
@@ -142,8 +148,12 @@ public class PhantomElite extends Phantom {
         double radius = site.radius() * (this.outerRing ? OUTER_RATIO : INNER_RATIO);
         double x = banner.getX() + 0.5D + Math.cos(this.patrolAngle) * radius;
         double z = banner.getZ() + 0.5D + Math.sin(this.patrolAngle) * radius;
-        BlockPos ground = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
-                new BlockPos((int) Math.floor(x), banner.getY(), (int) Math.floor(z)));
+        BlockPos sample = new BlockPos((int) Math.floor(x), banner.getY(), (int) Math.floor(z));
+        /* 外圈最远到领地的九成半径, 常在未加载区块里: 那里高度图返回基岩层, 幻机会朝地底俯冲 */
+        if (!level.hasChunkAt(sample)) {
+            return;
+        }
+        BlockPos ground = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, sample);
         /* 离地高度在八到十六格之间按正弦往复 */
         double wave = 0.5D + 0.5D * Math.sin(this.patrolAngle * 2.0D);
         double y = ground.getY() + FLY_MIN_HEIGHT + FLY_HEIGHT_SPAN * wave;
@@ -290,6 +300,8 @@ public class PhantomElite extends Phantom {
     @Override
     protected void dropCustomDeathLoot(DamageSource source, int looting, boolean recentlyHit) {
         super.dropCustomDeathLoot(source, looting, recentlyHit);
+        /* 背包里剩下的手雷先掉出来, 再额外补一两个裸手雷 */
+        PhantomShells.dropAll(this);
         int count = 1 + this.getRandom().nextInt(2 + Math.max(0, looting));
         for (int i = 0; i < count; i++) {
             this.spawnAtLocation(new ItemStack(PatchItems.GRENADE.get()));

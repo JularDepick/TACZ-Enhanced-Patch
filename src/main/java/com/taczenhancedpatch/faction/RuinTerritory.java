@@ -65,8 +65,9 @@ public final class RuinTerritory {
             return List.of();
         }
         int radius = site.radius();
-        AABB area = new AABB(banner.getX() - radius, level.getMinBuildHeight(), banner.getZ() - radius,
-                banner.getX() + radius + 1, level.getMaxBuildHeight(), banner.getZ() + radius + 1);
+        /* 领地是等高圆柱, 查询盒的竖直范围与判定一致, 否则每次都要扫上万格 section */
+        AABB area = new AABB(banner.getX() - radius, banner.getY() - radius, banner.getZ() - radius,
+                banner.getX() + radius + 1, banner.getY() + radius + 1, banner.getZ() + radius + 1);
         return level.getEntitiesOfClass(Mob.class, area, mob -> isRuinMob(mob)
                 && site.origin().equals(FactionData.homeOf(mob))
                 && inside(banner, radius, mob.getX(), mob.getY(), mob.getZ()));
@@ -79,8 +80,9 @@ public final class RuinTerritory {
             return 0;
         }
         int radius = Mth.ceil(site.radius() + PURSUIT_MARGIN);
-        AABB area = new AABB(banner.getX() - radius, level.getMinBuildHeight(), banner.getZ() - radius,
-                banner.getX() + radius + 1, level.getMaxBuildHeight(), banner.getZ() + radius + 1);
+        /* 领地是等高圆柱, 查询盒的竖直范围与判定一致, 否则每次都要扫上万格 section */
+        AABB area = new AABB(banner.getX() - radius, banner.getY() - radius, banner.getZ() - radius,
+                banner.getX() + radius + 1, banner.getY() + radius + 1, banner.getZ() + radius + 1);
         return level.getEntitiesOfClass(Mob.class, area, mob -> isRuinMob(mob)
                 && site.origin().equals(FactionData.homeOf(mob))
                 && inside(banner, radius, mob.getX(), mob.getY(), mob.getZ())).size();

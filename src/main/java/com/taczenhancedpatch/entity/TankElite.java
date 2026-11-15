@@ -66,6 +66,15 @@ public class TankElite extends Monster {
     }
 
     @Override
+    public void remove(Entity.RemovalReason reason) {
+        /* 坦克离场时把乘员加成撤掉, 否则这张表会按曾经载过人的坦克数一直涨 */
+        if (reason == Entity.RemovalReason.KILLED || reason == Entity.RemovalReason.DISCARDED) {
+            TankCrew.clear(this);
+        }
+        super.remove(reason);
+    }
+
+    @Override
     protected void registerGoals() {
         this.goalSelector.addGoal(1, new FloatGoal(this));
         this.goalSelector.addGoal(3, new TankCannonGoal(this));

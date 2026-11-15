@@ -52,7 +52,9 @@ public final class TankCrew {
             }
         }
         for (var passenger : tank.getPassengers()) {
-            if (passenger instanceof LivingEntity living) {
+            /* 玩家乘员只提供羁绊, 不加属性也不补血 */
+            if (passenger instanceof LivingEntity living
+                    && !(passenger instanceof net.minecraft.world.entity.player.Player)) {
                 apply(living, ratio);
             }
         }
@@ -131,7 +133,10 @@ public final class TankCrew {
             armor.addTransientModifier(new AttributeModifier(id, NAME + "_armor", bonus,
                     AttributeModifier.Operation.MULTIPLY_TOTAL));
         }
-        entity.setHealth(entity.getMaxHealth());
+        /* 不在这里补血: 每次上下车都会重算羁绊, 补血等于无限回血 */
+        if (entity.getHealth() > entity.getMaxHealth()) {
+            entity.setHealth(entity.getMaxHealth());
+        }
     }
 
     private static void clear(LivingEntity entity) {

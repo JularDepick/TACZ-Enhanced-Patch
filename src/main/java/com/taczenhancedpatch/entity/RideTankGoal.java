@@ -48,7 +48,12 @@ public final class RideTankGoal extends Goal {
         }
         double distance = this.grunt.distanceToSqr(this.target);
         if (distance <= MOUNT_DISTANCE * MOUNT_DISTANCE) {
-            this.grunt.startRiding(this.target);
+            /* 满员时 startRiding 会失败, 失败就放弃这辆, 否则小兵会绕着坦克转圈 */
+            if (!this.grunt.startRiding(this.target, true)) {
+                this.grunt.getNavigation().stop();
+                this.target = null;
+                return;
+            }
             this.grunt.getNavigation().stop();
             this.target = null;
             return;
