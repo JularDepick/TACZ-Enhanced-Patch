@@ -33,6 +33,8 @@ public final class SchematicCatalogRefreshHandler {
             RuinSites.seed(level.dimension(), origins);
         }
         SchematicCatalog.refresh();
+        /* 世界生成期间取蓝图不能等后台解析, 进存档时同步解析全部可用蓝图 */
+        SchematicCatalog.preload();
         Path root = SchematicCatalog.externalRoot();
         TACZEnhancedPatch.LOGGER.info("[ruin] blueprints ready: {} builtin, {} external ({})",
                 SchematicCatalog.builtinFiles().size(),

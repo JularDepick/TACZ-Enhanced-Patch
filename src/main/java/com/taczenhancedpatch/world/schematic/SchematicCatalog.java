@@ -200,6 +200,24 @@ public final class SchematicCatalog {
         return null;
     }
 
+    /*
+     * 同步解析全部可用蓝图。
+     * 世界生成在区块自己的生成阶段取蓝图, 不能等后台线程, 因此进存档时先把名单里的文件全部解析好。
+     */
+    public static void preload() {
+        for (String name : files()) {
+            if (CACHE.containsKey(name) || FAILED.contains(name)) {
+                continue;
+            }
+            RuinSchematic parsed = read(name);
+            if (parsed != null) {
+                CACHE.put(name, parsed);
+            } else {
+                FAILED.add(name);
+            }
+        }
+    }
+
     /* 是否仍在后台解析, 调用方据此区分"再等等"和"这个文件坏了" */
     public static boolean isPending(String name) {
         return LOADING.contains(name);

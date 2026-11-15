@@ -26,4 +26,15 @@ public record RuinSchematic(String id, int width, int height, int depth, short[]
     public BlockState stateAt(int x, int y, int z) {
         return stateAt(index(x, y, z));
     }
+
+    /* 实心方块数, 世界生成用它按上限挡掉过大的蓝图 */
+    public int solidCount() {
+        int count = 0;
+        for (short slot : blocks) {
+            if (slot > 0) {
+                count++;
+            }
+        }
+        return count;
+    }
 }

@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
 import com.taczenhancedpatch.client.config.ModConfigScreen;
 import com.taczenhancedpatch.config.ClientConfig;
 import com.taczenhancedpatch.config.ServerConfig;
+import com.taczenhancedpatch.config.WorldgenConfig;
 import com.taczenhancedpatch.entity.GruntRegistry;
 import com.taczenhancedpatch.entity.PhantomRegistry;
 import com.taczenhancedpatch.grenade.GrenadeRegistry;
@@ -34,9 +35,12 @@ public final class TACZEnhancedPatch {
     public TACZEnhancedPatch(FMLJavaModLoadingContext context) {
         context.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
         context.registerConfig(ModConfig.Type.SERVER, ServerConfig.SPEC);
+        /* 世界生成上限单独一份文件, 绑定存档, 游戏内不可调 */
+        context.registerConfig(ModConfig.Type.SERVER, WorldgenConfig.SPEC, "tacz_enhanced_patch-worldgen.toml");
         PatchNetwork.register();
         RuinStructures.STRUCTURE_TYPES.register(context.getModEventBus());
         RuinStructures.PIECE_TYPES.register(context.getModEventBus());
+        RuinStructures.PLACEMENT_TYPES.register(context.getModEventBus());
         FastMagCreativeTab.TABS.register(context.getModEventBus());
         GruntRegistry.register(context.getModEventBus());
         TankRegistry.register(context.getModEventBus());
