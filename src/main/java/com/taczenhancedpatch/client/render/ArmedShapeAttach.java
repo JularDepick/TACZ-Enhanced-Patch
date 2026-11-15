@@ -49,6 +49,8 @@ public final class ArmedShapeAttach {
     /* 渲染器登记完成时给非人形渲染器挂图层 */
     @SubscribeEvent
     public static void onAddLayers(EntityRenderersEvent.AddLayers event) {
+        /* 每次事件都对应一套新建的渲染器, 先清掉上一次的记录, 避免长期持有旧实例 */
+        ATTACHED.clear();
         ItemInHandRenderer itemInHand = event.getContext().getItemInHandRenderer();
         HumanoidModel<LivingEntity> skeleton = new HumanoidModel<>(event.getEntityModels().bakeLayer(LAYER));
         for (EntityType<?> type : ForgeRegistries.ENTITY_TYPES) {

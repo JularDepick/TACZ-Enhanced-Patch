@@ -37,6 +37,10 @@ public final class VillagerTradeHandler {
     /* 右键打开交易页之前重建商品, 防止原版升级或职业变更把自定义商品冲掉 */
     @SubscribeEvent
     public static void onInteract(PlayerInteractEvent.EntityInteract event) {
+        /* 只由服务端重建商品; 客户端照做会先把本地商品删空 */
+        if (event.getLevel().isClientSide()) {
+            return;
+        }
         if (event.getTarget() instanceof Villager villager && ArmedVillager.isArmed(villager)) {
             ArmedVillager.refreshOffers(villager);
             villager.getPersistentData().putInt(TAG_LEVEL, villager.getVillagerData().getLevel());

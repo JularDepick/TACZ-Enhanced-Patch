@@ -41,7 +41,7 @@ public final class MobMiddleConfig {
     private MobMiddleConfig() {
     }
 
-    public static List<GroupSwitch> groups() {
+    public static synchronized List<GroupSwitch> groups() {
         return List.of(
                 new GroupSwitch("undead", "group.undead", () -> value("undead"), enabled -> set("undead", enabled)),
                 new GroupSwitch("illager", "group.illager", () -> value("illager"), enabled -> set("illager", enabled)),
@@ -53,7 +53,7 @@ public final class MobMiddleConfig {
                         enabled -> set("non_humanoid", enabled)));
     }
 
-    public static boolean anyGroupEnabled() {
+    public static synchronized boolean anyGroupEnabled() {
         for (GroupSwitch group : groups()) {
             if (group.getter().getAsBoolean()) {
                 return true;
@@ -62,17 +62,17 @@ public final class MobMiddleConfig {
         return false;
     }
 
-    private static boolean value(String key) {
+    private static synchronized boolean value(String key) {
         return Boolean.TRUE.equals(load().get(key));
     }
 
-    private static void set(String key, boolean enabled) {
+    private static synchronized void set(String key, boolean enabled) {
         load().put(key, enabled);
         save();
     }
 
     /* 分组状态立即写盘, 与名单文件分开存放 */
-    public static void save() {
+    public static synchronized void save() {
         JsonObject root = new JsonObject();
         JsonObject data = new JsonObject();
         for (Map.Entry<String, Boolean> entry : new TreeMapView(load()).sorted().entrySet()) {
@@ -90,7 +90,7 @@ public final class MobMiddleConfig {
         }
     }
 
-    private static Map<String, Boolean> load() {
+    private static synchronized Map<String, Boolean> load() {
         if (groups != null) {
             return groups;
         }
