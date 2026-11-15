@@ -87,7 +87,9 @@ public final class RuinGarrison {
         /* 先算出每座活跃遗迹里的参与玩家, 用于判断谁留在这座, 谁已经转到别处 */
         Map<BlockPos, List<ServerPlayer>> insideBySite = new HashMap<>();
         for (RuinSites.Site site : sites) {
-            if (site.abandoned() || !site.pasted() || RuinPasteHandler.isPasting(level, site.origin())) {
+            /* 死遗迹不再参与任何调度: 不补兵, 不夺旗, 不发提示, 也不补放旗帜 */
+            if (site.abandoned() || site.captured() || !site.pasted()
+                    || RuinPasteHandler.isPasting(level, site.origin())) {
                 continue;
             }
             /* 站点没有旗帜时补放一次, 老存档的遗迹因此重新参与领地与夺旗; 已夺旗的站点不再补放 */
@@ -383,6 +385,9 @@ public final class RuinGarrison {
                                        Map<BlockPos, List<ServerPlayer>> insideBySite) {
         Map<UUID, Presence> current = new HashMap<>();
         for (RuinSites.Site site : sites) {
+            if (site.captured()) {
+                continue;
+            }
             List<ServerPlayer> inside = insideBySite.get(site.origin());
             if (inside == null || inside.isEmpty()) {
                 continue;

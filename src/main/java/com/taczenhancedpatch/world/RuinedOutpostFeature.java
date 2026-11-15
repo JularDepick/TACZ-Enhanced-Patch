@@ -59,12 +59,16 @@ public class RuinedOutpostFeature extends Feature<NoneFeatureConfiguration> {
         if (RuinChunkGuard.isExisting(new ChunkPos(origin))) {
             return false;
         }
-        /* 遗迹之间保持最小直线距离, 避免扎堆; 距离不足时本次不生成 */
+        /*
+         * 遗迹之间保持最小直线距离, 避免扎堆; 判定值在配置基础上做一次随机下浮,
+         * 让相邻遗迹的间距有容错而不是处处等距; 登记改到落地成功后, 超时放弃的站点不占位。
+         */
         ResourceKey<Level> dimension = level.getLevel().dimension();
-        if (RuinSites.tooClose(dimension, origin, ServerConfig.ruinMinDistance())) {
+        int base = ServerConfig.ruinMinDistance();
+        int limit = (int) Math.round(base * (0.85D + context.random().nextDouble() * 0.15D));
+        if (RuinSites.tooClose(dimension, origin, limit)) {
             return false;
         }
-        RuinSites.remember(dimension, origin);
         /* 站点只记录中心, 建筑名与底面高度, 粘贴与守军补齐都交给服务端 tick */
         RuinSites.queue(dimension, origin, picked.get(), origin.getY());
         return true;

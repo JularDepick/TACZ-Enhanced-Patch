@@ -10,18 +10,17 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.ChestBlock;
-import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.phys.AABB;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -29,23 +28,26 @@ import net.minecraftforge.fml.common.Mod;
 
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
-/**
- * 遗迹建筑的分帧粘贴调度。
- * 世界生成线程只登记站点, 真正的方块写入放在服务端 tick:
- * 玩家靠近到设定距离内才开始粘贴, 离开就暂停; 每个 tick 按固定的方块预算推进,
- * 因此大建筑不会在单帧里灌入上万方块, 也不会在没人看的时候占用算力。
+/*
+ * 遗迹建筑的落地调度。
+ * 站点一入队就开始粘贴, 与玩家远近无关: 需要的区块当场加载, 不等待也不暂停。
+ * 每座建筑有十秒的实际时间预算, 超时就把已经写过的方块按快照还原, 并放弃这一座遗迹;
+ * 放弃的站点不登记间距, 因此同一片区域在后续生成里仍可能重新选中。
+ * 成功落地后才登记间距, 夺旗后的死遗迹同样保留这条登记, 继续参与后续选址的距离判定。
  */
 @Mod.EventBusSubscriber(modid = TACZEnhancedPatch.MOD_ID)
 public final class RuinPasteHandler {
     /* 每个 tick 最多写入的方块数, 覆盖式粘贴连空气一起处理 */
     private static final int BLOCKS_PER_TICK = 6000;
-    /* 玩家进入该距离内才开始粘贴, 单位方块 */
-    private static final double PASTE_DISTANCE = 128.0D;
+    /* 单座遗迹从开始粘贴到完成的时间上限, 单位毫秒 */
+    private static final long JOB_DEADLINE_MILLIS = 10000L;
     /* 地基补齐的最大深度, 超过部分留空, 避免在悬崖边上灌出石柱 */
     private static final int MAX_FOUNDATION = 24;
     private static final int MAX_JOBS = 8;
@@ -62,21 +64,21 @@ public final class RuinPasteHandler {
             Blocks.STONE_BRICKS.defaultBlockState(),
             Blocks.MOSSY_STONE_BRICKS.defaultBlockState()};
     private static final Map<JobKey, Job> JOBS = new HashMap<>();
-    /* 任务空闲超过该时长即丢弃: 玩家长期不回来时不占名额, 回来时按未完成站点重新贴一次 */
-    private static final long JOB_IDLE_TICKS = 1200L;
+    /* 已经按存档补过间距登记的维度, 避免每 tick 重复播种 */
+    private static final Set<ResourceKey<Level>> SEEDED = new HashSet<>();
 
     /* 任务键带维度, 避免不同维度同名坐标互相干扰 */
     private record JobKey(ResourceKey<Level> dimension, BlockPos origin) {
     }
 
-    /* 站点是否正在粘贴: 守军调度据此延后刷新, 避免新方块卡住刚生成的守军 */
     public static boolean isPasting(ServerLevel level, BlockPos origin) {
         return JOBS.containsKey(new JobKey(level.dimension(), origin));
     }
 
-    /* 服务端停止时丢弃全部任务, 重启后按未完成站点重贴 */
+    /* 服务端停止时丢弃全部任务; 未完成站点下次进存档重新粘贴 */
     public static void clearJobs() {
         JOBS.clear();
+        SEEDED.clear();
     }
 
     private RuinPasteHandler() {
@@ -93,8 +95,7 @@ public final class RuinPasteHandler {
     private static void tickLevel(ServerLevel level) {
         RuinSites data = RuinSites.get(level);
         data.drainPending(level);
-        long now = level.getGameTime();
-        JOBS.values().removeIf(job -> now - job.lastTouch > JOB_IDLE_TICKS);
+        seedSpacing(level, data);
         List<RuinSites.Site> sites = data.sites();
         if (sites.isEmpty()) {
             return;
@@ -102,7 +103,7 @@ public final class RuinPasteHandler {
         int budget = BLOCKS_PER_TICK;
         for (int i = 0; i < sites.size() && budget > 0; i++) {
             RuinSites.Site site = sites.get(i);
-            if (site.pasted() || !hasPlayerNear(level, site, PASTE_DISTANCE)) {
+            if (site.pasted() || site.abandoned() || site.captured()) {
                 continue;
             }
             JobKey key = new JobKey(level.dimension(), site.origin());
@@ -117,39 +118,44 @@ public final class RuinPasteHandler {
                 }
                 JOBS.put(key, job);
             }
-            int before = budget;
-            budget = advance(level, site, job, data, budget);
-            /* 只有真正推进过才续命: 卡在未加载区块上的任务才会按闲置超时被丢弃 */
-            if (budget < before) {
-                job.lastTouch = level.getGameTime();
+            if (System.currentTimeMillis() - job.startedAt > JOB_DEADLINE_MILLIS) {
+                abandon(level, site, job, data);
+                continue;
             }
+            budget = advance(level, site, job, data, budget);
         }
     }
 
-    private static boolean hasPlayerNear(ServerLevel level, RuinSites.Site site, double distance) {
-        double limit = distance * distance;
-        for (ServerPlayer player : level.players()) {
-            if (player.blockPosition().distSqr(site.origin()) <= limit) {
-                return true;
-            }
+    /* 存档里的站点补进间距登记, 死遗迹也在内, 因此重启后仍然参与距离判定 */
+    private static void seedSpacing(ServerLevel level, RuinSites data) {
+        if (!SEEDED.add(level.dimension())) {
+            return;
         }
-        return false;
+        for (RuinSites.Site site : data.sites()) {
+            RuinSites.remember(level.dimension(), site.origin());
+        }
+    }
+
+    /* 超过时间预算: 还原已经写过的方块, 放弃这一座遗迹, 且不登记间距 */
+    private static void abandon(ServerLevel level, RuinSites.Site site, Job job, RuinSites data) {
+        for (Map.Entry<Long, BlockState> entry : job.snapshot.entrySet()) {
+            BlockPos pos = BlockPos.of(entry.getKey());
+            level.setBlock(pos, entry.getValue(), Block.UPDATE_CLIENTS);
+        }
+        JOBS.remove(new JobKey(level.dimension(), site.origin()));
+        data.removeSite(site.origin());
+        data.setDirty();
+        TACZEnhancedPatch.LOGGER.warn("[ruin] paste timed out at {}, terrain restored and site dropped", site.origin());
     }
 
     private static Job createJob(ServerLevel level, RuinSites.Site site, RuinSites data) {
         String name = site.schematic();
         RuinSchematic schematic = name.isEmpty() ? null : SchematicCatalog.load(name);
         if (schematic == null && !name.isEmpty() && SchematicCatalog.isPending(name)) {
-            /* 后台还在解析, 下一 tick 再取 */
             return null;
         }
         if (schematic == null) {
-            /*
-             * 站点登记的建筑不可用: 文件被删除, 或文件格式不合法。
-             * 弃用该文件并换一座可用的建筑, 下一 tick 再取替代文件; 连替代都没有时才放弃本座遗迹。
-             */
             if (!replace(level, site, data, name)) {
-                /* 没有可用蓝图: 放弃本座遗迹, 不要当成已落地, 否则野外会留下只刷守军的空地 */
                 site.setAbandoned(true);
                 data.setDirty();
             }
@@ -157,17 +163,55 @@ public final class RuinPasteHandler {
         }
         int minX = site.origin().getX() - schematic.width() / 2;
         int minZ = site.origin().getZ() - schematic.depth() / 2;
-        Job created = new Job(schematic, new BlockPos(minX, site.baseY(), minZ), site.baseY());
-        created.lastTouch = level.getGameTime();
-        return created;
+        BlockPos min = new BlockPos(minX, site.baseY(), minZ);
+        /* 需要的区块当场加载, 不等玩家靠近 */
+        loadChunks(level, schematic, min);
+        Job job = new Job(schematic, min, site.baseY());
+        job.startedAt = System.currentTimeMillis();
+        snapshot(level, job);
+        return job;
     }
 
-    /* 把站点换成另一座可用的建筑, 返回是否换成功 */
+    private static void loadChunks(ServerLevel level, RuinSchematic schematic, BlockPos min) {
+        ServerChunkCache chunks = level.getChunkSource();
+        int minChunkX = min.getX() >> 4;
+        int minChunkZ = min.getZ() >> 4;
+        int maxChunkX = (min.getX() + schematic.width() - 1) >> 4;
+        int maxChunkZ = (min.getZ() + schematic.depth() - 1) >> 4;
+        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                chunks.getChunk(chunkX, chunkZ, ChunkStatus.FULL, true);
+            }
+        }
+    }
+
+    /*
+     * 记下整片区域的原始方块, 超时还原以此为底。
+     * 范围要在建筑盒之外再放宽: 地基会补到盒子下方, 散落物会落在盒子四周, 这些同样需要还原。
+     */
+    private static void snapshot(ServerLevel level, Job job) {
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+        int pad = 4;
+        int minX = job.min.getX() - pad;
+        int maxX = job.min.getX() + job.schematic.width() + pad;
+        int minZ = job.min.getZ() - pad;
+        int maxZ = job.min.getZ() + job.schematic.depth() + pad;
+        int minY = job.baseY - MAX_FOUNDATION - 1;
+        int maxY = job.min.getY() + job.schematic.height() + 1;
+        for (int x = minX; x < maxX; x++) {
+            for (int z = minZ; z < maxZ; z++) {
+                for (int y = minY; y < maxY; y++) {
+                    cursor.set(x, y, z);
+                    job.snapshot.put(cursor.asLong(), level.getBlockState(cursor));
+                }
+            }
+        }
+    }
+
     private static boolean replace(ServerLevel level, RuinSites.Site site, RuinSites data, String failed) {
         Optional<String> picked = SchematicCatalog.pickOther(failed, level.getRandom());
         if (picked.isEmpty()) {
-            TACZEnhancedPatch.LOGGER.error("[ruin] no usable blueprint for site at {}, ruin skipped",
-                    site.origin());
+            TACZEnhancedPatch.LOGGER.error("[ruin] no usable blueprint for site at {}, ruin skipped", site.origin());
             return false;
         }
         site.setSchematic(picked.get());
@@ -184,8 +228,7 @@ public final class RuinPasteHandler {
             int slot = job.pending.nextSetBit(0);
             int chunkX = job.chunkMinX + slot % job.chunkWidth;
             int chunkZ = job.chunkMinZ + slot / job.chunkWidth;
-            if (chunks.getChunk(chunkX, chunkZ, ChunkStatus.FULL, false) == null) {
-                /* 区块还没加载, 留到下一 tick, 不阻塞其他站点 */
+            if (chunks.getChunk(chunkX, chunkZ, ChunkStatus.FULL, true) == null) {
                 break;
             }
             SchematicPaster.Slice slice = SchematicPaster.slice(job.schematic, job.min, chunkX, chunkZ);
@@ -195,7 +238,6 @@ public final class RuinPasteHandler {
                 continue;
             }
             if (job.chunkStage == STAGE_START) {
-                /* 先补地基再清空: 清空会拉低高度图, 之后就没法判断哪里需要补地基 */
                 fillFoundation(level, job, chunkX, chunkZ);
                 job.chunkStage = STAGE_CLEAR;
                 job.chunkCursor = 0;
@@ -225,9 +267,7 @@ public final class RuinPasteHandler {
         RandomSource random = level.getRandom();
         placeMarkers(level, job, random);
         scatterDebris(level, job, random);
-        /* 物资箱: 建筑内部各层地面按概率散布, 概率随生成时的难度缩放; 只散一次, 崩溃重贴不重复投放 */
         if (!site.suppliesPlaced()) {
-            /* 先落标记再散箱: 中途崩溃最多少一批物资, 不会重复投放 */
             site.setSuppliesPlaced(true);
             data.setDirty();
             RuinLoot.placeSupplyChests(level, job.min, job.schematic.width(), job.schematic.height(),
@@ -236,12 +276,13 @@ public final class RuinPasteHandler {
         discardTrappedItems(level, job);
         RuinGarrison.onPasted(level, site, data, job.schematic.width(), job.schematic.height(),
                 job.schematic.depth(), job.min, job.baseY);
+        /* 成功落地才登记间距, 死遗迹也保留这条登记 */
+        RuinSites.remember(level.dimension(), site.origin());
         JOBS.remove(new JobKey(level.dimension(), site.origin()));
         TACZEnhancedPatch.LOGGER.info("[ruin] pasted {} at {}", job.schematic.id(), job.min);
         return remaining;
     }
 
-    /* 地基补齐: 建筑底面以下的空洞填成石头系方块, 避免建筑悬空 */
     private static void fillFoundation(ServerLevel level, Job job, int chunkX, int chunkZ) {
         int minX = job.min.getX();
         int minZ = job.min.getZ();
@@ -268,11 +309,6 @@ public final class RuinPasteHandler {
         }
     }
 
-    /*
-     * 清掉被压在建筑方块里的掉落物。
-     * 清空预选区与写入方块都不会产生掉落, 但之前卡在方块中窒息而死的守军会留下战利品,
-     * 这些物品玩家看不到也捡不到, 一并回收, 避免遗迹内部凭空出现物品。
-     */
     private static void discardTrappedItems(ServerLevel level, Job job) {
         int minX = job.min.getX();
         int minZ = job.min.getZ();
@@ -286,7 +322,6 @@ public final class RuinPasteHandler {
         }
     }
 
-    /* 宝箱: 在建筑内部找有地有顶的空位, 找不到时退回中心点 */
     private static void placeMarkers(ServerLevel level, Job job, RandomSource random) {
         BlockPos center = job.min.offset(job.schematic.width() / 2, 0, job.schematic.depth() / 2);
         BlockPos chestPos = findInterior(level, center, 12, job.baseY);
@@ -366,7 +401,6 @@ public final class RuinPasteHandler {
         return FOUNDATION[random.nextInt(FOUNDATION.length)];
     }
 
-    /* 一座建筑的分帧状态, 只在内存里维护, 重启后按未完成站点重贴一次, 写入本身是幂等的 */
     private static final class Job {
         private final RuinSchematic schematic;
         private final BlockPos min;
@@ -375,12 +409,10 @@ public final class RuinPasteHandler {
         private final int chunkMinZ;
         private final int chunkWidth;
         private final BitSet pending = new BitSet();
-        /* 当前区块的处理阶段: 起步, 清空, 粘贴 */
+        private final Map<Long, BlockState> snapshot = new HashMap<>();
         private int chunkStage = STAGE_START;
-        /* 当前阶段已经处理到的游标, 换阶段或换区块时归零 */
         private int chunkCursor;
-        /* 最近一次推进的游戏刻, 用于丢弃长期无人推进的任务 */
-        private long lastTouch;
+        private long startedAt;
 
         private Job(RuinSchematic schematic, BlockPos min, int baseY) {
             this.schematic = schematic;
@@ -388,10 +420,11 @@ public final class RuinPasteHandler {
             this.baseY = baseY;
             this.chunkMinX = min.getX() >> 4;
             this.chunkMinZ = min.getZ() >> 4;
-            int chunkMaxX = (min.getX() + schematic.width() - 1) >> 4;
-            int chunkMaxZ = (min.getZ() + schematic.depth() - 1) >> 4;
-            this.chunkWidth = chunkMaxX - this.chunkMinX + 1;
-            this.pending.set(0, this.chunkWidth * (chunkMaxZ - this.chunkMinZ + 1));
+            int maxChunkX = (min.getX() + schematic.width() - 1) >> 4;
+            int maxChunkZ = (min.getZ() + schematic.depth() - 1) >> 4;
+            this.chunkWidth = maxChunkX - this.chunkMinX + 1;
+            int chunkCount = this.chunkWidth * (maxChunkZ - this.chunkMinZ + 1);
+            this.pending.set(0, chunkCount);
         }
     }
 }
