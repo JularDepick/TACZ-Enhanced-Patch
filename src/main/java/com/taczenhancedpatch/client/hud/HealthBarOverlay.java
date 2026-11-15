@@ -1,12 +1,17 @@
 package com.taczenhancedpatch.client.hud;
 
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import com.taczenhancedpatch.TACZEnhancedPatch;
 import com.taczenhancedpatch.config.ClientConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
@@ -16,6 +21,7 @@ import net.minecraftforge.client.event.RenderLivingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.joml.Matrix4f;
+import org.lwjgl.opengl.GL11;
 
 import java.util.Locale;
 
@@ -30,6 +36,39 @@ public final class HealthBarOverlay {
     private static final float BAR_WIDTH = 40.0F;
     private static final float BAR_HEIGHT = 4.0F;
     private static final float SCALE = 0.025F;
+
+    /*
+     * 血条专用批次: 半透明四边形, 关闭上传前的距离排序。
+     * 底色与填充两块四边形共面, 排序按质心到相机的距离决定先后, 而填充块未满血时质心会偏移,
+     * 两者的先后顺序随视角翻转, 底色偶尔盖到填充上, 看上去就是颜色在闪;
+     * 关闭排序后按提交顺序绘制, 底色恒定在填充之下。
+     * 不写深度, 避免血条挡住之后绘制的文字与粒子。
+     */
+    private static final RenderStateShard.ShaderStateShard BAR_SHADER =
+            new RenderStateShard.ShaderStateShard(GameRenderer::getPositionColorShader);
+    private static final RenderStateShard.TransparencyStateShard BAR_TRANSLUCENT =
+            new RenderStateShard.TransparencyStateShard("tacz_enhanced_patch_translucent", () -> {
+                RenderSystem.enableBlend();
+                RenderSystem.defaultBlendFunc();
+            }, () -> {
+                RenderSystem.disableBlend();
+                RenderSystem.defaultBlendFunc();
+            });
+    private static final RenderStateShard.DepthTestStateShard BAR_DEPTH_TEST =
+            new RenderStateShard.DepthTestStateShard("<=", GL11.GL_LEQUAL);
+    private static final RenderStateShard.WriteMaskStateShard BAR_COLOR_WRITE =
+            new RenderStateShard.WriteMaskStateShard(true, false);
+    private static final RenderStateShard.CullStateShard BAR_NO_CULL =
+            new RenderStateShard.CullStateShard(false);
+    private static final RenderType HEALTH_BAR = RenderType.create("tacz_enhanced_patch_health_bar",
+            DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS, 256, false, false,
+            RenderType.CompositeState.builder()
+                    .setShaderState(BAR_SHADER)
+                    .setTransparencyState(BAR_TRANSLUCENT)
+                    .setDepthTestState(BAR_DEPTH_TEST)
+                    .setWriteMaskState(BAR_COLOR_WRITE)
+                    .setCullState(BAR_NO_CULL)
+                    .createCompositeState(false));
 
     private HealthBarOverlay() {
     }
@@ -59,7 +98,7 @@ public final class HealthBarOverlay {
         pose.mulPose(minecraft.getEntityRenderDispatcher().cameraOrientation());
         pose.scale(-SCALE, -SCALE, SCALE);
         Matrix4f matrix = pose.last().pose();
-        VertexConsumer quads = buffers.getBuffer(RenderType.debugQuads());
+        VertexConsumer quads = buffers.getBuffer(HEALTH_BAR);
         quad(quads, matrix, -BAR_WIDTH / 2.0F - 1.0F, -1.0F, BAR_WIDTH + 2.0F, BAR_HEIGHT + 2.0F, 0.0F, 0.0F, 0.0F, 0.6F);
         quad(quads, matrix, -BAR_WIDTH / 2.0F, 0.0F, BAR_WIDTH * ratio, BAR_HEIGHT, red(ratio), green(ratio), 0.2F, 1.0F);
         pose.popPose();
@@ -72,7 +111,7 @@ public final class HealthBarOverlay {
         Matrix4f textMatrix = pose.last().pose();
         float width = minecraft.font.width(text);
         minecraft.font.drawInBatch(text, -width / 2.0F, -8.0F, 0xFFFFFFFF, true, textMatrix, buffers,
-                Font.DisplayMode.SEE_THROUGH, 0, light);
+                Font.DisplayMode.NORMAL, 0, light);
         pose.popPose();
     }
 
