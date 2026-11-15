@@ -218,11 +218,6 @@ public final class SchematicCatalog {
         }
     }
 
-    /* 是否仍在后台解析, 调用方据此区分"再等等"和"这个文件坏了" */
-    public static boolean isPending(String name) {
-        return LOADING.contains(name);
-    }
-
     private static RuinSchematic read(String name) {
         try {
             if (name.startsWith(EXTERNAL_PREFIX)) {

@@ -19,7 +19,7 @@ import java.util.Set;
 /**
  * 旧版数字方块 ID 到现代方块状态的映射。
  * .schematic 用 Blocks 与 Data 两个字节数组描述方块, 这里覆盖建筑常用的方块族,
- * 未收录的 ID 退回石头并只记一条调试日志, 避免个别方块缺失导致整座建筑粘贴失败。
+ * 未收录的 ID 退回石头并只记一条调试日志, 避免个别方块缺失导致整座建筑写入失败。
  */
 public final class LegacyBlocks {
     private static final Logger LOGGER = LogUtils.getLogger();

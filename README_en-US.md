@@ -55,8 +55,9 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Mechanic | Description |
 |:---:|:---|
 | Building blueprints | The building itself is a WorldEdit .schem file, either the built-in blueprints shipped with the mod or the ones in the `tacz_enhanced_patch_ruins` folder of the world server config directory, one is picked at random per ruin; built-in files must be .schem while the external folder also accepts legacy .schematic |
-| Immediate pasting | The building starts pasting as its chunks generate and the chunks it needs are loaded on demand, never pausing for the player; a ruin that cannot finish within ten seconds restores the terrain and drops the site, which may be picked again later |
-| Terrain fitting | The site requires a surface variation of at most two blocks around its center, never generates at or below sea level, and keeps a configurable straight-line distance (640 blocks by default) from existing ruins |
+| Built with chunks | Ruins are vanilla structures: the structure set picks the site and the blocks are written while chunks generate, so nothing runs on the server tick; parts spanning several chunks appear as those chunks generate |
+| Terrain fitting | The site requires a surface variation of at most two blocks around its center, never generates at or below sea level, and keeps a configurable straight-line distance (640 blocks by default) enforced by the placement grid |
+| Interruption recovery | A chunk is not saved until it finishes generating, so a crash or an early exit simply regenerates it from the seed with the same result; site data is rebuilt from the structure start when the chunk loads |
 | Chests and supply crates | The loot chest is placed at a covered spot inside the building; supply crates are scattered across the floors by chance and hold guns, ammo, armor and food with nothing guaranteed |
 | Banner and factions | A vanilla banner marks the building center and its color is the faction, so same-colored ruins are allied while different colors may ally or turn hostile |
 | Territory and reinforcement | A cylinder centred on the banner height whose height equals its horizontal diameter, with the radius fitted to the building; the garrison is reinforced at a fixed interval until it reaches the threshold |
@@ -158,7 +159,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Item | Description |
 |:---:|:---|
 | Client configuration | Local preferences such as automatic reload, the incoming fire indicator, the heading ruler and its color, stored per player |
-| Server configuration | 75 parameters adjustable in the screen plus 5 keys that live only in the config file, grouped into debug, ruins, armed neutral villagers, grenade and phantom, basics, retaliation, spawning, targeting, ammo, toughness, loot, armed grunt and tank elite, with pure-button and switch groups listed before numeric ones and synced from the server |
+| Server configuration | 77 parameters adjustable in the screen plus 5 keys that live only in the config file, grouped into debug, ruins, armed neutral villagers, grenade and phantom, basics, retaliation, spawning, targeting, ammo, toughness, loot, armed grunt and tank elite, with pure-button and switch groups listed before numeric ones and synced from the server; the per-ruin size caps live in a separate world generation config file bound to the save and cannot be changed in game |
 | Configuration screen | Opens the config screen directly, with tabs at the top to switch between client and server; the server tab only appears for the world owner |
 | Shortcut | Shift + C opens the config screen by default; it is a standard key binding, so it can be rebound or cleared in the vanilla controls |
 | Mob arming config | The first row of the server page scans every mob into one switchable list, shows each mob's name and entity ID, and lets group toggles flip those switches in bulk |

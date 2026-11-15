@@ -302,11 +302,6 @@ public final class RuinSites extends SavedData {
         return sites;
     }
 
-    /* 粘贴超时放弃的站点直接移除, 不留下只有空壳的遗迹 */
-    public void removeSite(BlockPos origin) {
-        sites.removeIf(site -> site.origin().equals(origin));
-    }
-
     @Override
     public CompoundTag save(CompoundTag tag) {
         ListTag list = new ListTag();
