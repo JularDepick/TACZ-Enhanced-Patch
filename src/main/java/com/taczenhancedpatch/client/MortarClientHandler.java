@@ -35,7 +35,10 @@ public final class MortarClientHandler {
     private static final int ACTION_FIRE = 6;
 
     private static BlockPos active;
+    private static BlockPos infoPos;
     private static boolean remote;
+    /* 每个键按住多久, 用于长按加速: 越久步进越密, 封顶为每 tick 一次 */
+    private static final java.util.Map<Integer, Integer> HOLDS = new java.util.HashMap<>();
 
     private MortarClientHandler() {
     }
@@ -47,6 +50,16 @@ public final class MortarClientHandler {
 
     public static boolean remoteMode() {
         return remote;
+    }
+
+    /* 面板显示的目标: 正在控制的那台, 或蹲下右键打开的哪台 */
+    @Nullable
+    public static BlockPos displayPos() {
+        return active != null ? active : infoPos;
+    }
+
+    public static void toggleInfo(BlockPos pos) {
+        infoPos = pos.equals(infoPos) ? null : pos;
     }
 
     public static void enterRemote(ItemStack stack) {
@@ -94,30 +107,33 @@ public final class MortarClientHandler {
             PatchNetwork.sendMortarControl(active, ACTION_YAW_ABS, minecraft.player.getYRot());
         }
         long window = minecraft.getWindow().getWindow();
-        if (held(window, GLFW.GLFW_KEY_W)) {
-            PatchNetwork.sendMortarControl(active, ACTION_PITCH, ANGLE_STEP);
-        }
-        if (held(window, GLFW.GLFW_KEY_S)) {
-            PatchNetwork.sendMortarControl(active, ACTION_PITCH, -ANGLE_STEP);
-        }
-        if (held(window, GLFW.GLFW_KEY_A)) {
-            PatchNetwork.sendMortarControl(active, ACTION_YAW, remote ? ANGLE_STEP : ANGLE_STEP);
-        }
-        if (held(window, GLFW.GLFW_KEY_D)) {
-            PatchNetwork.sendMortarControl(active, ACTION_YAW, -ANGLE_STEP);
-        }
-        if (held(window, GLFW.GLFW_KEY_Q)) {
-            PatchNetwork.sendMortarControl(active, ACTION_CALIBER, CALIBER_STEP);
-        }
-        if (held(window, GLFW.GLFW_KEY_E)) {
-            PatchNetwork.sendMortarControl(active, ACTION_CALIBER, -CALIBER_STEP);
-        }
+        step(window, active, GLFW.GLFW_KEY_W, ACTION_PITCH, ANGLE_STEP);
+        step(window, active, GLFW.GLFW_KEY_S, ACTION_PITCH, -ANGLE_STEP);
+        step(window, active, GLFW.GLFW_KEY_A, ACTION_YAW, ANGLE_STEP);
+        step(window, active, GLFW.GLFW_KEY_D, ACTION_YAW, -ANGLE_STEP);
+        step(window, active, GLFW.GLFW_KEY_Q, ACTION_CALIBER, CALIBER_STEP);
+        step(window, active, GLFW.GLFW_KEY_E, ACTION_CALIBER, -CALIBER_STEP);
         if (pressed(window, GLFW.GLFW_KEY_R) || pressed(window, GLFW.GLFW_KEY_SPACE)) {
             PatchNetwork.sendMortarControl(active, ACTION_FIRE, 0.0F);
         }
     }
 
     /* 遥控时屏蔽移动输入, 让 WASD 只用于调炮 */
+    /* 蹲下右键迫击炮: 开关信息面板, 并拦下这次交互 */
+    @SubscribeEvent
+    public static void onRightClickBlock(net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickBlock event) {
+        if (!event.getEntity().isShiftKeyDown()) {
+            return;
+        }
+        if (!(event.getLevel().getBlockState(event.getPos()).getBlock() instanceof com.taczenhancedpatch.mortar.MortarBlock)) {
+            return;
+        }
+        if (event.getLevel().isClientSide()) {
+            toggleInfo(event.getPos());
+        }
+        event.setCanceled(true);
+    }
+
     @SubscribeEvent
     public static void onMovementInput(MovementInputUpdateEvent event) {
         if (!remote) {
@@ -127,6 +143,22 @@ public final class MortarClientHandler {
         event.getInput().leftImpulse = 0.0F;
         event.getInput().jumping = false;
         event.getInput().shiftKeyDown = false;
+    }
+
+    /* 长按加速: 前十 tick 每四 tick 一步, 之后每两 tick, 二十五 tick 之后每 tick 一步 */
+    private static void step(long window, BlockPos pos, int key, int action, float value) {
+        boolean down = InputConstants.isKeyDown(window, key);
+        int held = HOLDS.getOrDefault(key, 0);
+        if (!down) {
+            HOLDS.remove(key);
+            return;
+        }
+        held++;
+        HOLDS.put(key, held);
+        int interval = held < 10 ? 4 : (held < 25 ? 2 : 1);
+        if (held == 1 || held % interval == 0) {
+            PatchNetwork.sendMortarControl(pos, action, value);
+        }
     }
 
     private static boolean held(long window, int key) {

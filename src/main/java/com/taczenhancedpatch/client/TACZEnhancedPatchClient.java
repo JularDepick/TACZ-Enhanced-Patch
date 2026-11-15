@@ -46,6 +46,9 @@ public final class TACZEnhancedPatchClient {
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(GruntRegistry.GUNNER_GRUNT.get(), GruntRenderer::new);
         event.registerEntityRenderer(TankRegistry.TANK_ELITE.get(), TankRenderer::new);
+        /* 迫击炮: 基座与炮筒分开渲染, 炮筒随角度旋转 */
+        event.registerBlockEntityRenderer(com.taczenhancedpatch.mortar.MortarRegistry.MORTAR_ENTITY.get(),
+                com.taczenhancedpatch.client.render.MortarBlockEntityRenderer::new);
         /* 手雷投掷物直接按物品渲染 */
         event.registerEntityRenderer(GrenadeRegistry.GRENADE.get(), GrenadeRenderer::new);
         /* 幻机沿用原版幻翼的模型, 只换贴图与实体类型 */

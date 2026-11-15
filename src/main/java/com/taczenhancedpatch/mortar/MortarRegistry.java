@@ -32,6 +32,11 @@ public final class MortarRegistry {
             () -> new MortarBlock(BlockBehaviour.Properties.of().mapColor(MapColor.METAL)
                     .strength(6.0F, 12.0F).sound(SoundType.METAL).noOcclusion()));
 
+    /* 只用于渲染炮筒的隐藏方块, 不进物品页, 也不会被放置 */
+    public static final RegistryObject<Block> MORTAR_BARREL = BLOCKS.register("mortar_barrel",
+            () -> new Block(BlockBehaviour.Properties.of().mapColor(MapColor.METAL).strength(1.0F)
+                    .sound(SoundType.METAL).noOcclusion().noLootTable()));
+
     public static final RegistryObject<Item> MORTAR_ITEM = ITEMS.register("mortar",
             () -> new BlockItem(MORTAR.get(), new Item.Properties()));
 

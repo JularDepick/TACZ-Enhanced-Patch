@@ -36,7 +36,7 @@ public final class MortarHudOverlay {
 
     @SubscribeEvent
     public static void onRenderGui(RenderGuiEvent.Post event) {
-        BlockPos pos = MortarClientHandler.active();
+        BlockPos pos = MortarClientHandler.displayPos();
         Minecraft minecraft = Minecraft.getInstance();
         if (pos == null || minecraft.level == null || minecraft.player == null || minecraft.options.hideGui) {
             return;
