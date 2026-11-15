@@ -2,7 +2,6 @@ package com.taczenhancedpatch.shell;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
-import net.minecraft.world.item.DyeColor;
 
 /*
  * 炮弹属性快照。
@@ -10,7 +9,7 @@ import net.minecraft.world.item.DyeColor;
  * 引信 -1 表示触发式, 碰撞到方块或生物立即爆炸; 1 到 10 表示按下或发射后多少秒爆炸。
  */
 public record ShellSettings(int fuseSeconds, boolean sticky, int power, ShellTarget target,
-                            DyeColor color, boolean effects) {
+                            ShellColor color, boolean effects) {
     public static final int CHARGE_TICKS = 20;
     public static final double SPEED_MIN_DEFAULT = 4.0D;
     public static final double SPEED_MAX_DEFAULT = 16.0D;
@@ -29,7 +28,7 @@ public record ShellSettings(int fuseSeconds, boolean sticky, int power, ShellTar
     public static final double TANGENT_LOSS = 0.1D;
 
     /* 新物品的出厂属性: 三秒引信, 不粘, 威力四, 不杀伤任何目标, 墨绿, 开特效 */
-    public static final ShellSettings DEFAULT = new ShellSettings(3, false, 4, ShellTarget.NO_DAMAGE, DyeColor.GREEN, true);
+    public static final ShellSettings DEFAULT = new ShellSettings(3, false, 4, ShellTarget.NO_DAMAGE, ShellColor.GREEN, true);
 
     public static double speedFor(int chargeTicks, double min, double max) {
         double ratio = Mth.clamp(chargeTicks, 0, CHARGE_TICKS) / (double) CHARGE_TICKS;
@@ -65,8 +64,8 @@ public record ShellSettings(int fuseSeconds, boolean sticky, int power, ShellTar
         return Mth.clamp(current + (forward ? 1 : -1), POWER_MIN, POWER_MAX);
     }
 
-    public static DyeColor stepColor(DyeColor current, boolean forward) {
-        DyeColor[] colors = DyeColor.values();
+    public static ShellColor stepColor(ShellColor current, boolean forward) {
+        ShellColor[] colors = ShellColor.values();
         int index = current == null ? 0 : current.ordinal();
         int next = (index + (forward ? 1 : colors.length - 1)) % colors.length;
         return colors[next];
@@ -78,7 +77,7 @@ public record ShellSettings(int fuseSeconds, boolean sticky, int power, ShellTar
             fuse = Mth.clamp(fuse, FUSE_MIN, FUSE_MAX);
         }
         int power = Mth.clamp(settings.power(), POWER_MIN, POWER_MAX);
-        DyeColor color = settings.color() == null ? DyeColor.GREEN : settings.color();
+        ShellColor color = settings.color() == null ? ShellColor.GREEN : settings.color();
         ShellTarget target = settings.target() == null ? ShellTarget.NO_DAMAGE : settings.target();
         return new ShellSettings(fuse, settings.sticky(), power, target, color, settings.effects());
     }
@@ -89,7 +88,7 @@ public record ShellSettings(int fuseSeconds, boolean sticky, int power, ShellTar
         tag.putBoolean("Sticky", sticky);
         tag.putInt("Power", power);
         tag.putString("Target", target.id());
-        tag.putString("Color", color.getName());
+        tag.putString("Color", color.id());
         tag.putBoolean("Effects", effects);
         return tag;
     }
@@ -100,7 +99,7 @@ public record ShellSettings(int fuseSeconds, boolean sticky, int power, ShellTar
                 tag.getBoolean("Sticky"),
                 tag.getInt("Power"),
                 ShellTarget.byId(tag.getString("Target"), ShellTarget.NO_MOB),
-                DyeColor.byName(tag.getString("Color"), DyeColor.GREEN),
+                ShellColor.byId(tag.getString("Color"), ShellColor.GREEN),
                 !tag.contains("Effects") || tag.getBoolean("Effects")));
     }
 }

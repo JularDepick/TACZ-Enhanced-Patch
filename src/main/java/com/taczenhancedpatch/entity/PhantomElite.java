@@ -1,6 +1,7 @@
 package com.taczenhancedpatch.entity;
 
 import com.taczenhancedpatch.shell.ShellTarget;
+import com.taczenhancedpatch.shell.ShellColor;
 import com.taczenhancedpatch.shell.ShellSettings;
 import com.taczenhancedpatch.TACZEnhancedPatch;
 import com.taczenhancedpatch.config.ServerConfig;
@@ -27,7 +28,6 @@ import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.monster.Phantom;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -226,7 +226,7 @@ public class PhantomElite extends Phantom {
         boolean againstPlayer = target instanceof Player;
         ShellTarget mode = againstPlayer ? ShellTarget.PLAYER_ONLY : ShellTarget.MOB_ONLY;
         int fuse = 1 + this.getRandom().nextInt(MAX_FUSE_SECONDS);
-        DyeColor color = DyeColor.byName(site.bannerColor(), DyeColor.GREEN);
+        ShellColor color = ShellColor.byDyeName(site.bannerColor(), ShellColor.GREEN);
         ShellSettings base = PhantomShells.take(this);
         if (base == null) {
             return;

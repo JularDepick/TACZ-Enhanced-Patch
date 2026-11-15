@@ -238,5 +238,9 @@
   "tacz_enhanced_patch.grenade.color.brown": "棕色",
   "tacz_enhanced_patch.grenade.color.green": "墨绿",
   "tacz_enhanced_patch.grenade.color.red": "红色",
-  "tacz_enhanced_patch.grenade.color.black": "黑色"
+  "tacz_enhanced_patch.grenade.color.black": "黑色",
+  "tacz_enhanced_patch.grenade.color.camo_green": "迷彩绿",
+  "tacz_enhanced_patch.grenade.color.camo_desert": "迷彩沙",
+  "tacz_enhanced_patch.grenade.color.camo_urban": "迷彩灰",
+  "tacz_enhanced_patch.grenade.color.camo_snow": "迷彩雪"
 }

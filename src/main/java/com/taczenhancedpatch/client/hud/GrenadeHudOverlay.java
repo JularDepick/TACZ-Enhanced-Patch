@@ -122,7 +122,7 @@ public final class GrenadeHudOverlay {
         rows.add(new String[]{UiText.plain("grenade.label.effects"),
                 UiText.plain(settings.effects() ? "grenade.on" : "grenade.off"), "'"});
         rows.add(new String[]{UiText.plain("grenade.label.color"),
-                UiText.plain("grenade.color." + settings.color().getName()), ", ."});
+                UiText.plain(settings.color().labelKey()), ", ."});
         return rows;
     }
 }

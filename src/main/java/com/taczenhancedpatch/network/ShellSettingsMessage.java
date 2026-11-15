@@ -1,11 +1,11 @@
 package com.taczenhancedpatch.network;
 
+import com.taczenhancedpatch.shell.ShellColor;
 import com.taczenhancedpatch.shell.ShellItem;
 import com.taczenhancedpatch.shell.ShellSettings;
 import com.taczenhancedpatch.shell.ShellTarget;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.network.NetworkEvent;
 
@@ -22,7 +22,7 @@ public record ShellSettingsMessage(ShellSettings settings) {
         buffer.writeBoolean(settings.sticky());
         buffer.writeVarInt(settings.power());
         buffer.writeUtf(settings.target().id());
-        buffer.writeUtf(settings.color().getName());
+        buffer.writeUtf(settings.color().id());
         buffer.writeBoolean(settings.effects());
     }
 
@@ -31,7 +31,7 @@ public record ShellSettingsMessage(ShellSettings settings) {
         boolean sticky = buffer.readBoolean();
         int power = buffer.readVarInt();
         ShellTarget target = ShellTarget.byId(buffer.readUtf(16), ShellTarget.NO_MOB);
-        DyeColor color = DyeColor.byName(buffer.readUtf(16), DyeColor.GREEN);
+        ShellColor color = ShellColor.byId(buffer.readUtf(24), ShellColor.GREEN);
         boolean effects = buffer.readBoolean();
         return new ShellSettingsMessage(ShellSettings.sanitize(
                 new ShellSettings(fuse, sticky, power, target, color, effects)));

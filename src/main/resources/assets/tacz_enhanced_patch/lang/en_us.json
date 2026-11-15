@@ -238,5 +238,9 @@
   "tacz_enhanced_patch.grenade.color.brown": "Brown",
   "tacz_enhanced_patch.grenade.color.green": "Green",
   "tacz_enhanced_patch.grenade.color.red": "Red",
-  "tacz_enhanced_patch.grenade.color.black": "Black"
+  "tacz_enhanced_patch.grenade.color.black": "Black",
+  "tacz_enhanced_patch.grenade.color.camo_green": "Camo green",
+  "tacz_enhanced_patch.grenade.color.camo_desert": "Camo desert",
+  "tacz_enhanced_patch.grenade.color.camo_urban": "Camo urban",
+  "tacz_enhanced_patch.grenade.color.camo_snow": "Camo snow"
 }

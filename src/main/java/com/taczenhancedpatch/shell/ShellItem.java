@@ -42,7 +42,7 @@ public abstract class ShellItem extends Item {
         lines.add(UiText.of("shell.tooltip.target", UiText.of(settings.target().labelKey())));
         lines.add(UiText.of("shell.tooltip.sticky", UiText.of(settings.sticky() ? "shell.on" : "shell.off")));
         lines.add(UiText.of("shell.tooltip.effects", UiText.of(settings.effects() ? "shell.on" : "shell.off")));
-        lines.add(UiText.of("shell.tooltip.color", UiText.of("grenade.color." + settings.color().getName())));
+        lines.add(UiText.of("shell.tooltip.color", UiText.of(settings.color().labelKey())));
         lines.add(UiText.of("shell.tooltip.mass", Component.literal(String.format(java.util.Locale.ROOT, "%.1f", ShellSettings.MASS_KG))));
     }
 }

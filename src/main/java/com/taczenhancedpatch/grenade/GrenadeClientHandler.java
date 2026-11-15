@@ -3,6 +3,7 @@ package com.taczenhancedpatch.grenade;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.taczenhancedpatch.TACZEnhancedPatch;
 import com.taczenhancedpatch.network.PatchNetwork;
+import com.taczenhancedpatch.shell.ShellColor;
 import com.taczenhancedpatch.shell.ShellItem;
 import com.taczenhancedpatch.shell.ShellSettings;
 import com.taczenhancedpatch.shell.ShellTarget;
@@ -10,7 +11,6 @@ import com.taczenhancedpatch.util.UiText;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.ComputeFovModifierEvent;
@@ -176,11 +176,11 @@ public final class GrenadeClientHandler {
             label = "grenade.label.effects";
             value = UiText.of(effects ? "grenade.on" : "grenade.off");
         } else if (key == GLFW.GLFW_KEY_COMMA || key == GLFW.GLFW_KEY_PERIOD) {
-            DyeColor color = ShellSettings.stepColor(current.color(), key == GLFW.GLFW_KEY_PERIOD);
+            ShellColor color = ShellSettings.stepColor(current.color(), key == GLFW.GLFW_KEY_PERIOD);
             next = new ShellSettings(current.fuseSeconds(), current.sticky(), current.power(), current.target(),
                     color, current.effects());
             label = "grenade.label.color";
-            value = UiText.of("grenade.color." + color.getName());
+            value = UiText.of(color.labelKey());
         } else {
             return;
         }

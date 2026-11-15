@@ -4,6 +4,7 @@ import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.faction.FactionData;
 import com.taczenhancedpatch.faction.RuinSites;
 import com.taczenhancedpatch.item.PatchItems;
+import com.taczenhancedpatch.shell.ShellColor;
 import com.taczenhancedpatch.shell.ShellItem;
 import com.taczenhancedpatch.shell.ShellSettings;
 import com.taczenhancedpatch.shell.ShellTarget;
@@ -13,7 +14,6 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 
 import javax.annotation.Nullable;
@@ -67,7 +67,7 @@ public final class PhantomShells {
         for (int i = 0; i < count; i++) {
             ShellSettings settings = new ShellSettings(ShellSettings.FUSE_IMPACT, true,
                     1 + mob.getRandom().nextInt(ShellSettings.POWER_MAX), ShellTarget.NO_TERRAIN,
-                    DyeColor.values()[mob.getRandom().nextInt(DyeColor.values().length)], true);
+                    ShellColor.values()[mob.getRandom().nextInt(ShellColor.values().length)], true);
             ItemStack stack = new ItemStack(PatchItems.GRENADE.get());
             if (stack.getItem() instanceof ShellItem item) {
                 item.setSettings(stack, settings);

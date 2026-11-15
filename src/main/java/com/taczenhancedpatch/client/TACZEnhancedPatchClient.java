@@ -62,7 +62,7 @@ public final class TACZEnhancedPatchClient {
             if (tintIndex != 0 || !(stack.getItem() instanceof ShellItem shell)) {
                 return -1;
             }
-            int rgb = shell.settingsOf(stack).color().getFireworkColor();
+            int rgb = shell.settingsOf(stack).color().rgb();
             return 0xFF000000 | rgb;
         }, PatchItems.GRENADE.get());
     }
