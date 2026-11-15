@@ -48,6 +48,9 @@ public final class MobListScreen extends Screen {
     private int listBottom;
     private int totalMobs;
     private int enabledMobs;
+    /* 进入本页时的名单与分组快照: 这里的改动会立即落盘, 父页取消时用快照回滚 */
+    private Map<String, Boolean> statesSnapshot = Map.of();
+    private Map<String, Boolean> groupsSnapshot = Map.of();
 
     public MobListScreen(@Nullable Screen parent) {
         super(UiText.of("moblist.title"));
@@ -60,6 +63,8 @@ public final class MobListScreen extends Screen {
         if (MobListConfig.states().isEmpty()) {
             GunnerMobRegistry.refresh();
         }
+        statesSnapshot = Map.copyOf(MobListConfig.states());
+        groupsSnapshot = groupFlags();
         listLeft = (width - LIST_WIDTH) / 2;
         listRight = listLeft + LIST_WIDTH;
         int searchY = 34;
@@ -119,6 +124,28 @@ public final class MobListScreen extends Screen {
             rows.add(new Row(name, id, button, false));
         }
         scroll = Mth.clamp(scroll, 0.0D, maxScroll());
+    }
+
+    /* 七个分组开关的当前状态, 用于快照与回滚 */
+    private Map<String, Boolean> groupFlags() {
+        Map<String, Boolean> flags = new java.util.HashMap<>();
+        for (MobMiddleConfig.GroupSwitch group : groups) {
+            flags.put(group.key(), group.getter().getAsBoolean());
+        }
+        return flags;
+    }
+
+    /* 供父页取消时回滚: 名单与分组开关都恢复到进入本页时的状态 */
+    public void rollback() {
+        if (!statesSnapshot.isEmpty()) {
+            MobListConfig.setStates(statesSnapshot);
+        }
+        for (MobMiddleConfig.GroupSwitch group : groups) {
+            Boolean value = groupsSnapshot.get(group.key());
+            if (value != null && value != group.getter().getAsBoolean()) {
+                group.setter().accept(value);
+            }
+        }
     }
 
     /* 实体 ID 对应的本地化名称, 注册表里查不到时退回实体 ID 本身 */

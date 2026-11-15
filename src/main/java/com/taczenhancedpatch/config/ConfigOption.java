@@ -2,6 +2,8 @@ package com.taczenhancedpatch.config;
 
 import net.minecraftforge.common.ForgeConfigSpec;
 
+import java.util.List;
+
 /**
  * 配置项描述。
  * 只描述配置界面需要渲染的项, 不承担配置值的读盘与保存。
@@ -20,6 +22,10 @@ public sealed interface ConfigOption {
     }
 
     record TextOption(String label, ForgeConfigSpec.ConfigValue<String> value) implements ConfigOption {
+    }
+
+    /* 字符串列表项: 界面用逗号分隔编辑, 保存时按逗号切分并去掉空白与空项 */
+    record ListOption(String label, ForgeConfigSpec.ConfigValue<List<? extends String>> value) implements ConfigOption {
     }
 
     /* 六位十六进制颜色项: 界面按颜色格式校验并实时预览 */

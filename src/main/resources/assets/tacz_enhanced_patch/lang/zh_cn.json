@@ -96,6 +96,8 @@
   "tacz_enhanced_patch.opt.forced_retaliation": "无条件反击",
   "tacz_enhanced_patch.opt.spawn_chance": "持械生成概率",
   "tacz_enhanced_patch.opt.spawner_chance": "刷怪笼持械概率",
+  "tacz_enhanced_patch.opt.mob_blacklist": "生物黑名单(逗号分隔)",
+  "tacz_enhanced_patch.opt.dimension_blacklist": "维度黑名单(逗号分隔)",
   "tacz_enhanced_patch.opt.target_range": "锁定范围",
   "tacz_enhanced_patch.opt.fire_range": "开火距离",
   "tacz_enhanced_patch.opt.accuracy": "命中准度",

@@ -156,7 +156,9 @@ public final class PatchConfigScreen extends Screen {
         if (serverSection && com.taczenhancedpatch.client.ConfigAccess.isWorldOwner()) {
             Button mobListButton = Button.builder(UiText.of("screen.open"), button -> {
                 if (minecraft != null) {
-                    minecraft.setScreen(new MobListScreen(this));
+                    MobListScreen list = new MobListScreen(this);
+                    mobScreen = list;
+                    minecraft.setScreen(list);
                 }
             }).bounds(0, 0, BUTTON_ROW_WIDTH, 20).build();
             rows.add(new Row("screen.mob_list", mobListButton, RowKind.BUTTON));
@@ -354,6 +356,10 @@ public final class PatchConfigScreen extends Screen {
         return false;
     }
 
+    /* 名单页的改动是立即落盘的, 取消时要用它自己的快照回滚 */
+    @Nullable
+    private MobListScreen mobScreen;
+
     private void finish(boolean saveNow) {
         if (saveNow) {
             for (ColorField field : colorFields) {
@@ -365,7 +371,14 @@ public final class PatchConfigScreen extends Screen {
             }
             saved = true;
         } else if (!saved) {
+            if (mobScreen != null) {
+                mobScreen.rollback();
+                mobScreen = null;
+            }
             restoreOriginals();
+        }
+        if (saveNow) {
+            mobScreen = null;
         }
         if (minecraft != null) {
             minecraft.setScreen(parent);
@@ -414,6 +427,14 @@ public final class PatchConfigScreen extends Screen {
             return new NumberSlider(intOption.label(), intOption.min(), intOption.max(),
                     1.0D, true, fraction,
                     value -> intOption.value().set((int) Math.round(Mth.clamp(value, intOption.min(), intOption.max()))));
+        }
+        if (option instanceof ConfigOption.ListOption listOption) {
+            EditBox box = new EditBox(font, 0, 0, WIDGET_WIDTH, 20, UiText.of(listOption.label()));
+            box.setMaxLength(512);
+            box.setValue(readList(listOption.value()));
+            box.setResponder(text -> listOption.value().set(splitList(text)));
+            textFields.add(box);
+            return box;
         }
         if (option instanceof ConfigOption.ColorOption colorOption) {
             ColorField field = new ColorField(font, colorOption.value(), readText(colorOption.value()));
@@ -510,6 +531,9 @@ public final class PatchConfigScreen extends Screen {
         if (option instanceof ConfigOption.ColorOption colorOption) {
             return readText(colorOption.value());
         }
+        if (option instanceof ConfigOption.ListOption listOption) {
+            return readList(listOption.value());
+        }
         return null;
     }
 
@@ -529,7 +553,29 @@ public final class PatchConfigScreen extends Screen {
             colorOption.value().set(String.valueOf(value));
         } else if (option instanceof ConfigOption.EnumOption<?> enumOption) {
             writeEnum(enumOption, value);
+        } else if (option instanceof ConfigOption.ListOption listOption) {
+            listOption.value().set(splitList(String.valueOf(value)));
         }
+    }
+
+    private static String readList(ForgeConfigSpec.ConfigValue<java.util.List<? extends String>> value) {
+        try {
+            return String.join(", ", value.get());
+        } catch (IllegalStateException ignored) {
+            return "";
+        }
+    }
+
+    /* 逗号分隔的文本切成列表, 去掉空白与空项 */
+    private static java.util.List<String> splitList(String text) {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        for (String part : text.split(",")) {
+            String trimmed = part.trim();
+            if (!trimmed.isEmpty()) {
+                out.add(trimmed);
+            }
+        }
+        return out;
     }
 
     /* 颜色项: 六位十六进制输入框, 右侧实时预览方块, 非法输入时边框与提示变红 */

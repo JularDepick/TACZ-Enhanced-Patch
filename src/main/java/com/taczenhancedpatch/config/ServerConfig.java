@@ -752,7 +752,9 @@ public final class ServerConfig {
                         new ConfigOption.ToggleOption("opt.forced_retaliation", GUNNER_FORCED_RETALIATION))),
                 new ConfigOptionGroup("group.spawn", List.of(
                         new ConfigOption.DoubleOption("opt.spawn_chance", GUNNER_SPAWN_CHANCE, 0.0D, 1.0D, 0.01D),
-                        new ConfigOption.DoubleOption("opt.spawner_chance", GUNNER_SPAWNER_CHANCE, 0.0D, 1.0D, 0.01D))),
+                        new ConfigOption.DoubleOption("opt.spawner_chance", GUNNER_SPAWNER_CHANCE, 0.0D, 1.0D, 0.01D),
+                        new ConfigOption.ListOption("opt.mob_blacklist", GUNNER_MOB_BLACKLIST),
+                        new ConfigOption.ListOption("opt.dimension_blacklist", GUNNER_DIMENSION_BLACKLIST))),
                 new ConfigOptionGroup("group.targeting", List.of(
                         new ConfigOption.DoubleOption("opt.target_range", GUNNER_TARGET_RANGE, 4.0D, 64.0D, 1.0D),
                         new ConfigOption.DoubleOption("opt.fire_range", GUNNER_FIRE_RANGE, 4.0D, 64.0D, 1.0D),

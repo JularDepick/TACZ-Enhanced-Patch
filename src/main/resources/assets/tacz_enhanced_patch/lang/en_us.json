@@ -96,6 +96,8 @@
   "tacz_enhanced_patch.opt.forced_retaliation": "Unconditional retaliation",
   "tacz_enhanced_patch.opt.spawn_chance": "Gunner spawn chance",
   "tacz_enhanced_patch.opt.spawner_chance": "Spawner gunner chance",
+  "tacz_enhanced_patch.opt.mob_blacklist": "Mob blacklist (comma separated)",
+  "tacz_enhanced_patch.opt.dimension_blacklist": "Dimension blacklist (comma separated)",
   "tacz_enhanced_patch.opt.target_range": "Targeting range",
   "tacz_enhanced_patch.opt.fire_range": "Fire range",
   "tacz_enhanced_patch.opt.accuracy": "Accuracy",
