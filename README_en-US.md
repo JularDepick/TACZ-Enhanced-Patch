@@ -105,12 +105,12 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Adaptive bounce | When sticky is off the bounce follows the block hardness, harder blocks bounce less, and a low normal speed comes to rest |
 | Six properties | Nine fixed keys switch fuse, power, targets, sticky, effects and color while holding it; paired keys stop at the bounds |
 | Fuse | Counted from the moment the right button goes down, either three to ten seconds or impact; an impact fuse detonates on the first block or mob it touches |
-| Explosion | Power zero to sixteen maps to a zero to sixteen block radius and zero to sixty-four points of center damage, falling off linearly with distance; the kill volume is an oblate spheroid whose vertical radius is two thirds of the horizontal one |
+| Explosion | Power zero to sixteen maps to a zero to sixteen block radius and zero to sixty-four points of center damage, falling off linearly with distance; the kill volume is an oblate spheroid whose vertical radius is two thirds of the horizontal one, and damage plus knockback expand outwards four blocks per tick instead of resolving instantly |
 | Armor penetration | Forty percent for grenades and sixty percent for mortar shells, not configurable; the pierced part skips armor points only, so enchantment protection still applies |
 | Knockback | Displacement equals half the horizontal radius, strongest at the center and zero at the rim, independent of the target tier |
 | Block damage | The break radius is the kill radius plus a wave edge of zero to a quarter of it; power decays linearly to half at the edge and only blocks whose hardness does not exceed the decayed power are destroyed |
 | Targets | Eight combinations: no damage, terrain only, players only, mobs only, no terrain, no players, no mobs, all |
-| Panel and countdown | The right side lists grenade, fuse, power, targets, sticky, effects and color; after a throw the two newest fuses are shown side by side above the hotbar |
+| Panel and countdown | The right side lists grenade, fuse, power, targets, sticky, effects and color; after a throw the two newest fuses are shown side by side above the hotbar, while impact grenades have no countdown and are not shown |
 | Crafting | Iron ingots in the four corners, gunpowder in a cross, string in the center, four grenades per craft |
 
 ### Mortar
@@ -125,7 +125,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Aiming | Empty hand left-click raises yaw by five degrees, sneaking left-click raises pitch; empty hand right-click enters driving |
 | Driving | Yaw follows the view, A and D turn the player and drag the yaw along, W and S adjust pitch, Z and X change caliber, R and space fire, sneak exits |
 | Caliber | Sixty to two hundred forty millimetres, mapped linearly to sixty to two hundred forty blocks per second |
-| Panel | The left side lists heading, pitch, caliber, range and flight time with their keys, one decimal for fractions, and the heading is shown in world bearing |
+| Panel | The left side lists heading, pitch, caliber, range and flight time with their keys, two decimals throughout, and the heading is shown in world bearing |
 | Remote | Bind or unbind with the remote item, then right-click air to control it; several remotes may bind the same mortar |
 
 ### Phantom Elite
@@ -159,7 +159,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 |:---:|:---|
 | Incoming fire indicator | When hit by a gun, a soft-edged arc on screen points to the source, up to three directions at once, off by default |
 | Heading ruler | A horizontal compass tape flush with the top edge, nine tenths of the screen wide, showing cardinal directions and a bare bearing number, off by default |
-| Health bars | A bar plus current and maximum health above every mob and player, green when healthy and red when low, on by default within 48 blocks; drawn at the end of the level pass without depth testing so clouds and other mobs never cover them |
+| Health bars | A bar plus current and maximum health above every mob and player, green when healthy and red when low, on by default; only mobs within 16 blocks of the player are shown and any mob hidden behind blocks is skipped; drawn at the end of the level pass without depth testing so clouds and other mobs never cover them |
 | Ruler color | The accent color is plain red by default and can be set to any 6-digit hexadecimal RGB value in the client config |
 
 ### Configuration and permissions
