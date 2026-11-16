@@ -104,7 +104,8 @@ public final class SchematicReader {
             }
             blocks[index] = slot;
         }
-        return new RuinSchematic(id, width, height, depth, blocks, states.toArray(new BlockState[0]));
+        return new RuinSchematic(id, width, height, depth, blocks, states.toArray(new BlockState[0]),
+                SchematicChunkIndex.build(width, height, depth, blocks, states.size()));
     }
 
     /* Alpha: 旧版数字 ID 与数据值, 只用于外部目录里的旧文件 */
@@ -147,7 +148,8 @@ public final class SchematicReader {
             }
             blocks[index] = slot;
         }
-        return new RuinSchematic(id, width, height, depth, blocks, states.toArray(new BlockState[0]));
+        return new RuinSchematic(id, width, height, depth, blocks, states.toArray(new BlockState[0]),
+                SchematicChunkIndex.build(width, height, depth, blocks, states.size()));
     }
 
     /* 调色板: 方块状态字符串到编号, 字符串形如 minecraft:oak_stairs[facing=north,half=bottom] */

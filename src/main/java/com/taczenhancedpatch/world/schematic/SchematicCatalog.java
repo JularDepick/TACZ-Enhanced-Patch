@@ -201,8 +201,30 @@ public final class SchematicCatalog {
     }
 
     /*
+     * 同步解析。
+     * 世界生成在区块自己的生成阶段取蓝图, 不能等后台线程, 因此生成期未命中时当场解析一次;
+     * 结果进同一份缓存, 之后所有区块复用。
+     */
+    public static RuinSchematic loadSync(String name) {
+        RuinSchematic cached = CACHE.get(name);
+        if (cached != null) {
+            return cached;
+        }
+        if (FAILED.contains(name)) {
+            return null;
+        }
+        return CACHE.computeIfAbsent(name, key -> {
+            RuinSchematic parsed = read(key);
+            if (parsed == null) {
+                FAILED.add(key);
+            }
+            return parsed;
+        });
+    }
+
+    /*
      * 同步解析全部可用蓝图。
-     * 世界生成在区块自己的生成阶段取蓝图, 不能等后台线程, 因此进存档时先把名单里的文件全部解析好。
+     * 只在需要一次性备齐的场景使用, 进存档默认走 warmupAsync, 避免主线程解析全部文件。
      */
     public static void preload() {
         for (String name : files()) {
@@ -274,8 +296,29 @@ public final class SchematicCatalog {
         external = null;
         CACHE.keySet().removeIf(name -> name.startsWith(EXTERNAL_PREFIX));
         FAILED.removeIf(name -> name.startsWith(EXTERNAL_PREFIX));
-        /* 世界生成阶段不能等后台线程, 丢弃缓存后必须同步补齐 */
-        preload();
+        /* 解析放到后台线程预热; 世界生成期未命中的蓝图由 loadSync 当场同步解析 */
+        warmupAsync();
+    }
+
+    /* 后台预热全部蓝图: 进存档时不占主线程, 真正需要时由 loadSync 兜底 */
+    public static void warmupAsync() {
+        for (String name : files()) {
+            if (CACHE.containsKey(name) || FAILED.contains(name) || !LOADING.add(name)) {
+                continue;
+            }
+            PARSER.execute(() -> {
+                try {
+                    RuinSchematic parsed = read(name);
+                    if (parsed != null) {
+                        CACHE.put(name, parsed);
+                    } else {
+                        FAILED.add(name);
+                    }
+                } finally {
+                    LOADING.remove(name);
+                }
+            });
+        }
     }
 
     /* 资源重载后丢弃全部列表与缓存, 下次生成时重新扫描 */

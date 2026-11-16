@@ -4,7 +4,7 @@ import com.taczenhancedpatch.TACZEnhancedPatch;
 import com.taczenhancedpatch.faction.RuinSites;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraftforge.event.server.ServerStartedEvent;
+import net.minecraftforge.event.server.ServerAboutToStartEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -23,10 +23,9 @@ public final class SchematicCatalogRefreshHandler {
     }
 
     @SubscribeEvent
-    public static void onServerStarted(ServerStartedEvent event) {
+    public static void onServerAboutToStart(ServerAboutToStartEvent event) {
+        /* 出生点区块在 ServerStartedEvent 之前就已生成, 重扫与预热必须提前到这里 */
         SchematicCatalog.refresh();
-        /* 世界生成期间取蓝图不能等后台解析, 进存档时同步解析全部可用蓝图 */
-        SchematicCatalog.preload();
         Path root = SchematicCatalog.externalRoot();
         TACZEnhancedPatch.LOGGER.info("[ruin] blueprints ready: {} builtin, {} external ({})",
                 SchematicCatalog.builtinFiles().size(),

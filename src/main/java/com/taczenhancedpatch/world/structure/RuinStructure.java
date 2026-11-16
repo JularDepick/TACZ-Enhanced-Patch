@@ -47,7 +47,7 @@ public class RuinStructure extends Structure {
         if (picked.isEmpty()) {
             return Optional.empty();
         }
-        RuinSchematic blueprint = SchematicCatalog.load(picked.get());
+        RuinSchematic blueprint = SchematicCatalog.loadSync(picked.get());
         if (blueprint == null) {
             return Optional.empty();
         }
@@ -121,9 +121,22 @@ public class RuinStructure extends Structure {
         return true;
     }
 
-    /* 地表采样计数, 让选址索引把开销摊到多个 tick */
+    /* 选址判定的结果: 合格, 不合格, 预算耗尽需要重排 */
+    public static final int FLAT_OK = 1;
+    public static final int FLAT_REJECTED = 0;
+    public static final int FLAT_ABORTED = -1;
+
+    /*
+     * 地表采样计数与时间预算。
+     * 预算以时间为准, 采样次数只作兜底: 一格最多 82 次整列采样, 只按次数记账时一次展开就能吃掉好几个 tick。
+     */
     public static final class SampleCounter {
+        private final long deadline;
         private int value;
+
+        public SampleCounter(long budgetNanos) {
+            this.deadline = System.nanoTime() + Math.max(0L, budgetNanos);
+        }
 
         public void add() {
             value++;
@@ -132,6 +145,28 @@ public class RuinStructure extends Structure {
         public int value() {
             return value;
         }
+
+        public boolean expired() {
+            return System.nanoTime() >= deadline;
+        }
+    }
+
+    /* 带预算的平整判定: 预算耗尽返回 FLAT_ABORTED, 调用方把这一格重新排队 */
+    public static int flatState(ChunkGenerator generator, LevelHeightAccessor heightAccessor,
+                                RandomState randomState, int x, int y, int z, SampleCounter counter) {
+        for (int dx = -FLAT_RADIUS; dx <= FLAT_RADIUS; dx++) {
+            for (int dz = -FLAT_RADIUS; dz <= FLAT_RADIUS; dz++) {
+                counter.add();
+                if (counter.expired()) {
+                    return FLAT_ABORTED;
+                }
+                int surface = surfaceAt(generator, heightAccessor, randomState, x + dx, z + dz);
+                if (Math.abs(surface - y) > FLAT_TOLERANCE) {
+                    return FLAT_REJECTED;
+                }
+            }
+        }
+        return FLAT_OK;
     }
 
     @Override
