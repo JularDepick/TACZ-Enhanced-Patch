@@ -20,8 +20,8 @@ import javax.annotation.Nullable;
 
 /*
  * 迫击炮客户端控制。
- * 驾驶模式: 炮筒水平角跟随视角, W/S 调仰角, A/D 微调水平角, Q/E 调口径, R 与空格发射, 蹲下退出。
- * 遥控模式: 视角不影响炮筒, WASD 调角度, Q/E 调口径, R 与空格发射, 并屏蔽移动输入。
+ * 驾驶模式: 炮筒水平角跟随视角, W/S 调仰角, A/D 转动玩家朝向并带动水平角, Z/X 调口径, R 与空格发射, 蹲下退出。
+ * 遥控模式: 视角不影响炮筒, A/D 调水平角, W/S 调仰角, Z/X 调口径, R 与空格发射, 并屏蔽移动输入。
  */
 @Mod.EventBusSubscriber(modid = TACZEnhancedPatch.MOD_ID, value = Dist.CLIENT)
 public final class MortarClientHandler {
@@ -122,10 +122,16 @@ public final class MortarClientHandler {
         long window = minecraft.getWindow().getWindow();
         step(window, active, GLFW.GLFW_KEY_W, ACTION_PITCH, ANGLE_STEP);
         step(window, active, GLFW.GLFW_KEY_S, ACTION_PITCH, -ANGLE_STEP);
-        step(window, active, GLFW.GLFW_KEY_A, ACTION_YAW, ANGLE_STEP);
-        step(window, active, GLFW.GLFW_KEY_D, ACTION_YAW, -ANGLE_STEP);
-        step(window, active, GLFW.GLFW_KEY_Q, ACTION_CALIBER, CALIBER_STEP);
-        step(window, active, GLFW.GLFW_KEY_E, ACTION_CALIBER, -CALIBER_STEP);
+        if (driving) {
+            /* 驾驶时水平角跟随视角: A/D 直接把玩家朝向一起转, 炮筒由每 tick 的绝对值同步跟上 */
+            turnPlayer(window, minecraft.player, GLFW.GLFW_KEY_A, -ANGLE_STEP);
+            turnPlayer(window, minecraft.player, GLFW.GLFW_KEY_D, ANGLE_STEP);
+        } else {
+            step(window, active, GLFW.GLFW_KEY_A, ACTION_YAW, -ANGLE_STEP);
+            step(window, active, GLFW.GLFW_KEY_D, ACTION_YAW, ANGLE_STEP);
+        }
+        step(window, active, GLFW.GLFW_KEY_Z, ACTION_CALIBER, -CALIBER_STEP);
+        step(window, active, GLFW.GLFW_KEY_X, ACTION_CALIBER, CALIBER_STEP);
         if (firePressed(window, GLFW.GLFW_KEY_R) || firePressed(window, GLFW.GLFW_KEY_SPACE)) {
             PatchNetwork.sendMortarControl(active, ACTION_FIRE, 0.0F);
         }
@@ -171,6 +177,24 @@ public final class MortarClientHandler {
         int interval = held < 10 ? 4 : (held < 25 ? 2 : 1);
         if (held == 1 || held % interval == 0) {
             PatchNetwork.sendMortarControl(pos, action, value);
+        }
+    }
+
+    /* 按住 A/D 时按同样的加速节奏转动玩家朝向, 驾驶视角与炮筒一起转 */
+    private static void turnPlayer(long window, net.minecraft.world.entity.player.Player player, int key, float delta) {
+        boolean down = InputConstants.isKeyDown(window, key);
+        int held = HOLDS.getOrDefault(key, 0);
+        if (!down) {
+            HOLDS.remove(key);
+            return;
+        }
+        held++;
+        HOLDS.put(key, held);
+        int interval = held < 10 ? 4 : (held < 25 ? 2 : 1);
+        if (held == 1 || held % interval == 0) {
+            player.setYRot(player.getYRot() + delta);
+            player.yRotO += delta;
+            player.setYHeadRot(player.getYRot());
         }
     }
 

@@ -68,6 +68,14 @@ public final class TACZEnhancedPatchClient {
             int rgb = shell.settingsOf(stack).color().rgb();
             return 0xFF000000 | rgb;
         }, PatchItems.GRENADE.get());
+        /* 迫击炮炮弹同一套染色: 本体按属性配色, 钢件保持原色 */
+        event.register((stack, tintIndex) -> {
+            if (tintIndex != 0 || !(stack.getItem() instanceof ShellItem shell)) {
+                return -1;
+            }
+            int rgb = shell.settingsOf(stack).color().rgb();
+            return 0xFF000000 | rgb;
+        }, com.taczenhancedpatch.mortar.MortarRegistry.MORTAR_SHELL.get());
     }
 
     /* 坦克精英怪的模型层 */

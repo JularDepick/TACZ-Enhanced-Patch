@@ -2,6 +2,7 @@ package com.taczenhancedpatch.mortar;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -82,8 +83,9 @@ public class MortarBlock extends BaseEntityBlock {
                 if (!player.getAbilities().instabuild) {
                     held.shrink(1);
                 }
+                player.displayClientMessage(Component.translatable("tacz_enhanced_patch.mortar.msg.loaded"), true);
             } else {
-                mortar.startFire();
+                mortar.startFire(player);
             }
             return InteractionResult.CONSUME;
         }
@@ -93,6 +95,22 @@ public class MortarBlock extends BaseEntityBlock {
         }
         mortar.mount(player);
         return InteractionResult.CONSUME;
+    }
+
+    /*
+     * 玩家挖掉时掉落带状态的方块物品。
+     * 调校状态写进物品数据, 重新放下时由方块物品写回方块实体, 挖了再放不会把角度和口径重置。
+     */
+    @Override
+    public void playerDestroy(Level level, Player player, BlockPos pos, BlockState state,
+                              @Nullable BlockEntity blockEntity, ItemStack tool) {
+        if (!level.isClientSide() && blockEntity instanceof MortarBlockEntity mortar) {
+            ItemStack stack = new ItemStack(this);
+            stack.getOrCreateTag().put(MortarBlockItem.TAG_STATE, mortar.writeState());
+            Block.popResource(level, pos, stack);
+            return;
+        }
+        super.playerDestroy(level, player, pos, state, blockEntity, tool);
     }
 
     @Override

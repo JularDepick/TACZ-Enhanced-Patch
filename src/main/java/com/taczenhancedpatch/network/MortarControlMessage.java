@@ -46,7 +46,7 @@ public record MortarControlMessage(BlockPos pos, int action, float value) {
                     case 3 -> mortar.setPitch(mortar.pitchDeg() + message.value());
                     case 4 -> mortar.setYaw(mortar.yawDeg() + message.value());
                     case 5 -> mortar.setCaliber(mortar.caliberMm() + (int) message.value());
-                    case 6 -> mortar.startFire();
+                    case 6 -> mortar.startFire(player);
                     default -> {
                     }
                 }

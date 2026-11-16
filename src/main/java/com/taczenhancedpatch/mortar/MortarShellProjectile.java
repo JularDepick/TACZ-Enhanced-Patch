@@ -47,6 +47,7 @@ public class MortarShellProjectile extends ShellProjectile {
         }
         if (this.level().isClientSide()) {
             this.tickCount++;
+            this.trail();
             return;
         }
         double gravity = ServerConfig.mortarGravity() * TICK_SECONDS;
@@ -61,6 +62,24 @@ public class MortarShellProjectile extends ShellProjectile {
             }
         }
         this.tickCount++;
+    }
+
+    /*
+     * 烟尾迹。
+     * 炮弹飞行速度很高, 单帧很难看清实体本身, 客户端在同步到的位置补烟与火星, 飞过去会留下一条可见的轨迹。
+     */
+    private void trail() {
+        Vec3 motion = this.getDeltaMovement();
+        double speed = motion.length();
+        Vec3 back = speed > 0.01D ? this.position().subtract(motion.normalize().scale(0.35D)) : this.position();
+        this.level().addParticle(net.minecraft.core.particles.ParticleTypes.LARGE_SMOKE,
+                back.x, back.y, back.z, 0.0D, 0.02D, 0.0D);
+        this.level().addParticle(net.minecraft.core.particles.ParticleTypes.SMOKE,
+                this.getX(), this.getY(), this.getZ(), 0.0D, 0.01D, 0.0D);
+        if (this.tickCount % 2 == 0) {
+            this.level().addParticle(net.minecraft.core.particles.ParticleTypes.FLAME,
+                    back.x, back.y, back.z, 0.0D, 0.0D, 0.0D);
+        }
     }
 
     private boolean moveStep(Vec3 step) {

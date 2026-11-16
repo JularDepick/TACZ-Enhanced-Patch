@@ -6,10 +6,12 @@ import com.taczenhancedpatch.shell.ShellSettings;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.entity.item.FallingBlockEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -27,12 +29,17 @@ import java.util.UUID;
  * 记录水平角, 仰角, 炮口口径, 已装填炮弹与控制者; 负责发射倒计时, 失控下落与座位管理。
  */
 public class MortarBlockEntity extends BlockEntity {
+    /* 反馈文案前缀 */
+    private static final String KEY = "tacz_enhanced_patch.mortar";
     public static final int CALIBER_MIN = 60;
     public static final int CALIBER_MAX = 240;
     public static final float PITCH_MIN = 0.0F;
     public static final float PITCH_MAX = 90.0F;
     private static final int FIRE_DELAY = 20;
     private static final int SYNC_INTERVAL = 2;
+    /* 出射速度区间, 单位 格/秒 */
+    private static final double MUZZLE_SPEED_MIN = 60.0D;
+    private static final double MUZZLE_SPEED_MAX = 240.0D;
 
     private float yawDeg;
     private float pitchDeg = 45.0F;
@@ -48,6 +55,9 @@ public class MortarBlockEntity extends BlockEntity {
     private UUID controller;
     @Nullable
     private UUID seat;
+    /* 最近一次按下发射的玩家, 用于把开炮反馈发回给他 */
+    @Nullable
+    private UUID operator;
 
     public MortarBlockEntity(BlockPos pos, BlockState state) {
         super(MortarRegistry.MORTAR_ENTITY.get(), pos, state);
@@ -103,10 +113,36 @@ public class MortarBlockEntity extends BlockEntity {
         return this.migrating;
     }
 
-    /* 口径线性映射到出射速度, 单位 格/秒 */
+    /* 口径线性映射到出射速度, 单位 格/秒; 六十到二百四十毫米对应每秒六十到二百四十格 */
     public double muzzleSpeed() {
         double ratio = (this.caliberMm - CALIBER_MIN) / (double) (CALIBER_MAX - CALIBER_MIN);
-        return 120.0D + ratio * 360.0D;
+        return MUZZLE_SPEED_MIN + ratio * (MUZZLE_SPEED_MAX - MUZZLE_SPEED_MIN);
+    }
+
+    /* 调校状态随方块物品走: 挖下来再放下时接着用上一次的水平角, 仰角与口径 */
+    public CompoundTag writeState() {
+        CompoundTag tag = new CompoundTag();
+        tag.putFloat("Yaw", this.yawDeg);
+        tag.putFloat("Pitch", this.pitchDeg);
+        tag.putInt("Caliber", this.caliberMm);
+        return tag;
+    }
+
+    public void readState(@Nullable CompoundTag tag) {
+        if (tag == null) {
+            return;
+        }
+        if (tag.contains("Yaw")) {
+            this.setYaw(tag.getFloat("Yaw"));
+        }
+        if (tag.contains("Pitch")) {
+            this.setPitch(tag.getFloat("Pitch"));
+        }
+        if (tag.contains("Caliber")) {
+            this.setCaliber(tag.getInt("Caliber"));
+        }
+        this.setChanged();
+        this.sync();
     }
 
     public boolean loadShell(ItemStack stack) {
@@ -128,11 +164,40 @@ public class MortarBlockEntity extends BlockEntity {
     }
 
     public void startFire() {
+        this.startFire(null);
+    }
+
+    /* 谁按下发射就反馈给谁: 驾驶时是驾驶者, 遥控时是遥控的那位 */
+    public void startFire(@Nullable Player source) {
         if (!this.loadedShell() || this.fireTicks > 0) {
             return;
         }
         this.fireTicks = FIRE_DELAY;
         this.setChanged();
+        Player listener = source != null ? source : this.controllerPlayer();
+        this.operator = listener == null ? null : listener.getUUID();
+        /* 倒计时反馈: 玩家按下发射后立刻知道炮弹已经进入引信流程 */
+        if (listener != null) {
+            listener.displayClientMessage(Component.translatable(KEY + ".msg.firing"), true);
+        }
+        this.level.playSound(null, this.worldPosition, net.minecraft.sounds.SoundEvents.LEVER_CLICK,
+                net.minecraft.sounds.SoundSource.BLOCKS, 1.0F, 0.6F);
+    }
+
+    @Nullable
+    private Player operatorPlayer() {
+        if (this.operator == null || !(this.level instanceof ServerLevel server)) {
+            return null;
+        }
+        return server.getPlayerByUUID(this.operator);
+    }
+
+    @Nullable
+    private Player controllerPlayer() {
+        if (this.controller == null || !(this.level instanceof ServerLevel server)) {
+            return null;
+        }
+        return server.getPlayerByUUID(this.controller);
     }
 
     @Override
@@ -161,45 +226,33 @@ public class MortarBlockEntity extends BlockEntity {
         }
     }
 
-    /* 下方没有支撑时整体下落一格, 角度与装填保留 */
+    /*
+     * 下方没有支撑时整体下落, 走原版落沙实体的路子, 与铁砧一致:
+     * 逐 tick 受重力下落并带伤害, 落地后重新变成方块, 方块数据随实体一起带走。
+     */
     private void fall(Level level, BlockPos pos, BlockState state) {
         BlockPos below = pos.below();
         if (below.getY() <= level.getMinBuildHeight()) {
             return;
         }
-        /* 先把要带走的状态取到局部: 清方块会触发 onRemove, 把这一份的装填与控制者清掉 */
-        float yaw = this.yawDeg;
-        float pitch = this.pitchDeg;
-        int caliber = this.caliberMm;
-        ItemStack loaded = this.loaded;
-        int fireTicks = this.fireTicks;
-        UUID controller = this.controller;
-        UUID seat = this.seat;
+        /* 先把方块数据拍一份: 清方块会触发 onRemove, 把这一份的装填与控制者清掉 */
+        CompoundTag saved = this.saveWithoutMetadata();
         this.migrating = true;
         try {
-            level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
-            level.setBlock(below, state, Block.UPDATE_ALL);
+            FallingBlockEntity falling = FallingBlockEntity.fall(level, pos, state);
+            if (falling != null) {
+                CompoundTag tag = new CompoundTag();
+                falling.saveWithoutId(tag);
+                tag.put("TileEntityData", saved);
+                falling.load(tag);
+                /* 与铁砧同口径: 砸到生物按落差造成伤害 */
+                falling.setHurtsEntities(2.0F, 40);
+            }
         } finally {
             this.migrating = false;
         }
-        if (level.getBlockEntity(below) instanceof MortarBlockEntity moved) {
-            moved.yawDeg = yaw;
-            moved.pitchDeg = pitch;
-            moved.caliberMm = caliber;
-            moved.loaded = loaded;
-            moved.fireTicks = fireTicks;
-            moved.controller = controller;
-            moved.seat = seat;
-            moved.setChanged();
-            moved.sync();
-        }
-        /* 座位跟着下移一格, 驾驶者不会悬在旧位置 */
-        if (seat != null && level instanceof ServerLevel server) {
-            Entity seatEntity = server.getEntity(seat);
-            if (seatEntity != null) {
-                seatEntity.setPos(below.getX() + 0.5D, below.getY() + 0.2D, below.getZ() + 0.5D);
-            }
-        }
+        /* 座位没法跟着飞: 先把驾驶者放下, 落地后再重新上炮 */
+        this.dismount();
     }
 
     private void fire(ServerLevel level, BlockPos pos) {
@@ -222,8 +275,16 @@ public class MortarBlockEntity extends BlockEntity {
         MortarShellProjectile shell = new MortarShellProjectile(level, start, direction.scale(speed), settings,
                 owner, fuse);
         level.addFreshEntity(shell);
+        /* 发射反馈: 爆炸声加推进声, 远处也能听出这一炮打出去了 */
         level.playSound(null, pos, net.minecraft.sounds.SoundEvents.GENERIC_EXPLODE,
-                net.minecraft.sounds.SoundSource.BLOCKS, 2.0F, 0.6F);
+                net.minecraft.sounds.SoundSource.BLOCKS, 4.0F, 0.55F);
+        level.playSound(null, pos, net.minecraft.sounds.SoundEvents.FIREWORK_ROCKET_LAUNCH,
+                net.minecraft.sounds.SoundSource.BLOCKS, 3.0F, 0.7F);
+        Player listener = this.operatorPlayer();
+        if (listener != null) {
+            listener.displayClientMessage(Component.translatable(KEY + ".msg.fired"), true);
+        }
+        this.operator = null;
     }
 
     /* 进入驾驶: 生成隐形座位并让玩家坐上 */
