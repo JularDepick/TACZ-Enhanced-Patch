@@ -171,7 +171,8 @@ public final class RuinSiteDiscovery {
             created++;
             RuinSiteIndexManager.onSiteBound(level, center, ruin.schematic(), box);
             RuinLoot.fillSiteSupplies(level, site);
-            TACZEnhancedPatch.LOGGER.debug("[ruin] site materialized at {} ({}x{}x{})", center, width, height, depth);
+            /* 每座遗迹只打一条, 便于对照"遗迹到底有没有生成" */
+            TACZEnhancedPatch.LOGGER.info("[ruin] site materialized at {} ({}x{}x{})", center, width, height, depth);
         }
         return created;
     }

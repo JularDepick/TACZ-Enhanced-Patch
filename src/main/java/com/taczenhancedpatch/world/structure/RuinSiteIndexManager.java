@@ -51,6 +51,8 @@ public final class RuinSiteIndexManager {
     public static final int QUERY_RADIUS = 10;
     /* 单次查询最多评估多少格, 超出就回一条范围外未探明, 避免一次右键占用太久 */
     private static final int MAX_CELLS_PER_QUERY = 512;
+    /* 单次查询的超时时间, 三秒还没结果就判定失败 */
+    private static final int QUERY_TIMEOUT_TICKS = 60;
     /* 以玩家所在格为中心向外预热的格数, 每边 1 格 */
     private static final int EXPAND_RADIUS = 1;
     /*
@@ -58,6 +60,8 @@ public final class RuinSiteIndexManager {
      * 以时间为准, 采样次数只作兜底上限: 一格最多 82 次整列噪声采样, 只按次数记账时一次展开就能吃掉好几个 tick。
      */
     private static final long BUDGET_NANOS = 2_000_000L;
+    /* 指南针查询的预算比后台预热宽一些: 一次右键要等结果, 后台可以慢慢来 */
+    private static final long JOB_BUDGET_NANOS = 4_000_000L;
     private static final int SAMPLE_CAP_PER_TICK = 4096;
     /* 每 tick 最多检查几项建筑是否已经铺齐 */
     private static final int COMPLETENESS_PER_TICK = 4;
@@ -88,6 +92,10 @@ public final class RuinSiteIndexManager {
     /* 指南针的查询入口: 先查索引, 查不到就开一个扩展任务 */
     public static void query(ServerPlayer player, ItemStack stack, BiConsumer<ItemStack, BlockPos> onFound) {
         ServerLevel level = player.serverLevel();
+        /* 限流: 上一次查询还没出结果时静默拒绝, 不给任何提示, 免得刷屏 */
+        if (JOBS.containsKey(player.getUUID())) {
+            return;
+        }
         if (!ServerConfig.ruinsEnabled()) {
             notice(player, "disabled");
             return;
@@ -104,7 +112,7 @@ public final class RuinSiteIndexManager {
             return;
         }
         JOBS.put(player.getUUID(), new Job(player.getUUID(), level.dimension(),
-                player.blockPosition().immutable(), stack, onFound));
+                player.blockPosition().immutable(), stack, onFound, level.getGameTime()));
         player.displayClientMessage(Component.translatable(KEY + ".searching")
                 .withStyle(ChatFormatting.GRAY), true);
     }
@@ -212,20 +220,43 @@ public final class RuinSiteIndexManager {
         }
         ticks++;
         MinecraftServer server = event.getServer();
-        /* 索引的读盘由 RuinSiteDiscovery 在开档时完成, 这里不再承担预热 */
-        if (!JOBS.isEmpty() || !QUEUES.isEmpty()) {
-            RuinStructure.SampleCounter counter = new RuinStructure.SampleCounter(BUDGET_NANOS);
-            for (Job job : List.copyOf(JOBS.values())) {
-                if (counter.expired()) {
-                    break;
-                }
-                stepJob(server, job, counter);
+        /* 查询超时: 三秒还没出结果就提示查询失败并放开限流, 玩家可以再试一次 */
+        for (Job job : List.copyOf(JOBS.values())) {
+            if (server.getTickCount() - job.startTick < QUERY_TIMEOUT_TICKS) {
+                continue;
             }
-            for (ResourceKey<Level> dimension : List.copyOf(QUEUES.keySet())) {
-                if (counter.expired()) {
+            JOBS.remove(job.player);
+            ServerPlayer player = server.getPlayerList().getPlayer(job.player);
+            if (player == null) {
+                continue;
+            }
+            /* 超时也要给个结论: 索引里已有遗迹就报最近的, 一个都没有才说查询失败 */
+            ServerLevel level = server.getLevel(job.dimension);
+            RuinSiteIndex index = level == null ? null : indexFor(level);
+            RuinSiteIndex.Hit hit = index == null ? null : index.nearest(level, job.origin, QUERY_RADIUS);
+            if (hit != null) {
+                respond(player, job.stack, hit, job.onFound);
+            } else {
+                notice(player, "failed");
+            }
+        }
+        /* 索引的读盘由 RuinSiteDiscovery 在开档时完成, 这里不再承担预热 */
+        if (!JOBS.isEmpty()) {
+            RuinStructure.SampleCounter jobCounter = new RuinStructure.SampleCounter(JOB_BUDGET_NANOS);
+            for (Job job : List.copyOf(JOBS.values())) {
+                if (jobCounter.expired()) {
                     break;
                 }
-                drainQueue(server, dimension, counter);
+                stepJob(server, job, jobCounter);
+            }
+        }
+        if (!QUEUES.isEmpty()) {
+            RuinStructure.SampleCounter queueCounter = new RuinStructure.SampleCounter(BUDGET_NANOS);
+            for (ResourceKey<Level> dimension : List.copyOf(QUEUES.keySet())) {
+                if (queueCounter.expired()) {
+                    break;
+                }
+                drainQueue(server, dimension, queueCounter);
             }
         }
         drainCompleteness(server);
@@ -360,7 +391,7 @@ public final class RuinSiteIndexManager {
                 continue;
             }
             long key = RuinSiteIndex.ringCell(cellX, cellZ, job.ring, job.cursor);
-            if (!index.evaluate(level, generator, randomState, (int) (key >> 32), (int) key, counter)) {
+            if (!index.evaluate(level, generator, randomState, (int) (key >> 32), (int) key, counter, true)) {
                 /* 预算在格内耗尽: 游标不动, 下一 tick 从同一格继续 */
                 return;
             }
@@ -428,13 +459,35 @@ public final class RuinSiteIndexManager {
                                 BiConsumer<ItemStack, BlockPos> onFound) {
         onFound.accept(stack, hit.pos());
         int distance = (int) Math.round(Math.sqrt(hit.pos().distSqr(player.blockPosition())));
-        Component name = hit.name().isEmpty()
+        String cleaned = displayName(hit.name());
+        Component name = cleaned.isEmpty()
                 ? Component.translatable(KEY + ".name.unknown")
-                : Component.literal(hit.name());
+                : Component.literal(cleaned);
         Component status = Component.translatable(stateKey(hit.state()));
         player.displayClientMessage(Component.translatable(KEY + ".result", distance,
                 hit.pos().getX(), hit.pos().getY(), hit.pos().getZ(), name, status)
                 .withStyle(ChatFormatting.GREEN), true);
+    }
+
+    /*
+     * 建筑名只留蓝图文件名: 索引里存的是蓝图 id, 可能带目录与 .schem 后缀,
+     * 直接显示会把整条路径摆到提示里。老存档里的名字也走同一套清理。
+     */
+    private static String displayName(String id) {
+        if (id == null || id.isEmpty()) {
+            return "";
+        }
+        String name = id;
+        int slash = Math.max(name.lastIndexOf('/'), name.lastIndexOf('\\'));
+        if (slash >= 0) {
+            name = name.substring(slash + 1);
+        }
+        if (name.endsWith(".schematic")) {
+            name = name.substring(0, name.length() - ".schematic".length());
+        } else if (name.endsWith(".schem")) {
+            name = name.substring(0, name.length() - ".schem".length());
+        }
+        return name;
     }
 
     private static void notice(ServerPlayer player, String suffix) {
@@ -457,18 +510,20 @@ public final class RuinSiteIndexManager {
         private final BlockPos origin;
         private final ItemStack stack;
         private final BiConsumer<ItemStack, BlockPos> onFound;
+        private final long startTick;
         private int ring;
         private int cursor;
         /* 本次查询已经评估过的格数, 用于上限判定 */
         private int cells;
 
         private Job(UUID player, ResourceKey<Level> dimension, BlockPos origin, ItemStack stack,
-                    BiConsumer<ItemStack, BlockPos> onFound) {
+                    BiConsumer<ItemStack, BlockPos> onFound, long startTick) {
             this.player = player;
             this.dimension = dimension;
             this.origin = origin;
             this.stack = stack;
             this.onFound = onFound;
+            this.startTick = startTick;
         }
     }
 

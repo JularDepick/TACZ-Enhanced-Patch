@@ -207,6 +207,12 @@ public final class RuinSiteIndex {
      */
     public boolean evaluate(ServerLevel level, ChunkGenerator generator, RandomState randomState,
                             int cellX, int cellZ, RuinStructure.SampleCounter counter) {
+        return evaluate(level, generator, randomState, cellX, cellZ, counter, false);
+    }
+
+    /* coarse 为真时只做中心三格见方的粗筛, 供指南针的即时查询使用 */
+    public boolean evaluate(ServerLevel level, ChunkGenerator generator, RandomState randomState,
+                            int cellX, int cellZ, RuinStructure.SampleCounter counter, boolean coarse) {
         long key = cellKey(cellX, cellZ);
         if (cells.containsKey(key)) {
             return true;
@@ -220,7 +226,9 @@ public final class RuinSiteIndex {
             mark(cellX, cellZ, State.NO_CANDIDATE, surface, "");
             return true;
         }
-        int flat = RuinStructure.flatState(generator, level, randomState, x, surface, z, counter);
+        int flat = coarse
+                ? RuinStructure.flatState(generator, level, randomState, x, surface, z, counter, 1)
+                : RuinStructure.flatState(generator, level, randomState, x, surface, z, counter);
         if (flat == RuinStructure.FLAT_ABORTED) {
             return false;
         }

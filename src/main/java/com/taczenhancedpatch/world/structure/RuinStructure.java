@@ -154,8 +154,19 @@ public class RuinStructure extends Structure {
     /* 带预算的平整判定: 预算耗尽返回 FLAT_ABORTED, 调用方把这一格重新排队 */
     public static int flatState(ChunkGenerator generator, LevelHeightAccessor heightAccessor,
                                 RandomState randomState, int x, int y, int z, SampleCounter counter) {
-        for (int dx = -FLAT_RADIUS; dx <= FLAT_RADIUS; dx++) {
-            for (int dz = -FLAT_RADIUS; dz <= FLAT_RADIUS; dz++) {
+        return flatState(generator, heightAccessor, randomState, x, y, z, counter, FLAT_RADIUS);
+    }
+
+    /*
+     * 带范围参数的版本。
+     * 选址索引的即时查询用半径一的粗筛: 只要中心三格见方的高差合格就当作候选,
+     * 采样量从八十一列降到九列, 一次右键才能在三秒内扫完十环;
+     * 真正的生成期判定仍用完整半径, 因此粗筛只会多指, 不会漏指。
+     */
+    public static int flatState(ChunkGenerator generator, LevelHeightAccessor heightAccessor,
+                                RandomState randomState, int x, int y, int z, SampleCounter counter, int radius) {
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dz = -radius; dz <= radius; dz++) {
                 counter.add();
                 if (counter.expired()) {
                     return FLAT_ABORTED;
