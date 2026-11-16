@@ -165,6 +165,7 @@
   "item.tacz_enhanced_patch.ruin_compass.disabled": "Ruin generation is disabled",
   "tacz_enhanced_patch.hud.ruin.garrison": "Ruin garrison %s",
   "item.tacz_enhanced_patch.ruin_compass.none": "No ruin within range",
+  "item.tacz_enhanced_patch.ruin_compass.range": "No indexed ruin within range; anything farther is unexplored",
   "item.tacz_enhanced_patch.infinite_mag": "Infinite Magazine",
   "item.tacz_enhanced_patch.infinite_mag.light": "Infinite Magazine (Light)",
   "item.tacz_enhanced_patch.infinite_mag.shotgun": "Infinite Magazine (Shotgun)",

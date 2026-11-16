@@ -23,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.Map;
@@ -36,6 +37,8 @@ import java.util.Map;
 public final class RuinSiteIndex {
     public static final String FILE_NAME = "tacz_enhanced_patch_ruin_index.dat";
     private static final int FORMAT_VERSION = 1;
+    /* 索引表上限: 超过后先丢已判定无遗迹的格, 仍然超限就整表重来 */
+    private static final int MAX_CELLS = 200_000;
 
     /* 一格的判定结果 */
     public enum State {
@@ -268,6 +271,28 @@ public final class RuinSiteIndex {
             }
         }
         cells.put(key, new Cell(state, y, name == null ? "" : name));
+        dirty = true;
+        if (cells.size() > MAX_CELLS) {
+            prune();
+        }
+    }
+
+    /*
+     * 收缩索引表。
+     * 已判定无遗迹的格最没价值, 先丢它们; 仍然超限说明长期存档走得太远, 整表重来,
+     * 已生成的状态会在玩家再次靠近时由站点回写补回。
+     */
+    private void prune() {
+        Iterator<Map.Entry<Long, Cell>> iterator = cells.entrySet().iterator();
+        while (iterator.hasNext() && cells.size() > MAX_CELLS * 3 / 4) {
+            Cell cell = iterator.next().getValue();
+            if (cell.state() == State.NO_CANDIDATE || cell.state() == State.REJECTED) {
+                iterator.remove();
+            }
+        }
+        if (cells.size() > MAX_CELLS) {
+            cells.clear();
+        }
         dirty = true;
     }
 

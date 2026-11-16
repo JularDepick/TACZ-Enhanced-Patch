@@ -47,8 +47,10 @@ import java.util.function.BiConsumer;
  */
 @Mod.EventBusSubscriber(modid = TACZEnhancedPatch.MOD_ID)
 public final class RuinSiteIndexManager {
-    /* 指南针一次查询最多扫多少格环, 约一万三千格半径 */
-    public static final int QUERY_RADIUS = 24;
+    /* 指南针一次查询最多扫多少格环, 约五千格半径; 更远的遗迹靠玩家移动时逐步扩展索引 */
+    public static final int QUERY_RADIUS = 10;
+    /* 单次查询最多评估多少格, 超出就回一条范围外未探明, 避免一次右键占用太久 */
+    private static final int MAX_CELLS_PER_QUERY = 512;
     /* 以玩家所在格为中心向外预热的格数, 每边 1 格 */
     private static final int EXPAND_RADIUS = 1;
     /*
@@ -363,6 +365,11 @@ public final class RuinSiteIndexManager {
                 return;
             }
             job.cursor++;
+            if (++job.cells > MAX_CELLS_PER_QUERY) {
+                notice(player, "range");
+                JOBS.remove(job.player);
+                return;
+            }
         }
     }
 
@@ -452,6 +459,8 @@ public final class RuinSiteIndexManager {
         private final BiConsumer<ItemStack, BlockPos> onFound;
         private int ring;
         private int cursor;
+        /* 本次查询已经评估过的格数, 用于上限判定 */
+        private int cells;
 
         private Job(UUID player, ResourceKey<Level> dimension, BlockPos origin, ItemStack stack,
                     BiConsumer<ItemStack, BlockPos> onFound) {

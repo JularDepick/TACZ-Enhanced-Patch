@@ -165,6 +165,7 @@
   "item.tacz_enhanced_patch.ruin_compass.disabled": "遗迹生成已关闭",
   "tacz_enhanced_patch.hud.ruin.garrison": "遗迹守军 %s",
   "item.tacz_enhanced_patch.ruin_compass.none": "该范围内没有遗迹",
+  "item.tacz_enhanced_patch.ruin_compass.range": "该范围内没有已索引的遗迹, 更远处未探明",
   "item.tacz_enhanced_patch.infinite_mag": "无限弹匣",
   "item.tacz_enhanced_patch.infinite_mag.light": "无限弹匣 (轻量)",
   "item.tacz_enhanced_patch.infinite_mag.shotgun": "无限弹匣 (霰弹)",
