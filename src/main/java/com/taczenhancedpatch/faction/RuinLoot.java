@@ -5,6 +5,7 @@ import com.taczenhancedpatch.config.ServerConfig;
 import com.taczenhancedpatch.gunner.GunnerArsenal;
 import com.taczenhancedpatch.integration.TaczApi;
 import com.taczenhancedpatch.world.schematic.RuinSchematic;
+import com.taczenhancedpatch.world.schematic.SchematicCatalog;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
@@ -86,7 +87,8 @@ public final class RuinLoot {
             TACZEnhancedPatch.LOGGER.warn("[ruin] chest chunk not loaded at {}", pos);
             return;
         }
-        level.setBlock(pos, Blocks.CHEST.defaultBlockState().setValue(ChestBlock.FACING, Direction.SOUTH), 3);
+        /* 只写本方块并同步客户端, 不带邻居更新: 邻居可能落在未加载区块上, 带更新会把它同步读进来 */
+        level.setBlock(pos, Blocks.CHEST.defaultBlockState().setValue(ChestBlock.FACING, Direction.SOUTH), 2);
         LevelChunk chunk = loadedChunk(level, pos);
         if (chunk == null || !(chunk.getBlockEntity(pos) instanceof ChestBlockEntity chest)) {
             return;
@@ -202,6 +204,34 @@ public final class RuinLoot {
             }
             chest.setItem(slot++, stack);
         }
+    }
+
+    /*
+     * 按站点补齐物资箱。
+     * 位置由蓝图与片段种子重算, 与生成期放箱子时是同一批坐标;
+     * 只碰已经加载的区块, 未加载的留到下次; 全部填满返回真, 站点据此置位不再重算。
+     */
+    public static boolean fillSiteSupplies(ServerLevel level, RuinSites.Site site) {
+        if (site.seed() == 0L || site.width() <= 0 || site.height() <= 0 || site.depth() <= 0) {
+            return true;
+        }
+        RuinSchematic blueprint = site.schematic().isEmpty() ? null : SchematicCatalog.load(site.schematic());
+        if (blueprint == null) {
+            return false;
+        }
+        BlockPos min = new BlockPos(site.origin().getX() - site.width() / 2, site.baseY(),
+                site.origin().getZ() - site.depth() / 2);
+        List<BlockPos> spots = supplySpots(blueprint, min, site.seed(), level.getDifficulty());
+        boolean complete = true;
+        for (BlockPos spot : spots) {
+            LevelChunk chunk = loadedChunk(level, spot);
+            if (chunk == null) {
+                complete = false;
+                continue;
+            }
+            fillSupplyChest(chunk, spot, level.getRandom(), level.getDifficulty());
+        }
+        return complete;
     }
 
     /* 枪械配对应口径弹药, 护甲与食物各自独立判定 */

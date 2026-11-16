@@ -27,6 +27,7 @@ import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -53,9 +54,13 @@ public final class RuinGarrison {
     private static final int GRACE_TICKS = 100;
     /* 倒计时前若干秒用大标题, 之后改用顶部小提示 */
     private static final int TITLE_SECONDS = 5;
+    /* 每二十 tick 一次检查里最多跑多少座站点: 遗迹多时按轮转摊到多轮, 单 tick 耗时因此是常数 */
+    private static final int MAX_SITES_PER_TICK = 8;
     /* 玩家当前所在的遗迹与核心区状态, 用于进出提示 */
     private static final Map<UUID, Presence> PRESENCE = new HashMap<>();
     private static int tick;
+    private static int cursor;
+    private static boolean stopping;
 
     /* 玩家所在遗迹与是否处于核心区 */
     private record Presence(BlockPos site, boolean inCore) {
@@ -66,7 +71,7 @@ public final class RuinGarrison {
 
     @SubscribeEvent(priority = EventPriority.HIGH)
     public static void onServerTick(TickEvent.ServerTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) {
+        if (event.phase != TickEvent.Phase.END || stopping) {
             return;
         }
         if (++tick % CHECK_INTERVAL != 0) {
@@ -75,36 +80,40 @@ public final class RuinGarrison {
         event.getServer().getAllLevels().forEach(RuinGarrison::tickLevel);
     }
 
+    /* 退出阶段不再跑调度: 存盘途中读方块会把正在卸载的区块读回来, 存盘循环随之延长 */
+    @SubscribeEvent
+    public static void onServerStopping(net.minecraftforge.event.server.ServerStoppingEvent event) {
+        stopping = true;
+        cursor = 0;
+    }
+
+    /* 新世界开局重置退出标记: 同一进程内切换存档时不会因为上一轮的标记而整局不跑调度 */
+    @SubscribeEvent
+    public static void onServerStarted(net.minecraftforge.event.server.ServerStartedEvent event) {
+        stopping = false;
+        cursor = 0;
+        tick = 0;
+    }
+
     private static void tickLevel(ServerLevel level) {
         RuinSites data = RuinSites.get(level);
-        data.drainPending(level);
-        /* 区块加载事件可能在 tick 内重入并往列表里加站点, 这里必须用快照遍历 */
+        /* 站点只在玩家靠近时由发现任务物化, 这里用快照遍历, 避免遍历途中列表被改 */
         List<RuinSites.Site> sites = List.copyOf(data.sites());
         if (sites.isEmpty()) {
             return;
         }
         long now = level.getGameTime();
-        /* 先算出每座活跃遗迹里的参与玩家, 用于判断谁留在这座, 谁已经转到别处 */
-        Map<BlockPos, List<ServerPlayer>> insideBySite = new HashMap<>();
+        /* 第一遍只做便宜的判定: 区块没加载或没有玩家在附近的遗迹直接休眠, 不碰实体与方块 */
+        List<RuinSites.Site> active = new ArrayList<>();
         for (RuinSites.Site site : sites) {
             /* 死遗迹不再参与任何调度: 不补兵, 不夺旗, 不发提示, 也不补放旗帜 */
             if (site.abandoned() || site.captured() || !site.pasted()) {
                 continue;
             }
-            /* 站点没有旗帜时补放一次, 老存档的遗迹因此重新参与领地与夺旗; 已夺旗的站点不再补放 */
-            if (site.banner() == null && !site.captured()) {
-                int height = 8;
-                RuinSchematic schematic = site.schematic().isEmpty() ? null : SchematicCatalog.load(site.schematic());
-                if (schematic != null) {
-                    height = schematic.height();
-                }
-                RuinBanner.place(level, site, site.origin(), site.baseY(), height, level.getRandom());
-                data.setDirty();
-                if (site.banner() == null) {
-                    continue;
-                }
+            /* 中心区块没加载说明玩家不可能在领地里, 连距离判定都不必做 */
+            if (!level.hasChunkAt(site.origin())) {
+                continue;
             }
-            /* 没有玩家在附近时整座遗迹休眠, 不做任何实体查询 */
             if (!hasPlayerNear(level, site)) {
                 /* 玩家离开遗迹范围时正在进行的夺旗直接中断, 否则回来会按过期倒计时立即判定成功 */
                 if (site.capturing()) {
@@ -113,8 +122,19 @@ public final class RuinGarrison {
                     site.setTitleSecond(-1);
                     data.setDirty();
                 }
+                if (site.statusPercent() != -1) {
+                    site.setStatus(-1, -1);
+                }
                 continue;
             }
+            active.add(site);
+        }
+        if (active.isEmpty()) {
+            return;
+        }
+        /* 先算出每座活跃遗迹里的参与玩家, 用于判断谁留在这座, 谁已经转到别处 */
+        Map<BlockPos, List<ServerPlayer>> insideBySite = new HashMap<>();
+        for (RuinSites.Site site : active) {
             insideBySite.put(site.origin(), RuinTerritory.playersInside(level, site));
         }
         boolean playerInSomeSite = false;
@@ -124,33 +144,65 @@ public final class RuinGarrison {
                 break;
             }
         }
-        notifyPresence(level, sites, insideBySite);
-        for (RuinSites.Site site : sites) {
-            List<ServerPlayer> inside = insideBySite.get(site.origin());
-            if (inside == null) {
-                continue;
-            }
-            /* 夺旗前旗帜不可破坏, 任何非正常途径抹掉都在这里还原 */
-            RuinBanner.restore(level, site);
-            /* 玩家已经转到另一座遗迹时, 这座遗迹的旧战绩立即作废 */
-            if (inside.isEmpty() && site.hadPlayers() && playerInSomeSite) {
-                site.clearStats();
-                site.setHadPlayers(false);
-                data.setDirty();
-            }
-            /* 夺旗成功后战绩冻结, 供旗帜纪念品读取 */
-            if (!site.captured()) {
-                trackStats(level, site, inside, data);
-            }
-            /* 兵力只统计一次, 补兵, 夺旗与右上角读数共用, 避免同一 tick 反复扫描实体 */
-            int count = RuinTerritory.countMobs(level, site);
-            RuinStatus.send(inside, percentOf(site, count));
-            if (site.captured()) {
-                continue;
-            }
-            reinforce(level, site, count, now, data);
-            capture(level, site, inside, count, now, data);
+        notifyPresence(level, active, insideBySite);
+        /* 第二遍是有开销的部分: 按轮转预算跑, 倒计时中的遗迹优先 */
+        active.sort((left, right) -> Boolean.compare(right.capturing(), left.capturing()));
+        int processed = 0;
+        for (int index = 0; index < active.size() && processed < MAX_SITES_PER_TICK; index++) {
+            RuinSites.Site site = active.get((cursor + index) % active.size());
+            processed++;
+            maintain(level, site, insideBySite.getOrDefault(site.origin(), List.of()), playerInSomeSite, now, data);
         }
+        cursor = (cursor + processed) % active.size();
+    }
+
+    /* 单座遗迹的有开销维护: 补旗, 护旗, 统计, 兵力, 补兵与夺旗 */
+    private static void maintain(ServerLevel level, RuinSites.Site site, List<ServerPlayer> inside,
+                                 boolean playerInSomeSite, long now, RuinSites data) {
+        /* 老存档的遗迹没有旗帜: 玩家靠近时补放一次, 失败也不再重试 */
+        if (site.banner() == null && !site.bannerRepaired()) {
+            int height = 8;
+            RuinSchematic schematic = site.schematic().isEmpty() ? null : SchematicCatalog.load(site.schematic());
+            if (schematic != null) {
+                height = schematic.height();
+            }
+            site.setBannerRepaired(true);
+            RuinBanner.place(level, site, site.origin(), site.baseY(), height, level.getRandom());
+            data.setDirty();
+            if (site.banner() == null) {
+                return;
+            }
+        }
+        /* 夺旗前旗帜不可破坏, 任何非正常途径抹掉都在这里还原 */
+        RuinBanner.restore(level, site);
+        /* 玩家已经转到另一座遗迹时, 这座遗迹的旧战绩立即作废 */
+        if (inside.isEmpty() && site.hadPlayers() && playerInSomeSite) {
+            site.clearStats();
+            site.setHadPlayers(false);
+            data.setDirty();
+        }
+        /* 夺旗成功后战绩冻结, 供旗帜纪念品读取 */
+        if (!site.captured()) {
+            trackStats(level, site, inside, data);
+        }
+        /* 兵力只统计一次, 补兵, 夺旗与右上角读数共用, 避免同一 tick 反复扫描实体 */
+        int count = RuinTerritory.countMobs(level, site);
+        int percent = percentOf(site, count);
+        /* 读数与人数都没变就不重发, 避免每二十 tick 一条包 */
+        if (percent != site.statusPercent() || inside.size() != site.statusInside()) {
+            site.setStatus(percent, inside.size());
+            RuinStatus.send(inside, percent);
+        }
+        /* 物资箱内容按需补填: 只碰已经加载的区块, 全部填满后不再重算 */
+        if (!site.suppliesPlaced() && RuinLoot.fillSiteSupplies(level, site)) {
+            site.setSuppliesPlaced(true);
+            data.setDirty();
+        }
+        if (site.captured()) {
+            return;
+        }
+        reinforce(level, site, count, now, data);
+        capture(level, site, inside, count, now, data);
     }
 
     /* 玩家是否在遗迹附近, 用于决定这座遗迹要不要跑调度 */
@@ -171,25 +223,7 @@ public final class RuinGarrison {
         PRESENCE.remove(event.getEntity().getUUID());
     }
 
-    /* 建筑落地后初始化: 领地半径, 四个随机参数与旗帜 */
-    public static void onPasted(ServerLevel level, RuinSites.Site site, RuinSites data,
-                                int width, int height, int depth, BlockPos min, int baseY) {
-        RandomSource random = level.getRandom();
-        site.setRadius(RuinTerritory.radiusFor(width, depth));
-        /* 基数在生成时从配置区间里取一个值, 之后这座遗迹一直沿用它 */
-        int[] baseRange = ServerConfig.ruinGarrisonBaseRange();
-        site.setGarrisonBase(baseRange[0] + random.nextInt(baseRange[1] - baseRange[0] + 1));
-        site.setReinforce(percentIn(ServerConfig.ruinReinforcePercentMin(), ServerConfig.ruinReinforcePercentMax(), random),
-                randomIn(ServerConfig.ruinReinforceIntervalMin(), ServerConfig.ruinReinforceIntervalMax(), random));
-        site.setCapture(percentIn(ServerConfig.ruinCapturePercentMin(), ServerConfig.ruinCapturePercentMax(), random),
-                randomIn(ServerConfig.ruinCaptureTimeMin(), ServerConfig.ruinCaptureTimeMax(), random));
-        BlockPos center = new BlockPos(min.getX() + width / 2, baseY, min.getZ() + depth / 2);
-        RuinBanner.place(level, site, center, baseY, height, random);
-        site.setPasted(true);
-        site.setNextReinforceTick(level.getGameTime() + CHECK_INTERVAL);
-        data.setDirty();
-    }
-
+    /* 建筑落地后的初始化搬到 RuinSites.materialize: 站点由发现任务物化, 不再由区块加载事件驱动 */
     private static void reinforce(ServerLevel level, RuinSites.Site site, int count, long now, RuinSites data) {
         int base = baseOf(site);
         if (count >= base * site.reinforcePercent()) {
@@ -469,6 +503,8 @@ public final class RuinGarrison {
     /* 服务端停止时清空在线状态, 避免切换存档后残留 */
     public static void clearPresence() {
         PRESENCE.clear();
+        cursor = 0;
+        stopping = false;
     }
 
     private static void tell(ServerPlayer player, String key, Object... args) {
@@ -536,15 +572,4 @@ public final class RuinGarrison {
         }
     }
 
-    private static float percentIn(int min, int max, RandomSource random) {
-        int low = Math.max(1, Math.min(min, max));
-        int high = Math.max(low, Math.max(min, max));
-        return (low + random.nextInt(high - low + 1)) / 100.0F;
-    }
-
-    private static int randomIn(int min, int max, RandomSource random) {
-        int low = Math.min(min, max);
-        int high = Math.max(min, max);
-        return low + random.nextInt(high - low + 1);
-    }
 }

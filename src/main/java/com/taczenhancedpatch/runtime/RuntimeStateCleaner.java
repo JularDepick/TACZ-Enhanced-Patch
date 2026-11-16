@@ -22,8 +22,7 @@ public final class RuntimeStateCleaner {
 
     @SubscribeEvent
     public static void onServerStopping(ServerStoppingEvent event) {
-        RuinSites.clearPending();
-        com.taczenhancedpatch.world.structure.RuinSiteBinder.clear();
+        com.taczenhancedpatch.world.structure.RuinSiteDiscovery.clear();
         RuinGarrison.clearPresence();
         RuinExperience.clearPending();
         TankCrew.clearAll();

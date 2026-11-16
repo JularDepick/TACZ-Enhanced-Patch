@@ -18,8 +18,10 @@ import net.minecraft.world.level.storage.LevelResource;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -66,6 +68,8 @@ public final class RuinSiteIndex {
     private final RandomSpreadStructurePlacement placement;
     private final Map<Long, Cell> cells = new HashMap<>();
     private boolean dirty;
+    /* 异步写是否在飞: 在飞时跳过新一轮快照, 写线程不会积压 */
+    private boolean writing;
 
     private RuinSiteIndex(long seed, RandomSpreadStructurePlacement placement) {
         this.seed = seed;
@@ -121,6 +125,10 @@ public final class RuinSiteIndex {
         if (!dirty) {
             return;
         }
+        /* 上一次异步写还没跑完: 保留 dirty, 下一轮再拍快照, 避免整表副本堆在写线程队列里 */
+        if (!sync && writing) {
+            return;
+        }
         Path path = file(level);
         /* 先在当前线程拍一份快照, 之后表的改动不会影响这次落盘 */
         CompoundTag tag = write();
@@ -131,7 +139,14 @@ public final class RuinSiteIndex {
                 if (parent != null) {
                     Files.createDirectories(parent);
                 }
-                NbtIo.writeCompressed(tag, path.toFile());
+                /* 先写临时文件再原子替换: 写到一半崩溃不会留下半个 NBT */
+                Path temp = path.resolveSibling(path.getFileName() + ".tmp");
+                NbtIo.writeCompressed(tag, temp.toFile());
+                try {
+                    Files.move(temp, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+                } catch (AtomicMoveNotSupportedException | UnsupportedOperationException exception) {
+                    Files.move(temp, path, StandardCopyOption.REPLACE_EXISTING);
+                }
             } catch (IOException | RuntimeException exception) {
                 TACZEnhancedPatch.LOGGER.warn("[ruin] failed to save site index", exception);
             }
@@ -139,7 +154,14 @@ public final class RuinSiteIndex {
         if (sync) {
             job.run();
         } else {
-            WRITER.execute(job);
+            writing = true;
+            WRITER.execute(() -> {
+                try {
+                    job.run();
+                } finally {
+                    writing = false;
+                }
+            });
         }
     }
 
@@ -178,24 +200,33 @@ public final class RuinSiteIndex {
      * 判定一格。
      * 只查生成期与地形有关的条件, 与蓝图有关的条件等区块真正生成后再回填,
      * 因此预测结果只会多指, 不会漏指, 多指的部分由生成后的状态纠正。
+     * 返回假表示本 tick 预算在格内耗尽, 调用方需要把这一格重新排队。
      */
-    public void evaluate(ServerLevel level, ChunkGenerator generator, RandomState randomState,
-                         int cellX, int cellZ, RuinStructure.SampleCounter counter) {
+    public boolean evaluate(ServerLevel level, ChunkGenerator generator, RandomState randomState,
+                            int cellX, int cellZ, RuinStructure.SampleCounter counter) {
         long key = cellKey(cellX, cellZ);
         if (cells.containsKey(key)) {
-            return;
+            return true;
         }
         ChunkPos chunk = candidate(cellX, cellZ);
         int x = chunk.getMiddleBlockX();
         int z = chunk.getMiddleBlockZ();
         counter.add();
         int surface = RuinStructure.surfaceAt(generator, level, randomState, x, z);
-        if (surface <= generator.getSeaLevel()
-                || !RuinStructure.flatEnough(generator, level, randomState, x, surface, z, counter)) {
+        if (surface <= generator.getSeaLevel()) {
             mark(cellX, cellZ, State.NO_CANDIDATE, surface, "");
-            return;
+            return true;
+        }
+        int flat = RuinStructure.flatState(generator, level, randomState, x, surface, z, counter);
+        if (flat == RuinStructure.FLAT_ABORTED) {
+            return false;
+        }
+        if (flat == RuinStructure.FLAT_REJECTED) {
+            mark(cellX, cellZ, State.NO_CANDIDATE, surface, "");
+            return true;
         }
         mark(cellX, cellZ, State.PREDICTED, surface, "");
+        return true;
     }
 
     /* 区块生成完了但没有遗迹 */

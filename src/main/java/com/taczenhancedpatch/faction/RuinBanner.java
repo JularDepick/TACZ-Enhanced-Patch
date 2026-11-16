@@ -80,19 +80,15 @@ public final class RuinBanner {
         }
         DyeColor color = DyeColor.byId(random.nextInt(BANNERS.length));
         BlockState state = BANNERS[color.getId()].defaultBlockState();
-        level.setBlock(spot, state, 3);
-        site.setBanner(spot, color.getSerializedName());
+        /* 只写本方块并同步客户端, 不带邻居更新: 邻居可能落在未加载区块上, 带更新会把它同步读进来 */
+        level.setBlock(spot, state, 2);
+        RuinSites.bindBanner(level, site, spot, color.getSerializedName());
         return true;
     }
 
     @Nullable
     public static RuinSites.Site siteAt(ServerLevel level, BlockPos pos) {
-        for (RuinSites.Site site : RuinSites.get(level).sites()) {
-            if (pos.equals(site.banner())) {
-                return site;
-            }
-        }
-        return null;
+        return RuinSites.siteAt(level, pos);
     }
 
     @SubscribeEvent
@@ -164,8 +160,13 @@ public final class RuinBanner {
         if (level.getBlockState(banner).getBlock() == blockFor(site.bannerColor())) {
             return;
         }
-        level.setBlock(banner, blockFor(site.bannerColor()).defaultBlockState(), 3);
+        level.setBlock(banner, blockFor(site.bannerColor()).defaultBlockState(), 2);
         TACZEnhancedPatch.LOGGER.warn("[ruin] banner restored at {}", banner);
+    }
+
+    /* 颜色到旗帜方块: 世界生成期按蓝图与种子放旗时使用 */
+    public static Block blockOf(DyeColor color) {
+        return BANNERS[color.getId()];
     }
 
     /* 颜色名到旗帜方块的映射, 记录里存的是原版染料序列名 */

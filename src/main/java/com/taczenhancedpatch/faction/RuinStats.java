@@ -1,5 +1,6 @@
 package com.taczenhancedpatch.faction;
 
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -15,9 +16,12 @@ import java.util.UUID;
  * 遗迹战斗统计。
  * 从第一名玩家进入领地时创建并做一次快照, 之后累计击杀与伤害;
  * 领地内没有玩家超过配置的空闲时间后整体清空, 夺旗成功时冻结为纪念品数据。
+ * 落盘只存武器 id 与价值, 不再持久化整件物品: 带 NBT 的枪械每次击杀都写一遍会把存档写入拖成秒级。
  */
 public final class RuinStats {
-    /* 一次击杀记录: 击杀者, 该生物原本携带的武器与剩余弹药 */
+    /* 击杀记录上限: 超出后丢弃最早的一条, 避免长时间战斗把统计无限撑大 */
+    private static final int MAX_KILLS = 256;
+    /* 一次击杀记录: 击杀者, 该生物原本携带的武器与剩余弹药; weapon 只在本次会话内有效 */
     public record Kill(UUID player, String name, int weaponValue, ItemStack weapon, Map<String, Integer> ammo) {
     }
 
@@ -36,6 +40,9 @@ public final class RuinStats {
 
     public void addKill(Kill kill) {
         kills.add(kill);
+        while (kills.size() > MAX_KILLS) {
+            kills.remove(0);
+        }
         names.putIfAbsent(kill.player(), kill.name());
     }
 
@@ -107,9 +114,8 @@ public final class RuinStats {
             entry.putUUID("player", kill.player());
             entry.putString("name", kill.name());
             entry.putInt("weaponValue", kill.weaponValue());
-            if (!kill.weapon().isEmpty()) {
-                entry.put("weapon", kill.weapon().save(new CompoundTag()));
-            }
+            /* 只存 id 与价值: 整件物品的 NBT 体积随附魔与配件膨胀, 不适合每次击杀都落盘 */
+            entry.putString("weaponId", weaponId(kill.weapon()));
             entry.put("ammo", ammoTag(kill.ammo()));
             killList.add(entry);
         }
@@ -126,20 +132,27 @@ public final class RuinStats {
         return tag;
     }
 
+    /*
+     * 读盘。
+     * 新格式只有 weaponId, 老格式可能带着整件物品的 NBT;
+     * 老格式一律只取其中的 id, 不再把物品反序列化出来, 因此不会因为上游物品数据损坏而整档读不出来。
+     */
     public static RuinStats load(CompoundTag tag) {
         RuinStats stats = new RuinStats();
         stats.snapshotWeaponValue = tag.getInt("snapshotWeaponValue");
         stats.idleTicks = tag.getInt("idleTicks");
         readAmmo(tag.getList("snapshotAmmo", Tag.TAG_COMPOUND), stats.snapshotAmmo);
         ListTag killList = tag.getList("kills", Tag.TAG_COMPOUND);
-        for (int i = 0; i < killList.size(); i++) {
+        for (int i = 0; i < killList.size() && stats.kills.size() < MAX_KILLS; i++) {
             CompoundTag entry = killList.getCompound(i);
             Map<String, Integer> ammo = new LinkedHashMap<>();
             readAmmo(entry.getList("ammo", Tag.TAG_COMPOUND), ammo);
-            ItemStack weapon = entry.contains("weapon", Tag.TAG_COMPOUND)
-                    ? ItemStack.of(entry.getCompound("weapon")) : ItemStack.EMPTY;
+            String id = entry.getString("weaponId");
+            if (id.isEmpty() && entry.contains("weapon", Tag.TAG_COMPOUND)) {
+                id = entry.getCompound("weapon").getString("id");
+            }
             stats.kills.add(new Kill(entry.getUUID("player"), entry.getString("name"),
-                    entry.getInt("weaponValue"), weapon, ammo));
+                    entry.getInt("weaponValue"), ItemStack.EMPTY, ammo));
             stats.names.putIfAbsent(entry.getUUID("player"), entry.getString("name"));
         }
         ListTag damageList = tag.getList("damage", Tag.TAG_COMPOUND);
@@ -149,6 +162,14 @@ public final class RuinStats {
             stats.names.putIfAbsent(entry.getUUID("player"), entry.getString("name"));
         }
         return stats;
+    }
+
+    /* 物品注册名, 空物品返回空串; 只在落盘时算一次 */
+    private static String weaponId(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return "";
+        }
+        return BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
     }
 
     private static CompoundTag ammoTag(Map<String, Integer> ammo) {

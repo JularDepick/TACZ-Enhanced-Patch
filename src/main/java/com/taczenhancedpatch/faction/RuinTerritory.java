@@ -28,7 +28,7 @@ public final class RuinTerritory {
     /* 领地半径的余量, 下限与上限 */
     private static final double RADIUS_MARGIN = 16.0D;
     private static final int RADIUS_MIN = 48;
-    private static final int RADIUS_MAX = 160;
+    public static final int RADIUS_MAX = 160;
 
     private RuinTerritory() {
     }

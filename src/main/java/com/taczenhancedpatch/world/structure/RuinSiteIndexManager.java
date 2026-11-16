@@ -22,7 +22,6 @@ import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureSet;
 import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement;
 import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.level.ChunkEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -50,10 +49,18 @@ import java.util.function.BiConsumer;
 public final class RuinSiteIndexManager {
     /* 指南针一次查询最多扫多少格环, 约一万三千格半径 */
     public static final int QUERY_RADIUS = 24;
-    /* 区块加载时向外预热的格数, 每边 2 格 */
-    private static final int EXPAND_RADIUS = 2;
-    /* 每 tick 允许的地表采样次数, 一格最多 82 次, 按需调整 */
-    private static final int SAMPLE_BUDGET_PER_TICK = 256;
+    /* 以玩家所在格为中心向外预热的格数, 每边 1 格 */
+    private static final int EXPAND_RADIUS = 1;
+    /*
+     * 每 tick 的索引预算。
+     * 以时间为准, 采样次数只作兜底上限: 一格最多 82 次整列噪声采样, 只按次数记账时一次展开就能吃掉好几个 tick。
+     */
+    private static final long BUDGET_NANOS = 2_000_000L;
+    private static final int SAMPLE_CAP_PER_TICK = 4096;
+    /* 每 tick 最多检查几项建筑是否已经铺齐 */
+    private static final int COMPLETENESS_PER_TICK = 4;
+    /* 补齐检查的最大重试次数, 超过后不再追, 索引停在已生成但未铺齐 */
+    private static final int COMPLETENESS_ATTEMPTS = 60;
     private static final int SAVE_INTERVAL_TICKS = 1200;
     private static final String KEY = "item.tacz_enhanced_patch.ruin_compass";
     private static final ResourceKey<Structure> RUIN_KEY =
@@ -62,9 +69,16 @@ public final class RuinSiteIndexManager {
     private static final Map<ResourceKey<Level>, RuinSiteIndex> INDEXES = new HashMap<>();
     private static final Map<ResourceKey<Level>, Deque<Long>> QUEUES = new HashMap<>();
     private static final Map<ResourceKey<Level>, Set<Long>> QUEUED = new HashMap<>();
-    private static final Map<ResourceKey<Level>, List<Completeness>> PENDING = new HashMap<>();
+    private static final Map<ResourceKey<Level>, Deque<Completeness>> PENDING = new HashMap<>();
+    private static final Map<ResourceKey<Level>, Set<Long>> PENDING_CELLS = new HashMap<>();
+    private static final Map<ResourceKey<Level>, PlacementEntry> PLACEMENTS = new HashMap<>();
     private static final Map<UUID, Job> JOBS = new HashMap<>();
     private static int ticks;
+    private static boolean stopping;
+
+    /* 维度缓存: 结构集列表换了实例说明数据包重载过, 缓存的选址参数随之失效 */
+    private record PlacementEntry(List<Holder<StructureSet>> sets, RandomSpreadStructurePlacement placement) {
+    }
 
     private RuinSiteIndexManager() {
     }
@@ -93,25 +107,49 @@ public final class RuinSiteIndexManager {
                 .withStyle(ChatFormatting.GRAY), true);
     }
 
-    /* 当前维度真正生效的选址参数, 取不到说明这个维度不会生成遗迹 */
+    /*
+     * 当前维度真正生效的选址参数, 取不到说明这个维度不会生成遗迹。
+     * 结果按维度缓存: 结构集列表换成新实例时缓存失效, 因此数据包重载后仍取到新的参数。
+     */
     @Nullable
     public static RandomSpreadStructurePlacement placement(ServerLevel level) {
-        for (Holder<StructureSet> holder : level.getChunkSource().getGeneratorState().possibleStructureSets()) {
+        List<Holder<StructureSet>> sets = level.getChunkSource().getGeneratorState().possibleStructureSets();
+        PlacementEntry cached = PLACEMENTS.get(level.dimension());
+        if (cached != null && cached.sets() == sets) {
+            return cached.placement();
+        }
+        for (Holder<StructureSet> holder : sets) {
             StructureSet set = holder.value();
             if (!(set.placement() instanceof RandomSpreadStructurePlacement spread)) {
                 continue;
             }
             for (StructureSet.StructureSelectionEntry entry : set.structures()) {
                 if (entry.structure().is(RUIN_KEY)) {
+                    PLACEMENTS.put(level.dimension(), new PlacementEntry(sets, spread));
                     return spread;
                 }
             }
         }
+        PLACEMENTS.remove(level.dimension());
         return null;
     }
 
-    /* 区块加载后预热周围的格, 并顺带补齐正在生成的遗迹 */
-    public static void onChunkLoaded(ServerLevel level, ChunkPos pos) {
+    /* 供发现任务使用: 当前维度的索引, 取不到说明这个维度不会生成遗迹 */
+    @Nullable
+    public static RuinSiteIndex indexFor(ServerLevel level) {
+        RandomSpreadStructurePlacement placement = placement(level);
+        return placement == null ? null : index(level, placement);
+    }
+
+    /* 开档时把各维度的索引读进来: 读盘只发生在这里, 不落在区块加载或存盘路径上 */
+    public static void preload(MinecraftServer server) {
+        for (ServerLevel level : server.getAllLevels()) {
+            indexFor(level);
+        }
+    }
+
+    /* 以玩家所在格为中心向外预热若干格, 与查询任务共用每 tick 预算 */
+    public static void enqueueCells(ServerLevel level, int cellX, int cellZ, int radius) {
         if (!ServerConfig.ruinsEnabled()) {
             return;
         }
@@ -120,14 +158,11 @@ public final class RuinSiteIndexManager {
             return;
         }
         RuinSiteIndex index = index(level, placement);
-        int cellX = index.cellOf(pos.getMinBlockX());
-        int cellZ = index.cellOf(pos.getMinBlockZ());
-        for (int dx = -EXPAND_RADIUS; dx <= EXPAND_RADIUS; dx++) {
-            for (int dz = -EXPAND_RADIUS; dz <= EXPAND_RADIUS; dz++) {
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dz = -radius; dz <= radius; dz++) {
                 enqueue(level.dimension(), index.cellKey(cellX + dx, cellZ + dz));
             }
         }
-        checkCompleteness(level);
     }
 
     /* 候选区块生成完了却没有遗迹, 把预测纠正为没有 */
@@ -160,47 +195,38 @@ public final class RuinSiteIndexManager {
         int cellZ = index.cellOf(center.getZ());
         index.markBound(cellX, cellZ, center.getY(), name);
         /* 同一座遗迹的每个区块都会调到这里, 按格去重, 否则待检查列表会随区块数线性膨胀 */
-        List<Completeness> pending = PENDING.computeIfAbsent(level.dimension(), key -> new ArrayList<>());
-        for (Completeness item : pending) {
-            if (item.cellX() == cellX && item.cellZ() == cellZ) {
-                return;
-            }
+        Set<Long> queued = PENDING_CELLS.computeIfAbsent(level.dimension(), key -> new HashSet<>());
+        if (!queued.add(index.cellKey(cellX, cellZ))) {
+            return;
         }
-        pending.add(new Completeness(cellX, cellZ, box));
-        checkCompleteness(level);
+        PENDING.computeIfAbsent(level.dimension(), key -> new ArrayDeque<>())
+                .add(new Completeness(cellX, cellZ, box));
     }
 
     @SubscribeEvent
     public static void onServerTick(TickEvent.ServerTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) {
+        if (event.phase != TickEvent.Phase.END || stopping) {
             return;
         }
         ticks++;
         MinecraftServer server = event.getServer();
-        /* 首个 tick 把各维度的索引读进来: 读盘放在这里, 不落在区块加载回调里 */
-        if (ticks == 1) {
-            for (ServerLevel level : server.getAllLevels()) {
-                RandomSpreadStructurePlacement first = placement(level);
-                if (first != null) {
-                    index(level, first);
-                }
-            }
-        }
+        /* 索引的读盘由 RuinSiteDiscovery 在开档时完成, 这里不再承担预热 */
         if (!JOBS.isEmpty() || !QUEUES.isEmpty()) {
-            RuinStructure.SampleCounter counter = new RuinStructure.SampleCounter();
+            RuinStructure.SampleCounter counter = new RuinStructure.SampleCounter(BUDGET_NANOS);
             for (Job job : List.copyOf(JOBS.values())) {
-                if (counter.value() >= SAMPLE_BUDGET_PER_TICK) {
+                if (counter.expired()) {
                     break;
                 }
                 stepJob(server, job, counter);
             }
             for (ResourceKey<Level> dimension : List.copyOf(QUEUES.keySet())) {
-                if (counter.value() >= SAMPLE_BUDGET_PER_TICK) {
+                if (counter.expired()) {
                     break;
                 }
                 drainQueue(server, dimension, counter);
             }
         }
+        drainCompleteness(server);
         if (ticks % SAVE_INTERVAL_TICKS == 0) {
             saveAll(server);
         }
@@ -208,6 +234,7 @@ public final class RuinSiteIndexManager {
 
     @SubscribeEvent
     public static void onServerStopping(ServerStoppingEvent event) {
+        stopping = true;
         /* 停止时同步落盘, 后台写线程可能来不及跑完 */
         for (Map.Entry<ResourceKey<Level>, RuinSiteIndex> entry : INDEXES.entrySet()) {
             ServerLevel level = event.getServer().getLevel(entry.getKey());
@@ -223,8 +250,11 @@ public final class RuinSiteIndexManager {
         QUEUES.clear();
         QUEUED.clear();
         PENDING.clear();
+        PENDING_CELLS.clear();
+        PLACEMENTS.clear();
         JOBS.clear();
         ticks = 0;
+        stopping = false;
     }
 
     /* 已生成的遗迹靠区块加载回写, 这里只在需要时逐个维度落盘 */
@@ -272,7 +302,7 @@ public final class RuinSiteIndexManager {
         ChunkGenerator generator = level.getChunkSource().getGenerator();
         RandomState randomState = level.getChunkSource().randomState();
         Set<Long> queued = QUEUED.get(dimension);
-        while (counter.value() < SAMPLE_BUDGET_PER_TICK) {
+        while (!counter.expired() && counter.value() < SAMPLE_CAP_PER_TICK) {
             Long key = queue.poll();
             if (key == null) {
                 break;
@@ -280,7 +310,14 @@ public final class RuinSiteIndexManager {
             if (queued != null) {
                 queued.remove(key);
             }
-            index.evaluate(level, generator, randomState, (int) (key >> 32), key.intValue(), counter);
+            if (!index.evaluate(level, generator, randomState, (int) (key >> 32), key.intValue(), counter)) {
+                /* 预算在格内耗尽: 这一格放回队首, 下一 tick 接着算 */
+                queue.addFirst(key);
+                if (queued != null) {
+                    queued.add(key);
+                }
+                break;
+            }
         }
     }
 
@@ -302,7 +339,7 @@ public final class RuinSiteIndexManager {
         RandomState randomState = level.getChunkSource().randomState();
         int cellX = index.cellOf(job.origin.getX());
         int cellZ = index.cellOf(job.origin.getZ());
-        while (counter.value() < SAMPLE_BUDGET_PER_TICK) {
+        while (!counter.expired() && counter.value() < SAMPLE_CAP_PER_TICK) {
             if (job.ring > QUERY_RADIUS) {
                 notice(player, "none");
                 JOBS.remove(job.player);
@@ -321,30 +358,50 @@ public final class RuinSiteIndexManager {
                 continue;
             }
             long key = RuinSiteIndex.ringCell(cellX, cellZ, job.ring, job.cursor);
+            if (!index.evaluate(level, generator, randomState, (int) (key >> 32), (int) key, counter)) {
+                /* 预算在格内耗尽: 游标不动, 下一 tick 从同一格继续 */
+                return;
+            }
             job.cursor++;
-            index.evaluate(level, generator, randomState, (int) (key >> 32), (int) key, counter);
         }
     }
 
-    private static void checkCompleteness(ServerLevel level) {
-        List<Completeness> pending = PENDING.get(level.dimension());
-        if (pending == null || pending.isEmpty()) {
-            return;
-        }
-        RandomSpreadStructurePlacement placement = placement(level);
-        if (placement == null) {
-            pending.clear();
-            return;
-        }
-        RuinSiteIndex index = index(level, placement);
-        Iterator<Completeness> iterator = pending.iterator();
-        while (iterator.hasNext()) {
-            Completeness item = iterator.next();
-            if (!complete(level, item.box())) {
+    /* 补齐检查按 tick 预算推进: 键化去重, 每 tick 只看固定几项, 不再随区块加载全量扫描 */
+    private static void drainCompleteness(MinecraftServer server) {
+        for (ResourceKey<Level> dimension : List.copyOf(PENDING.keySet())) {
+            Deque<Completeness> queue = PENDING.get(dimension);
+            if (queue == null || queue.isEmpty()) {
                 continue;
             }
-            index.markGenerated(item.cellX(), item.cellZ());
-            iterator.remove();
+            ServerLevel level = server.getLevel(dimension);
+            RandomSpreadStructurePlacement placement = level == null ? null : placement(level);
+            if (level == null || placement == null) {
+                queue.clear();
+                Set<Long> stale = PENDING_CELLS.get(dimension);
+                if (stale != null) {
+                    stale.clear();
+                }
+                continue;
+            }
+            RuinSiteIndex index = index(level, placement);
+            Set<Long> queued = PENDING_CELLS.computeIfAbsent(dimension, key -> new HashSet<>());
+            int budget = COMPLETENESS_PER_TICK;
+            while (budget > 0 && !queue.isEmpty()) {
+                Completeness item = queue.poll();
+                budget--;
+                long key = index.cellKey(item.cellX, item.cellZ);
+                if (!complete(level, item.box)) {
+                    item.attempts++;
+                    if (item.attempts < COMPLETENESS_ATTEMPTS) {
+                        queue.add(item);
+                    } else {
+                        queued.remove(key);
+                    }
+                    continue;
+                }
+                index.markGenerated(item.cellX, item.cellZ);
+                queued.remove(key);
+            }
         }
     }
 
@@ -406,6 +463,17 @@ public final class RuinSiteIndexManager {
         }
     }
 
-    private record Completeness(int cellX, int cellZ, BoundingBox box) {
+    /* 一次补齐检查: 重试次数到上限后放弃, 索引停在已生成但未确认铺齐 */
+    private static final class Completeness {
+        private final int cellX;
+        private final int cellZ;
+        private final BoundingBox box;
+        private int attempts;
+
+        private Completeness(int cellX, int cellZ, BoundingBox box) {
+            this.cellX = cellX;
+            this.cellZ = cellZ;
+            this.box = box;
+        }
     }
 }

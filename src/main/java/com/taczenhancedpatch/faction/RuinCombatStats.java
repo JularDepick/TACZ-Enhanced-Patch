@@ -55,6 +55,7 @@ public final class RuinCombatStats {
         }
         site.stats().addKill(new RuinStats.Kill(player.getUUID(), player.getGameProfile().getName(),
                 RuinLoot.weaponValue(loadout == null ? null : loadout.tier()), weapon, ammo));
+        site.markDirty();
         RuinSites.get(level).setDirty();
         if (com.taczenhancedpatch.config.ServerConfig.debugEvents()) {
             TACZEnhancedPatch.LOGGER.info("[ruin] kill by {} at {}", player.getGameProfile().getName(), site.origin());
@@ -78,6 +79,7 @@ public final class RuinCombatStats {
             return;
         }
         site.stats().addDamage(player.getUUID(), player.getGameProfile().getName(), event.getAmount());
+        site.markDirty();
         RuinSites.get(level).setDirty();
     }
 
