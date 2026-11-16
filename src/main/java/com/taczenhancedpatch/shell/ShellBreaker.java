@@ -24,8 +24,8 @@ import java.util.Map;
 
 /*
  * 地形破坏的排队执行。
- * 爆炸瞬间只算出要破坏哪些方块, 按扁球归一化距离分圈, 由内向外每游戏刻推进一圈, 每圈带一声击碎音效;
- * 单圈过大时拆成小批, 避免一个 tick 里改上千个方块。
+ * 爆炸瞬间只算出要破坏哪些方块, 按扁球归一化距离分圈, 由内向外每游戏刻推进四圈, 每圈带一声击碎音效;
+ * 单圈过大时拆成小批, 并按每 tick 的方块数上限收口, 避免一个 tick 里改掉几千个方块。
  */
 @Mod.EventBusSubscriber(modid = TACZEnhancedPatch.MOD_ID)
 public final class ShellBreaker {
@@ -35,7 +35,11 @@ public final class ShellBreaker {
     private static final int MAX_BATCHES = 32;
     /* 破坏半径在杀伤半径之外再加的比例上限, 实际取 [0, r/4] 之间的波浪边缘 */
     private static final double EDGE_WAVE_RATIO = 0.25D;
-    private static final Map<ResourceKey<Level>, Deque<List<Planned>>> JOBS = new HashMap<>();
+    /* 每游戏刻向外推进的圈数 */
+    private static final int RINGS_PER_TICK = 4;
+    /* 每游戏刻改动的方块数上限: 大半径的外圈单圈就有几千格, 仍要有个兜底 */
+    private static final int MAX_BLOCKS_PER_TICK = 4096;
+    private static final Map<ResourceKey<Level>, Deque<Batch>> JOBS = new HashMap<>();
 
     private ShellBreaker() {
     }
@@ -44,8 +48,12 @@ public final class ShellBreaker {
     private record Planned(BlockPos pos, BlockState state) {
     }
 
+    /* 一批方块与它所属的圈号: 圈号决定这一 tick 推进到哪一圈 */
+    private record Batch(int ring, List<Planned> blocks) {
+    }
+
     public static void enqueue(ServerLevel level, Vec3 center, double radius, int power) {
-        Deque<List<Planned>> queue = JOBS.computeIfAbsent(level.dimension(), key -> new ArrayDeque<>());
+        Deque<Batch> queue = JOBS.computeIfAbsent(level.dimension(), key -> new ArrayDeque<>());
         if (queue.size() >= MAX_BATCHES) {
             return;
         }
@@ -85,12 +93,14 @@ public final class ShellBreaker {
             int ring = Mth.clamp((int) Math.ceil(normalized * limit), 0, rings.size() - 1);
             rings.get(ring).add(new Planned(pos.immutable(), state));
         }
-        for (List<Planned> ring : rings) {
+        for (int ringIndex = 0; ringIndex < rings.size(); ringIndex++) {
+            List<Planned> ring = rings.get(ringIndex);
             for (int from = 0; from < ring.size(); from += BATCH_SIZE) {
                 if (queue.size() >= MAX_BATCHES) {
                     return;
                 }
-                queue.add(new ArrayList<>(ring.subList(from, Math.min(ring.size(), from + BATCH_SIZE))));
+                queue.add(new Batch(ringIndex,
+                        new ArrayList<>(ring.subList(from, Math.min(ring.size(), from + BATCH_SIZE)))));
             }
         }
     }
@@ -110,28 +120,43 @@ public final class ShellBreaker {
         if (event.phase != TickEvent.Phase.END || JOBS.isEmpty()) {
             return;
         }
-        for (Map.Entry<ResourceKey<Level>, Deque<List<Planned>>> entry : JOBS.entrySet()) {
+        for (Map.Entry<ResourceKey<Level>, Deque<Batch>> entry : JOBS.entrySet()) {
             ServerLevel level = event.getServer().getLevel(entry.getKey());
-            Deque<List<Planned>> queue = entry.getValue();
+            Deque<Batch> queue = entry.getValue();
             if (level == null) {
                 queue.clear();
                 continue;
             }
-            List<Planned> batch = queue.poll();
-            if (batch == null) {
+            Batch head = queue.peek();
+            if (head == null) {
                 continue;
             }
-            boolean broken = false;
-            for (Planned planned : batch) {
-                BlockState current = level.getBlockState(planned.pos());
-                if (current != planned.state()) {
-                    continue;
+            /* 这一 tick 推进到哪一圈为止 */
+            int limitRing = head.ring() + RINGS_PER_TICK;
+            int blocks = 0;
+            int soundRing = -1;
+            List<BlockPos> soundAt = new ArrayList<>(RINGS_PER_TICK);
+            while (blocks < MAX_BLOCKS_PER_TICK) {
+                Batch batch = queue.peek();
+                if (batch == null || batch.ring() >= limitRing) {
+                    break;
                 }
-                level.removeBlock(planned.pos(), false);
-                broken = true;
+                queue.poll();
+                blocks += batch.blocks().size();
+                for (Planned planned : batch.blocks()) {
+                    BlockState current = level.getBlockState(planned.pos());
+                    if (current != planned.state()) {
+                        continue;
+                    }
+                    level.removeBlock(planned.pos(), false);
+                    if (batch.ring() != soundRing) {
+                        soundRing = batch.ring();
+                        soundAt.add(planned.pos());
+                    }
+                }
             }
-            if (broken) {
-                BlockPos at = batch.get(0).pos();
+            /* 每推进一圈一声击碎音效, 与破坏节奏对齐 */
+            for (BlockPos at : soundAt) {
                 level.playSound(null, at.getX() + 0.5D, at.getY() + 0.5D, at.getZ() + 0.5D,
                         SoundEvents.STONE_BREAK, SoundSource.BLOCKS, 0.8F, 0.8F + level.getRandom().nextFloat() * 0.4F);
             }
