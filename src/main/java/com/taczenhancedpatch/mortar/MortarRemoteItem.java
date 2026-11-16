@@ -74,6 +74,31 @@ public class MortarRemoteItem extends Item {
         return InteractionResultHolder.success(stack);
     }
 
+    /* 玩家背包里是否有绑定这台迫击炮的遥控: 遥控控制包的鉴权依据 */
+    public static boolean isBoundTo(Player player, BlockPos pos, net.minecraft.resources.ResourceKey<Level> dimension) {
+        String dim = dimension.location().toString();
+        for (ItemStack stack : player.getInventory().items) {
+            if (boundTo(stack, pos, dim)) {
+                return true;
+            }
+        }
+        for (ItemStack stack : player.getInventory().offhand) {
+            if (boundTo(stack, pos, dim)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean boundTo(ItemStack stack, BlockPos pos, String dimension) {
+        if (!(stack.getItem() instanceof MortarRemoteItem) || !stack.hasTag()) {
+            return false;
+        }
+        CompoundTag tag = stack.getTag();
+        return tag.contains(TAG + "Pos") && tag.getLong(TAG + "Pos") == pos.asLong()
+                && dimension.equals(tag.getString(TAG + "Dim"));
+    }
+
     /* 遥控绑定的坐标与维度 */
     @Nullable
     public static BlockPos boundPos(ItemStack stack) {

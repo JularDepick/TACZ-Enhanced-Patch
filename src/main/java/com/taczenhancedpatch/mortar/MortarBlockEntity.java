@@ -271,7 +271,10 @@ public class MortarBlockEntity extends BlockEntity {
         Vec3 start = Vec3.atCenterOf(pos).add(0.0D, 1.1D, 0.0D).add(direction.scale(0.6D));
         double speed = this.muzzleSpeed() / 20.0D;
         int fuse = settings.impactFuse() ? -1 : settings.fuseSeconds() * 20;
-        Entity owner = this.controller == null ? null : level.getPlayerByUUID(this.controller);
+        /* 发射者优先取最近一次按下发射的玩家: 遥控时 controller 为空, 只看 operator */
+        Player operator = this.operatorPlayer();
+        Entity owner = operator != null ? operator
+                : (this.controller == null ? null : level.getPlayerByUUID(this.controller));
         MortarShellProjectile shell = new MortarShellProjectile(level, start, direction.scale(speed), settings,
                 owner, fuse);
         level.addFreshEntity(shell);
