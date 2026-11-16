@@ -138,8 +138,12 @@ public final class RuinTerritory {
             double distance = CORE_RADIUS + 2.0D + random.nextDouble() * Math.max(1.0D, radius - CORE_RADIUS - 2.0D);
             int x = banner.getX() + (int) Math.round(Math.cos(angle) * distance);
             int z = banner.getZ() + (int) Math.round(Math.sin(angle) * distance);
-            BlockPos surface = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
-                    new BlockPos(x, banner.getY(), z));
+            BlockPos column = new BlockPos(x, banner.getY(), z);
+            /* 未加载区块不读高度图与方块: 服务端线程上的强制加载会连带生成整片邻域 */
+            if (!level.hasChunkAt(column)) {
+                continue;
+            }
+            BlockPos surface = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, column);
             if (Math.abs(surface.getY() - banner.getY()) > 16) {
                 continue;
             }

@@ -17,6 +17,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraftforge.event.level.ChunkEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -60,7 +61,8 @@ public final class RuinSiteBinder {
             return;
         }
         ChunkPos chunk = event.getChunk().getPos();
-        fillQueuedSupply(level, chunk);
+        /* 区块加载事件给出的永远是完整区块, 这里直接收窄, 后续不再查任何区块 */
+        fillQueuedSupply((LevelChunk) event.getChunk());
         /* 一座高建筑会横跨多个 section, 同一个结构起点只处理一次 */
         Set<StructureStart> starts = new LinkedHashSet<>();
         for (int section = level.getMinSection(); section < level.getMaxSection(); section++) {
@@ -132,8 +134,9 @@ public final class RuinSiteBinder {
         }
         BlockPos min = new BlockPos(box.minX(), box.minY(), box.minZ());
         for (BlockPos spot : RuinLoot.supplySpots(blueprint, min, ruin.seed(), level.getDifficulty())) {
-            if (level.getChunkSource().hasChunk(spot.getX() >> 4, spot.getZ() >> 4)) {
-                RuinLoot.fillSupplyChest(level, spot, level.getRandom(), level.getDifficulty());
+            LevelChunk loaded = RuinLoot.loadedChunk(level, spot);
+            if (loaded != null) {
+                RuinLoot.fillSupplyChest(loaded, spot, level.getRandom(), level.getDifficulty());
             } else {
                 PENDING_SUPPLY.computeIfAbsent(level.dimension(), key -> new ConcurrentHashMap<>())
                         .computeIfAbsent(ChunkPos.asLong(spot.getX() >> 4, spot.getZ() >> 4),
@@ -143,17 +146,19 @@ public final class RuinSiteBinder {
         }
     }
 
-    private static void fillQueuedSupply(ServerLevel level, ChunkPos pos) {
+    /* 刚加载的区块由事件直接给出, 填充时不再做任何区块查询 */
+    private static void fillQueuedSupply(LevelChunk chunk) {
+        ServerLevel level = (ServerLevel) chunk.getLevel();
         Map<Long, Set<BlockPos>> byChunk = PENDING_SUPPLY.get(level.dimension());
         if (byChunk == null) {
             return;
         }
-        Set<BlockPos> spots = byChunk.remove(pos.toLong());
+        Set<BlockPos> spots = byChunk.remove(chunk.getPos().toLong());
         if (spots == null) {
             return;
         }
         for (BlockPos spot : spots) {
-            RuinLoot.fillSupplyChest(level, spot, level.getRandom(), level.getDifficulty());
+            RuinLoot.fillSupplyChest(chunk, spot, level.getRandom(), level.getDifficulty());
         }
     }
 

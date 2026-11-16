@@ -23,6 +23,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.ChestBlock;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunk;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -81,8 +82,13 @@ public final class RuinLoot {
             TACZEnhancedPatch.LOGGER.warn("[ruin] no chest spot at {}", site.origin());
             return;
         }
+        if (!level.hasChunkAt(pos)) {
+            TACZEnhancedPatch.LOGGER.warn("[ruin] chest chunk not loaded at {}", pos);
+            return;
+        }
         level.setBlock(pos, Blocks.CHEST.defaultBlockState().setValue(ChestBlock.FACING, Direction.SOUTH), 3);
-        if (!(level.getBlockEntity(pos) instanceof ChestBlockEntity chest)) {
+        LevelChunk chunk = loadedChunk(level, pos);
+        if (chunk == null || !(chunk.getBlockEntity(pos) instanceof ChestBlockEntity chest)) {
             return;
         }
         List<ItemStack> items = buildLoot(site, random);
@@ -169,9 +175,24 @@ public final class RuinLoot {
         return false;
     }
 
-    /* 箱子已经由世界生成放好, 这里只填空箱, 重复进存档不会重填 */
+    /*
+     * 只取已经加载的区块。
+     * level.getBlockEntity 与 level.getBlockState 都会按需加载区块, 在服务端线程上强制加载会连带生成整片邻域,
+     * 在区块加载事件里更会直接把服务端线程锁死, 所以方块读写一律先过这一道。
+     */
+    @Nullable
+    public static LevelChunk loadedChunk(ServerLevel level, BlockPos pos) {
+        return level.getChunkSource().getChunkNow(pos.getX() >> 4, pos.getZ() >> 4);
+    }
+
+    /* 箱子已经由世界生成放好, 这里只填空箱, 重复进存档不会重填; 区块没加载就跳过 */
     public static void fillSupplyChest(ServerLevel level, BlockPos pos, RandomSource random, Difficulty difficulty) {
-        if (!(level.getBlockEntity(pos) instanceof ChestBlockEntity chest) || !chest.isEmpty()) {
+        fillSupplyChest(loadedChunk(level, pos), pos, random, difficulty);
+    }
+
+    /* 用调用方手里的区块直接取箱子, 不再做任何区块查询 */
+    public static void fillSupplyChest(@Nullable LevelChunk chunk, BlockPos pos, RandomSource random, Difficulty difficulty) {
+        if (chunk == null || !(chunk.getBlockEntity(pos) instanceof ChestBlockEntity chest) || !chest.isEmpty()) {
             return;
         }
         int slot = 0;
@@ -234,6 +255,10 @@ public final class RuinLoot {
                 continue;
             }
             BlockPos base = banner.offset(dx, 0, dz);
+            /* 候选点可能落在未加载区块里: 那里读方块会强制生成, 直接跳过 */
+            if (!level.hasChunkAt(base)) {
+                continue;
+            }
             for (int dy = 6; dy >= -6; dy--) {
                 BlockPos candidate = base.offset(0, dy, 0);
                 if (!level.getBlockState(candidate).isAir() || !level.getBlockState(candidate.above()).isAir()) {
