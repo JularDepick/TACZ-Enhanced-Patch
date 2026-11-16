@@ -19,7 +19,7 @@ import java.util.Locale;
 /*
  * 手雷面板。
  * 靠屏幕右侧显示属性与对应按键, 纵坐标由右上角的占用情况决定, 不与药水效果和遗迹兵力读数重叠;
- * 引信倒计时单独一块, 居中贴在快捷栏上方, 最多并排两颗。
+ * 引信倒计时单独一块, 居中贴在快捷栏上方, 最多并排两颗; 触发式没有倒计时, 不显示。
  * 倒计时从按下蓄力就开始走, 投出后继续, 因此蓄力期间也能看到还剩多少。
  */
 @Mod.EventBusSubscriber(modid = TACZEnhancedPatch.MOD_ID, value = Dist.CLIENT)
@@ -111,10 +111,15 @@ public final class GrenadeHudOverlay {
         }
         List<String> texts = new ArrayList<>();
         for (GrenadeClientHandler.Fuse fuse : fuses) {
-            texts.add(fuse.impact()
-                    ? UiText.plain("grenade.fuse_impact")
-                    : UiText.of("grenade.fuse_countdown",
-                            String.format(Locale.ROOT, "%.1f", fuse.ticks() / 20.0D)).getString());
+            /* 触发式没有倒计时, 不占这一行 */
+            if (fuse.impact()) {
+                continue;
+            }
+            texts.add(UiText.of("grenade.fuse_countdown",
+                    String.format(Locale.ROOT, "%.1f", fuse.ticks() / 20.0D)).getString());
+        }
+        if (texts.isEmpty()) {
+            return;
         }
         int total = FUSE_GAP * (texts.size() - 1);
         for (String text : texts) {
