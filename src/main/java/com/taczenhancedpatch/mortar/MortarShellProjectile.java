@@ -50,7 +50,11 @@ public class MortarShellProjectile extends ShellProjectile {
             this.trail();
             return;
         }
-        double gravity = ServerConfig.mortarGravity() * TICK_SECONDS;
+        /*
+         * 重力配置的单位是 格/秒平方, 而速度按每 tick 积分, 换算到每 tick 的速度增量要乘两次 tick 时长;
+         * 只乘一次会把重力放大二十倍, 实际弹道比面板算的短二十倍, 射程与飞行时间全对不上。
+         */
+        double gravity = ServerConfig.mortarGravity() * TICK_SECONDS * TICK_SECONDS;
         Vec3 velocity = this.getDeltaMovement().add(0.0D, -gravity, 0.0D);
         this.setDeltaMovement(velocity);
         double distance = velocity.length();

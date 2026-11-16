@@ -130,8 +130,8 @@ public final class MortarClientHandler {
             step(window, active, GLFW.GLFW_KEY_A, ACTION_YAW, -ANGLE_STEP);
             step(window, active, GLFW.GLFW_KEY_D, ACTION_YAW, ANGLE_STEP);
         }
-        step(window, active, GLFW.GLFW_KEY_Z, ACTION_CALIBER, -CALIBER_STEP);
-        step(window, active, GLFW.GLFW_KEY_X, ACTION_CALIBER, CALIBER_STEP);
+        step(window, active, GLFW.GLFW_KEY_Z, ACTION_CALIBER, -CALIBER_STEP, false);
+        step(window, active, GLFW.GLFW_KEY_X, ACTION_CALIBER, CALIBER_STEP, false);
         if (firePressed(window, GLFW.GLFW_KEY_R) || firePressed(window, GLFW.GLFW_KEY_SPACE)) {
             PatchNetwork.sendMortarControl(active, ACTION_FIRE, 0.0F);
         }
@@ -164,8 +164,16 @@ public final class MortarClientHandler {
         /* 蹲下要留给退出遥控, 不能一起清零 */
     }
 
-    /* 长按加速: 前十 tick 每四 tick 一步, 之后每两 tick, 二十五 tick 之后每 tick 一步 */
+    /*
+     * 长按加速。
+     * 前十 tick 按原步进每四 tick 发一次, 之后步进本身放大十倍并每两 tick 一次, 二十五 tick 之后放大五十倍且每 tick 一次;
+     * 角度调节走这套倍率, 口径调节只加快发送频率, 避免一次跳几十毫米。
+     */
     private static void step(long window, BlockPos pos, int key, int action, float value) {
+        step(window, pos, key, action, value, true);
+    }
+
+    private static void step(long window, BlockPos pos, int key, int action, float value, boolean accelerateStep) {
         boolean down = InputConstants.isKeyDown(window, key);
         int held = HOLDS.getOrDefault(key, 0);
         if (!down) {
@@ -176,8 +184,16 @@ public final class MortarClientHandler {
         HOLDS.put(key, held);
         int interval = held < 10 ? 4 : (held < 25 ? 2 : 1);
         if (held == 1 || held % interval == 0) {
-            PatchNetwork.sendMortarControl(pos, action, value);
+            PatchNetwork.sendMortarControl(pos, action, accelerateStep ? value * multiplierFor(held) : value);
         }
+    }
+
+    /* 步进倍率: 长按后放大的是每一步的大小, 不只是发得更密 */
+    private static float multiplierFor(int held) {
+        if (held < 10) {
+            return 1.0F;
+        }
+        return held < 25 ? 10.0F : 50.0F;
     }
 
     /* 按住 A/D 时按同样的加速节奏转动玩家朝向, 驾驶视角与炮筒一起转 */
@@ -192,8 +208,9 @@ public final class MortarClientHandler {
         HOLDS.put(key, held);
         int interval = held < 10 ? 4 : (held < 25 ? 2 : 1);
         if (held == 1 || held % interval == 0) {
-            player.setYRot(player.getYRot() + delta);
-            player.yRotO += delta;
+            float scaled = delta * multiplierFor(held);
+            player.setYRot(player.getYRot() + scaled);
+            player.yRotO += scaled;
             player.setYHeadRot(player.getYRot());
         }
     }

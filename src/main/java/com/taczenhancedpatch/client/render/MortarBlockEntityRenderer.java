@@ -29,9 +29,13 @@ public class MortarBlockEntityRenderer implements BlockEntityRenderer<MortarBloc
         BlockRenderDispatcher dispatcher = Minecraft.getInstance().getBlockRenderer();
         /* 基座已经由方块模型渲染, 这里只画会转的炮筒 */
         poseStack.pushPose();
-        /* 枢轴落在中柱顶端, 炮筒从这里起转; 水平角按世界方位换算, 与射向一致 */
+        /*
+         * 枢轴落在中柱顶端, 炮筒从这里起转。
+         * 炮筒模型是一根竖柱, 由俯仰旋转倒向 +Z, 因此水平旋转取负的方位角就与射向一致:
+         * 方位角 0 时射向 +Z, 炮筒也指向 +Z; 不能再叠半圈, 否则正好与射向相反。
+         */
         poseStack.translate(0.5D, 0.4375D, 0.5D);
-        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - entity.yawDeg()));
+        poseStack.mulPose(Axis.YP.rotationDegrees(-entity.yawDeg()));
         poseStack.mulPose(Axis.XP.rotationDegrees(90.0F - entity.pitchDeg()));
         poseStack.translate(-0.5D, -0.4375D, -0.5D);
         dispatcher.renderSingleBlock(MortarRegistry.MORTAR_BARREL.get().defaultBlockState(), poseStack, buffers,

@@ -270,7 +270,15 @@ public class MortarBlockEntity extends BlockEntity {
                 Math.cos(yawRad) * Math.cos(pitchRad)).normalize();
         Vec3 start = Vec3.atCenterOf(pos).add(0.0D, 1.1D, 0.0D).add(direction.scale(0.6D));
         double speed = this.muzzleSpeed() / 20.0D;
-        int fuse = settings.impactFuse() ? -1 : settings.fuseSeconds() * 20;
+        /*
+         * 引信至少要覆盖整段弹道, 否则远射会在半空自行引爆。
+         * 弹道时间与面板同一套公式: 回到出膛高度的水平射程对应的飞行时间, 再加一秒余量。
+         */
+        double gravityPerTick = ServerConfig.mortarGravity() / 400.0D;
+        double vy = speed * Math.sin(pitchRad);
+        int flightTicks = gravityPerTick <= 0.0D ? 0 : (int) Math.ceil(2.0D * vy / gravityPerTick);
+        int fuse = settings.impactFuse() ? -1
+                : Math.max(settings.fuseSeconds() * 20, flightTicks + 20);
         /* 发射者优先取最近一次按下发射的玩家: 遥控时 controller 为空, 只看 operator */
         Player operator = this.operatorPlayer();
         Entity owner = operator != null ? operator
