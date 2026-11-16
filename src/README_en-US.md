@@ -28,7 +28,8 @@ src/main/
 │   │   │   ├── PatchConfigScreen.java    # Config screen (client and server tabs)
 │   │   │   └── ScrollBar.java            # Draggable scroll bar
 │   │   ├── hud/
-│   │   │   ├── HealthBarOverlay.java     # Health bars above entities
+│   │   │   ├── HealthBarOverlay.java     # Health bars above entities (drawn at the end of the level pass)
+│   │   │   ├── HudLayout.java            # Vertical layout of the screen edges (shared right column)
 │   │   │   ├── HeadingRulerOverlay.java  # Heading ruler rendering
 │   │   │   ├── RuinGarrisonOverlay.java  # Top right garrison readout
 │   │   │   ├── RuinNoticeOverlay.java    # Top centred ruin notice
@@ -42,8 +43,8 @@ src/main/
 │   │       ├── PhantomEliteRenderer.java # Phantom Elite renderer with the shared camouflage texture
 │   │       ├── TankModel.java            # Tank model
 │   │       ├── TankRenderer.java         # Tank elite renderer
-│   │       ├── GrenadeRenderer.java      # Grenade projectile renderer
-│   │       └── MortarBlockEntityRenderer.java # Mortar base and barrel renderer
+│   │       ├── GrenadeRenderer.java      # Projectile renderer for grenades and mortar shells
+│   │       └── MortarBlockEntityRenderer.java # Mortar barrel renderer (the base uses the block model)
 │   ├── config/
 │   │   ├── ClientConfig.java             # Client configuration
 │   │   ├── ConfigEvents.java             # Configuration lifecycle and saving
@@ -172,12 +173,14 @@ src/main/
 │       ├── schematic/
 │       │   ├── LegacyBlocks.java         # Legacy block id mapping (external files only)
 │       │   ├── RuinSchematic.java        # Building data shape
-│       │   ├── SchematicCatalog.java     # Building catalog scan and cache
+│       │   ├── SchematicChunkIndex.java  # Compact per-chunk index of non-air cells
+│       │   ├── SchematicCatalog.java     # Building catalog scan, cache and on-demand load
 │       │   ├── SchematicCatalogRefreshHandler.java # Rescans blueprints on world load
 │       │   └── SchematicReader.java      # .schem parsing
 │       └── structure/
 │           ├── RuinPiece.java            # Ruin piece with per-chunk clipped writes
-│           ├── RuinSiteBinder.java       # Binds sites and fills chunks after load
+│           ├── RuinBannerPlan.java       # Banner position and color derived from the blueprint
+│           ├── RuinSiteDiscovery.java    # Finds and materializes sites as players approach
 │           ├── RuinSiteIndex.java        # Site index with per-cell persistence
 │           ├── RuinSiteIndexManager.java # Index expansion and compass queries
 │           ├── RuinStructure.java        # Ruin structure placement and generation entry

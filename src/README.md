@@ -28,8 +28,9 @@ src/main/
 │   │   │   ├── PatchConfigScreen.java    # 配置页(客户端与服务端双页签)
 │   │   │   └── ScrollBar.java            # 可拖动滚动条
 │   │   ├── hud/
-│   │   │   ├── HealthBarOverlay.java     # 生物血量显示
+│   │   │   ├── HealthBarOverlay.java     # 生物血量显示(关卡末阶段绘制)
 │   │   │   ├── HeadingRulerOverlay.java  # 方向标尺绘制
+│   │   │   ├── HudLayout.java            # 屏幕边缘纵向排布(右上角共用)
 │   │   │   ├── RuinGarrisonOverlay.java  # 右上角遗迹守军读数
 │   │   │   ├── RuinNoticeOverlay.java    # 顶部居中的遗迹提示
 │   │   │   ├── GrenadeHudOverlay.java    # 炮弹面板与引信倒计时
@@ -42,8 +43,8 @@ src/main/
 │   │       ├── PhantomEliteRenderer.java # 幻机渲染(同色系迷彩贴图)
 │   │       ├── TankModel.java            # 坦克模型
 │   │       ├── TankRenderer.java         # 坦克精英怪渲染
-│   │       ├── GrenadeRenderer.java      # 手雷投掷物渲染
-│   │       └── MortarBlockEntityRenderer.java # 迫击炮基座与炮筒渲染
+│   │       ├── GrenadeRenderer.java      # 手雷与迫击炮炮弹的投射物渲染
+│   │       └── MortarBlockEntityRenderer.java # 迫击炮炮筒渲染(基座走方块模型)
 │   ├── config/
 │   │   ├── ClientConfig.java             # 客户端配置
 │   │   ├── ConfigEvents.java             # 配置生命周期与保存
@@ -171,13 +172,15 @@ src/main/
 │   └── world/
 │       ├── schematic/
 │       │   ├── LegacyBlocks.java         # 旧版方块编号映射(只服务外部旧文件)
-│       │   ├── RuinSchematic.java        # 建筑数据形态
-│       │   ├── SchematicCatalog.java     # 建筑目录扫描与缓存
+│       │   ├── RuinSchematic.java        # 建筑数据形态与区块索引
+│       │   ├── SchematicChunkIndex.java  # 按局部区块的非空气格紧凑索引
+│       │   ├── SchematicCatalog.java     # 建筑目录扫描, 缓存与按需同步加载
 │       │   ├── SchematicCatalogRefreshHandler.java # 世界加载时重扫蓝图目录
 │       │   └── SchematicReader.java      # .schem 解析
 │       └── structure/
-│           ├── RuinPiece.java            # 遗迹片段与按区块裁剪写入
-│           ├── RuinSiteBinder.java       # 区块加载后接线站点与回写索引
+│           ├── RuinBannerPlan.java       # 只读蓝图算旗帜位置与颜色
+│           ├── RuinPiece.java            # 遗迹片段与按区块索引写入
+│           ├── RuinSiteDiscovery.java    # 玩家靠近时发现并物化站点
 │           ├── RuinSiteIndex.java        # 遗迹选址索引与按格持久化
 │           ├── RuinSiteIndexManager.java # 索引扩展调度与指南针查询
 │           ├── RuinStructure.java        # 遗迹结构选址与生成入口

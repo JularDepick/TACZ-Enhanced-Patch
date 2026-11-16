@@ -58,7 +58,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Building blueprints | The building itself is a WorldEdit .schem file, either the built-in blueprints shipped with the mod or the ones in the `tacz_enhanced_patch_ruins` folder of the world server config directory, one is picked at random per ruin; built-in files must be .schem while the external folder also accepts legacy .schematic |
 | Built with chunks | Ruins are vanilla structures: the structure set picks the site and the blocks are written while chunks generate, so nothing runs on the server tick; parts spanning several chunks appear as those chunks generate |
 | Terrain fitting | The site requires a surface variation of at most two blocks around its center and never generates at or below sea level; sites sit on a 34 by 34 chunk grid with at most one ruin per cell and a minimum of eight chunks between neighbouring cells |
-| Interruption recovery | A chunk is not saved until it finishes generating, so a crash or an early exit simply regenerates it from the seed with the same result; site data is rebuilt from the structure start when the chunk loads |
+| Interruption recovery | A chunk is not saved until it finishes generating, so a crash or an early exit simply regenerates it from the seed with the same result; site data is materialized from the structure start when a player comes near, with every value derived deterministically from the seed |
 | Chests and supply crates | The loot chest is placed at a covered spot inside the building; supply crates are scattered across the floors by chance and hold guns, ammo, armor and food with nothing guaranteed |
 | Banner and factions | A vanilla banner marks the building center and its color is the faction, so same-colored ruins are allied while different colors may ally or turn hostile |
 | Territory and reinforcement | A cylinder centred on the banner height whose height equals its horizontal diameter, with the radius fitted to the building; the garrison is reinforced at a fixed interval until it reaches the threshold |
@@ -67,8 +67,8 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Capture loot | A supply chest appears in the core area, with ammo and weapons converted from the kill tally plus experience for each participant |
 | Reward chest | Always holds a matching armor set and a sword, each piece has a fifty percent chance of strength-scaled enchantments, plus ender pearls, a chance at eyes of ender and bread |
 | Banner souvenir | After a successful capture the banner can be broken and dropped, named after its color and coordinates, and its tooltip records the ruin coordinates plus every participant |
-| Ruin compass | Crafted from an emerald next to a compass; right-click queries the nearest ruin and reports the distance, coordinates, building name and generation state, while the needle keeps pointing at it; sites are indexed from the world seed, so ruins whose chunks do not exist yet are still found, and the index grows as chunks load and queries run |
-| Garrison readout | While inside a ruin the top right of the screen shows the remaining garrison percentage, refreshed every 20 ticks and coloured by how dangerous the number is |
+| Ruin compass | Crafted from an emerald next to a compass; right-click queries the nearest ruin and reports the distance, coordinates, building name and generation state, while the needle keeps pointing at it; sites are indexed from the world seed, so ruins whose chunks do not exist yet are still found, and the index grows as players move and queries run |
+| Garrison readout | While inside a ruin the top right of the screen shows the remaining garrison percentage, refreshed every 20 ticks and coloured by how dangerous the number is; it moves down for potion effects and stacks above the grenade panel |
 | Top notice | After the first five seconds the capture countdown switches to a single centred line at the top, placed below the heading ruler readout and moved up when the ruler is off |
 
 ### Tank elite
@@ -79,7 +79,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Imposing bulk | A 3.4 x 2.4 hitbox with a custom model whose tracks sit on the ground and whose hull and turret stack upwards, immune to fire and fully knockback resistant |
 | Camouflage | The same four camo textures as the grunt, one picked per individual at spawn |
 | Loot | Drops iron, copper and gunpowder; cooldown and cannon range are configurable while health and power follow difficulty presets |
-| Combined unit | Up to four grunts ride on the shoulders, members share a health and armor bonus derived from their total health, and a faction tank revives factionless up to three times |
+| Combined unit | Up to four grunts ride on the hull roof, members share a health and armor bonus derived from their total health, a raised maximum also tops up the current health by the same amount, and a faction tank revives factionless up to three times |
 | Player driving | A factionless tank can be mounted, aimed with the crosshair, driven with WASD and fired with the space bar |
 ### Armed neutral villagers
 
@@ -98,34 +98,34 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 | Single item | One grenade item for the whole mod with a stack size of 64; its six properties live on the stack itself and show in the tooltip |
 | Colors | Sixteen vanilla banner colors plus four camouflage tones, affecting only the item tint and the readouts, cycling with overflow |
 | 3D appearance | The grenade uses a three-dimensional item model and the color only tints the item texture; the projectile is oriented by its flight direction and no longer follows the camera |
-| Charged throw | Hold the right button to charge and release to throw; charging caps at three seconds, the hand pose switches to a bow draw and the field of view narrows with the charge |
+| Charged throw | Hold the right button to charge and release to throw; charging caps at one second, the hand pose switches to a bow draw and the field of view narrows with the charge |
 | Launch speed | Linear in charge between the server configured bounds, four to sixteen blocks per second by default and adjustable to four to sixty-four |
 | Ballistics | Motion is handed to the vanilla projectile logic, so gravity and drag use the game's own values while the position syncs every tick |
 | Sticky | When enabled the grenade stops on its first collision, resting on a block or following a mob or player until the fuse runs out |
 | Adaptive bounce | When sticky is off the bounce follows the block hardness, harder blocks bounce less, and a low normal speed comes to rest |
 | Six properties | Nine fixed keys switch fuse, power, targets, sticky, effects and color while holding it; paired keys stop at the bounds |
-| Fuse | Counted from the moment the right button goes down, either one to ten seconds or impact; an impact fuse detonates on the first block or mob it touches |
+| Fuse | Counted from the moment the right button goes down, either three to ten seconds or impact; an impact fuse detonates on the first block or mob it touches |
 | Explosion | Power zero to sixteen maps to a zero to sixteen block radius and zero to sixty-four points of center damage, falling off linearly with distance; the kill volume is an oblate spheroid whose vertical radius is two thirds of the horizontal one |
 | Armor penetration | Forty percent for grenades and sixty percent for mortar shells, not configurable; the pierced part skips armor points only, so enchantment protection still applies |
 | Knockback | Displacement equals half the horizontal radius, strongest at the center and zero at the rim, independent of the target tier |
-| Block damage | Power decays linearly to half at the edge, and only blocks whose hardness does not exceed the decayed power are destroyed |
-| Knockback | Players and mobs inside the radius are pushed away over a distance matching the radius, and the knockback deals no damage |
-| Targets | Seven combinations: terrain only, players only, mobs only, no terrain, no players, no mobs, all |
-| Panel and countdown | The right side lists grenade, fuse, power, targets, sticky, effects and color; after a throw it shows the remaining fuse of the newest grenade |
+| Block damage | The break radius is the kill radius plus a wave edge of zero to a quarter of it; power decays linearly to half at the edge and only blocks whose hardness does not exceed the decayed power are destroyed |
+| Targets | Eight combinations: no damage, terrain only, players only, mobs only, no terrain, no players, no mobs, all |
+| Panel and countdown | The right side lists grenade, fuse, power, targets, sticky, effects and color; after a throw the two newest fuses are shown side by side above the hotbar |
 | Crafting | Iron ingots in the four corners, gunpowder in a cross, string in the center, four grenades per craft |
 
 ### Mortar
 
 | Mechanic | Description |
 |:---:|:---|
-| Block | One block tall and must rest on a solid block; the base is fixed while the barrel is adjustable, and the whole mortar falls when its support breaks |
-| Angles | Yaw zero to three hundred sixty in the heading ruler convention and pitch zero to ninety; placement snaps yaw to the nearest of eight directions and starts at forty-five |
+| Block | One block tall and must rest on a solid block; the base is a thin plate with a short pillar while the barrel is adjustable, and losing its support drops the whole mortar like an anvil, landing with its state intact |
+| State carried | Yaw, pitch and caliber are stored on the block and on the dropped item, so placing it again keeps the last tuning and the tooltip lists all three |
+| Angles | Yaw is measured in world heading, zero to three hundred sixty, in the same convention as the heading ruler; pitch runs zero to ninety and a fresh mortar starts at forty-five |
 | Loading and firing | Right-click with a mortar shell to load, right-click a loaded mortar to fire one second later, left-click to eject the shell |
 | Armor penetration | Mortar shells pierce sixty percent of armor, sharing the same explosion resolution as grenades |
 | Aiming | Empty hand left-click raises yaw by five degrees, sneaking left-click raises pitch; empty hand right-click enters driving |
-| Driving | Yaw follows the view, W and S adjust pitch, A and D fine tune yaw, Q and E change caliber, R and space fire, sneak exits |
-| Caliber | Sixty to two hundred forty millimetres, mapped linearly to one hundred twenty to four hundred eighty blocks per second |
-| Panel | The left side shows angles, caliber, horizontal range and flight time, next to the shell panel on the right |
+| Driving | Yaw follows the view, A and D turn the player and drag the yaw along, W and S adjust pitch, Z and X change caliber, R and space fire, sneak exits |
+| Caliber | Sixty to two hundred forty millimetres, mapped linearly to sixty to two hundred forty blocks per second |
+| Panel | The left side lists heading, pitch, caliber, range and flight time with their keys, one decimal for fractions, and the heading is shown in world bearing |
 | Remote | Bind or unbind with the remote item, then right-click air to control it; several remotes may bind the same mortar |
 
 ### Phantom Elite
@@ -134,7 +134,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 |:---:|:---|
 | Body | A new flying entity reusing the vanilla phantom model and flight, textured in the same camouflage palette as the grunt and the tank |
 | Camouflage | Four camo textures, one picked per individual at spawn |
-| Patrol | Circles alternately along an inner and an outer ring of the ruin territory, keeping eight to sixteen blocks above the ground |
+| Patrol | Circles alternately along an inner and an outer ring of the ruin territory, keeping eight to sixteen blocks above the ground of the target column; individuals without a ruin circle their home at the same cruise height |
 | Alert | Notices survival players or hostile faction mobs entering the territory, sounds an alarm and reports the target to the rest of the garrison |
 | Throwing | Throws players-only grenades at players and mobs-only grenades at hostile mobs, with no bounce and random charge and fuse |
 | Role | Counts toward the garrison base and is rolled during reinforcement at three grunts to one tank to one phantom |
@@ -159,7 +159,7 @@ A Minecraft mod that tightens combat around TACZ as a standalone patch, turning 
 |:---:|:---|
 | Incoming fire indicator | When hit by a gun, a soft-edged arc on screen points to the source, up to three directions at once, off by default |
 | Heading ruler | A horizontal compass tape flush with the top edge, nine tenths of the screen wide, showing cardinal directions and a bare bearing number, off by default |
-| Health bars | A bar plus current and maximum health above every mob and player, green when healthy and red when low, on by default within 48 blocks |
+| Health bars | A bar plus current and maximum health above every mob and player, green when healthy and red when low, on by default within 48 blocks; drawn at the end of the level pass without depth testing so clouds and other mobs never cover them |
 | Ruler color | The accent color is plain red by default and can be set to any 6-digit hexadecimal RGB value in the client config |
 
 ### Configuration and permissions
