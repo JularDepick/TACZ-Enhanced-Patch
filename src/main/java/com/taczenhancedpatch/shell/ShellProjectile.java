@@ -42,6 +42,9 @@ public abstract class ShellProjectile extends ThrowableProjectile {
     /* 属性打包下发: 客户端渲染与面板都要读同一份, 只靠 NBT 客户端拿不到 */
     private static final EntityDataAccessor<Integer> DATA_SHELL =
             SynchedEntityData.defineId(ShellProjectile.class, EntityDataSerializers.INT);
+    /* 静止状态也要下发: 客户端若不知道服务端已经停下, 会按本地投掷物物理继续下落, 穿进方块里 */
+    private static final EntityDataAccessor<Boolean> DATA_RESTING =
+            SynchedEntityData.defineId(ShellProjectile.class, EntityDataSerializers.BOOLEAN);
 
     protected ShellProjectile(EntityType<? extends ShellProjectile> type, Level level) {
         super(type, level);
@@ -61,6 +64,7 @@ public abstract class ShellProjectile extends ThrowableProjectile {
     @Override
     protected void defineSynchedData() {
         this.getEntityData().define(DATA_SHELL, pack(ShellSettings.DEFAULT));
+        this.getEntityData().define(DATA_RESTING, false);
     }
 
     @Override
@@ -68,6 +72,8 @@ public abstract class ShellProjectile extends ThrowableProjectile {
         super.onSyncedDataUpdated(key);
         if (DATA_SHELL.equals(key)) {
             this.settings = unpack(this.getEntityData().get(DATA_SHELL));
+        } else if (DATA_RESTING.equals(key)) {
+            this.resting = this.getEntityData().get(DATA_RESTING);
         }
     }
 
@@ -106,6 +112,11 @@ public abstract class ShellProjectile extends ThrowableProjectile {
             return true;
         }
         if (this.level().isClientSide()) {
+            /* 客户端不做引爆判定, 但必须知道服务端已经停下, 否则会按本地投掷物物理继续下落 */
+            if (this.resting) {
+                this.tickCount++;
+                return true;
+            }
             return false;
         }
         if (this.fuseTicks >= 0 && this.tickCount >= this.fuseTicks) {
@@ -117,11 +128,20 @@ public abstract class ShellProjectile extends ThrowableProjectile {
             this.followAttached();
             return true;
         }
+        /* 静止后两端都不再自行推进: 位置以服务端为准, 客户端只管计时 */
         if (this.resting) {
             this.tickCount++;
             return true;
         }
         return false;
+    }
+
+    /* 停下时记一次静止状态, 并同步给客户端 */
+    protected void markResting() {
+        this.resting = true;
+        if (!this.level().isClientSide()) {
+            this.getEntityData().set(DATA_RESTING, true);
+        }
     }
 
     @Override
@@ -187,12 +207,12 @@ public abstract class ShellProjectile extends ThrowableProjectile {
         this.attachedEntityId = target.getUUID();
         this.attachOffset = this.position().subtract(target.position());
         this.setDeltaMovement(Vec3.ZERO);
-        this.resting = true;
+        this.markResting();
     }
 
     protected void stickToSurface(BlockHitResult hit) {
         this.setDeltaMovement(Vec3.ZERO);
-        this.resting = true;
+        this.markResting();
         this.setPos(this.position().add(normalOf(hit).scale(SURFACE_OFFSET)));
         this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
                 SoundEvents.SLIME_BLOCK_STEP, SoundSource.NEUTRAL, 0.5F, 1.4F);
@@ -208,7 +228,7 @@ public abstract class ShellProjectile extends ThrowableProjectile {
         this.setPos(this.position().add(normal.scale(SURFACE_OFFSET)));
         if (Math.abs(normalSpeed * coefficient) < REST_SPEED_TICKS || next.length() < REST_SPEED_TICKS) {
             this.setDeltaMovement(Vec3.ZERO);
-            this.resting = true;
+            this.markResting();
             /* 触发式引信只要停下来就当作撞上, 避免永远不炸 */
             if (this.settings.impactFuse()) {
                 this.detonate();

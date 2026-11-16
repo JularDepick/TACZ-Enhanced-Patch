@@ -32,7 +32,9 @@ public final class ShellBreaker {
     /* 单批方块数上限, 超过就拆到下一 tick */
     private static final int BATCH_SIZE = 512;
     /* 每个维度最多排队的批次: 连续爆炸时宁可少炸一些, 也不让队列与内存无限增长 */
-    private static final int MAX_BATCHES = 8;
+    private static final int MAX_BATCHES = 32;
+    /* 破坏半径在杀伤半径之外再加的比例上限, 实际取 [0, r/4] 之间的波浪边缘 */
+    private static final double EDGE_WAVE_RATIO = 0.25D;
     private static final Map<ResourceKey<Level>, Deque<List<Planned>>> JOBS = new HashMap<>();
 
     private ShellBreaker() {
@@ -47,7 +49,9 @@ public final class ShellBreaker {
         if (queue.size() >= MAX_BATCHES) {
             return;
         }
-        int range = Mth.ceil(radius);
+        /* 破坏半径 = 杀伤半径 + [0, r/4] 的波浪边缘, 爆坑边界因此不会是一条整齐的球面 */
+        double limit = radius * (1.0D + EDGE_WAVE_RATIO);
+        int range = Mth.ceil(limit);
         BlockPos origin = BlockPos.containing(center);
         /* 圈号由扁球归一化距离决定, 圈与圈之间相差一格 */
         List<List<Planned>> rings = new ArrayList<>();
@@ -56,6 +60,15 @@ public final class ShellBreaker {
         }
         for (BlockPos pos : BlockPos.betweenClosed(origin.offset(-range, -range, -range),
                 origin.offset(range, range, range))) {
+            double normalized = ShellExplosion.shape(center, Vec3.atCenterOf(pos),
+                    radius * (1.0D + EDGE_WAVE_RATIO * edgeWave(pos)));
+            if (normalized > 1.0D) {
+                continue;
+            }
+            /* 未加载区块不读不写: 服务端线程上的强制加载会连带生成整片邻域 */
+            if (!level.hasChunkAt(pos)) {
+                continue;
+            }
             BlockState state = level.getBlockState(pos);
             if (state.isAir() || !state.getFluidState().isEmpty()) {
                 continue;
@@ -64,16 +77,12 @@ public final class ShellBreaker {
             if (hardness < 0.0F) {
                 continue;
             }
-            double normalized = ShellExplosion.shape(center, Vec3.atCenterOf(pos), radius);
-            if (normalized > 1.0D) {
-                continue;
-            }
             /* 与实体伤害同一口径: 边缘只剩一半威力 */
             double reduced = power * (1.0D - 0.5D * normalized);
             if (hardness > reduced) {
                 continue;
             }
-            int ring = Mth.clamp((int) Math.ceil(normalized * radius), 0, rings.size() - 1);
+            int ring = Mth.clamp((int) Math.ceil(normalized * limit), 0, rings.size() - 1);
             rings.get(ring).add(new Planned(pos.immutable(), state));
         }
         for (List<Planned> ring : rings) {
@@ -84,6 +93,16 @@ public final class ShellBreaker {
                 queue.add(new ArrayList<>(ring.subList(from, Math.min(ring.size(), from + BATCH_SIZE))));
             }
         }
+    }
+
+    /*
+     * 边缘扰动: 两路不同频率的正弦叠加, 取值 [0, 1]。
+     * 只与方块坐标有关, 因此同一发炮弹每次算出的边界完全一致, 不会出现闪烁的锯齿。
+     */
+    private static double edgeWave(BlockPos pos) {
+        double slow = Math.sin(pos.getX() * 0.61D + pos.getY() * 1.27D) * Math.cos(pos.getZ() * 0.83D - pos.getY() * 0.47D);
+        double fast = Math.sin(pos.getX() * 1.73D - pos.getZ() * 1.51D + pos.getY() * 0.29D);
+        return Mth.clamp(0.5D + 0.35D * slow + 0.15D * fast, 0.0D, 1.0D);
     }
 
     @SubscribeEvent
