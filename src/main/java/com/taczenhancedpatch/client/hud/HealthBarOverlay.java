@@ -17,6 +17,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
@@ -33,11 +36,12 @@ import java.util.Locale;
  * 在生物与玩家头顶渲染一条随剩余生命收缩的血条, 上方再写当前生命与生命上限, 数值不画阴影。
  * 绘制放在关卡渲染的最后一个阶段, 因此不会被云层, 其他生物或粒子盖住; 同时关掉深度测试, 方块也挡不住。
  * 血条走即时绘制(Tesselator), 文字走独立的一次性缓冲源, 两者都不借用关卡渲染共用的缓冲, 避免顶点格式被别的批次污染。
- * 只影响本客户端显示, 默认开启, 距离超过 48 格不画。
+ * 只影响本客户端显示, 默认开启; 只画玩家 16 格以内的生物, 被方块挡住的也不画。
  */
 @Mod.EventBusSubscriber(modid = TACZEnhancedPatch.MOD_ID, value = Dist.CLIENT)
 public final class HealthBarOverlay {
-    private static final double MAX_DISTANCE = 48.0D;
+    /* 只显示玩家附近的生物, 太远的直接不画 */
+    private static final double MAX_DISTANCE = 16.0D;
     private static final float BAR_WIDTH = 40.0F;
     private static final float BAR_HEIGHT = 4.0F;
     private static final float SCALE = 0.025F;
@@ -78,6 +82,10 @@ public final class HealthBarOverlay {
             if (!event.getFrustum().isVisible(living.getBoundingBox().inflate(0.5D))) {
                 continue;
             }
+            /* 被方块挡住的也不画: 从镜头往生物躯干打一条视线, 中途撞到方块就跳过 */
+            if (occluded(minecraft, living, camera)) {
+                continue;
+            }
             float ratio = Mth.clamp(living.getHealth() / Math.max(1.0F, living.getMaxHealth()), 0.0F, 1.0F);
             rows.add(new Row(
                     Mth.lerp(partial, living.xOld, living.getX()) - camera.x,
@@ -90,9 +98,24 @@ public final class HealthBarOverlay {
         if (rows.isEmpty()) {
             return;
         }
-        PoseStack pose = event.getPoseStack();
+        /*
+         * 用自己的位姿栈, 不用关卡那一个。
+         * 关卡渲染到这一阶段时位姿栈里还压着相机旋转, 在它上面再做平移会把血条甩到别处;
+         * 顶点坐标本来就是相对相机的, 相机旋转已经由模型视图矩阵负责, 这里只需要单位矩阵起步。
+         */
+        PoseStack pose = new PoseStack();
         drawBars(minecraft, pose, rows);
         drawTexts(minecraft, pose, rows);
+    }
+
+    /* 视线判定: 镜头到生物躯干中心之间是否有实体方块挡着 */
+    private static boolean occluded(Minecraft minecraft, LivingEntity living, Vec3 camera) {
+        if (minecraft.level == null) {
+            return false;
+        }
+        BlockHitResult hit = minecraft.level.clip(new ClipContext(camera, living.getBoundingBox().getCenter(),
+                ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, living));
+        return hit.getType() != HitResult.Type.MISS;
     }
 
     /* 血条本体: 即时绘制, 不碰关卡渲染的共用缓冲源 */
