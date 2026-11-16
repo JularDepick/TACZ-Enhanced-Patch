@@ -27,8 +27,7 @@ public class MortarBlockEntityRenderer implements BlockEntityRenderer<MortarBloc
     public void render(MortarBlockEntity entity, float partialTick, PoseStack poseStack,
                        MultiBufferSource buffers, int light, int overlay) {
         BlockRenderDispatcher dispatcher = Minecraft.getInstance().getBlockRenderer();
-        dispatcher.renderSingleBlock(entity.getBlockState(), poseStack, buffers, light, OverlayTexture.NO_OVERLAY,
-                DATA, RenderType.solid());
+        /* 基座已经由方块模型渲染, 这里只画会转的炮筒 */
         poseStack.pushPose();
         poseStack.translate(0.5D, 0.55D, 0.5D);
         poseStack.mulPose(Axis.YP.rotationDegrees(-entity.yawDeg()));

@@ -110,7 +110,8 @@ public final class HealthBarOverlay {
         pose.scale(-SCALE * 0.8F, -SCALE * 0.8F, SCALE * 0.8F);
         Matrix4f textMatrix = pose.last().pose();
         float width = minecraft.font.width(text);
-        minecraft.font.drawInBatch(text, -width / 2.0F, -8.0F, 0xFFFFFFFF, true, textMatrix, buffers,
+        /* 不画阴影: 阴影会把数字压成一团, 远看只剩一片黑 */
+        minecraft.font.drawInBatch(text, -width / 2.0F, -8.0F, 0xFFFFFFFF, false, textMatrix, buffers,
                 Font.DisplayMode.NORMAL, 0, light);
         pose.popPose();
     }

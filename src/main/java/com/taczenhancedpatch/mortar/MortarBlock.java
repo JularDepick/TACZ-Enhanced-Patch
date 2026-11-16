@@ -34,9 +34,13 @@ public class MortarBlock extends BaseEntityBlock {
         super(properties);
     }
 
+    /*
+     * 基座交给普通方块模型渲染。
+     * 写成 ENTITYBLOCK_ANIMATED 时整块方块模型都会被跳过, 只剩方块实体画的炮筒, 基座因此看不见。
+     */
     @Override
     public RenderShape getRenderShape(BlockState state) {
-        return RenderShape.ENTITYBLOCK_ANIMATED;
+        return RenderShape.MODEL;
     }
 
     @Override

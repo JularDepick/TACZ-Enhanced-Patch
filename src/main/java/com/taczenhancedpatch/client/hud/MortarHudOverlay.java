@@ -56,19 +56,19 @@ public final class MortarHudOverlay {
         double vh = speed * Math.cos(pitch);
         double time = gravity <= 0.0D ? 0.0D : 2.0D * vy / gravity;
         double range = vh * time;
-        graphics.drawString(minecraft.font, String.format(Locale.ROOT, "Yaw %.1f", mortar.yawDeg()),
+        graphics.drawString(minecraft.font, UiText.of("mortar.hud.yaw", mortar.yawDeg()).getString(),
                 LEFT + PADDING, y, TEXT, false);
         y += LINE;
-        graphics.drawString(minecraft.font, String.format(Locale.ROOT, "Pitch %.1f", mortar.pitchDeg()),
+        graphics.drawString(minecraft.font, UiText.of("mortar.hud.pitch", mortar.pitchDeg()).getString(),
                 LEFT + PADDING, y, TEXT, false);
         y += LINE;
-        graphics.drawString(minecraft.font, String.format(Locale.ROOT, "Caliber %d mm", mortar.caliberMm()),
+        graphics.drawString(minecraft.font, UiText.of("mortar.hud.caliber", mortar.caliberMm()).getString(),
                 LEFT + PADDING, y, TEXT, false);
         y += LINE;
-        graphics.drawString(minecraft.font, String.format(Locale.ROOT, "Range %.0f", range),
+        graphics.drawString(minecraft.font, UiText.of("mortar.hud.range", range).getString(),
                 LEFT + PADDING, y, TEXT, false);
         y += LINE;
-        graphics.drawString(minecraft.font, String.format(Locale.ROOT, "Time %.2f s", time),
+        graphics.drawString(minecraft.font, UiText.of("mortar.hud.time", time).getString(),
                 LEFT + PADDING, y, TEXT, false);
     }
 }
