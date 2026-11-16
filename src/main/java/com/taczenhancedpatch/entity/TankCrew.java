@@ -120,6 +120,8 @@ public final class TankCrew {
             return;
         }
         AttributeInstance health = entity.getAttribute(Attributes.MAX_HEALTH);
+        float beforeMax = entity.getMaxHealth();
+        float beforeHealth = entity.getHealth();
         if (health != null) {
             UUID id = modifierId(entity, "health");
             health.removeModifier(id);
@@ -133,8 +135,14 @@ public final class TankCrew {
             armor.addTransientModifier(new AttributeModifier(id, NAME + "_armor", bonus,
                     AttributeModifier.Operation.MULTIPLY_TOTAL));
         }
-        /* 不在这里补血: 每次上下车都会重算羁绊, 补血等于无限回血 */
-        if (entity.getHealth() > entity.getMaxHealth()) {
+        /*
+         * 上限被羁绊抬高时, 把抬高的那部分补进当前生命, 生命条不会停在旧的数字上;
+         * 只补这次抬高的差值, 上下车重算得到同样的上限时差值为零, 因此不会变成无限回血。
+         */
+        float gained = entity.getMaxHealth() - beforeMax;
+        if (gained > 0.0F) {
+            entity.setHealth(Math.min(entity.getMaxHealth(), beforeHealth + gained));
+        } else if (entity.getHealth() > entity.getMaxHealth()) {
             entity.setHealth(entity.getMaxHealth());
         }
     }

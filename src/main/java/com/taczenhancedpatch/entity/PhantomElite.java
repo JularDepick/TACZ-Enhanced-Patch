@@ -56,6 +56,8 @@ public class PhantomElite extends Phantom {
     private static final int MAX_FUSE_SECONDS = 5;
     private static final int DEFAULT_POWER = 4;
     private static final double PATROL_STEP = 0.02D;
+    /* 没有遗迹归属时绕家巡逻的半径 */
+    private static final double HOME_PATROL_RADIUS = 12.0D;
     /* 原版投掷物的重力, 单位 格/tick 的平方 */
     private static final double THROW_GRAVITY = 0.03D;
 
@@ -121,10 +123,14 @@ public class PhantomElite extends Phantom {
         }
         BlockPos home = FactionData.homeOf(this);
         if (home == null) {
+            /* 既没有遗迹归属也没有家: 就地记一个, 否则只会悬在原地 */
+            FactionData.setHome(this, this.blockPosition());
             return;
         }
         RuinSites.Site site = RuinSites.find(level, home);
         if (site == null || site.banner() == null) {
+            /* 生物蛋生成或手动放置的幻机没有遗迹: 围着家绕圈, 同样飞到巡航高度 */
+            this.patrolHome(level, home);
             return;
         }
         this.patrol(level, site);
@@ -132,6 +138,26 @@ public class PhantomElite extends Phantom {
             this.scan(level, site);
         }
         this.tryThrow(level, site);
+    }
+
+    /* 无遗迹归属时的巡逻: 围着家绕圈, 离地高度同样在八到十六格之间往复 */
+    private void patrolHome(ServerLevel level, BlockPos home) {
+        this.patrolAngle += PATROL_STEP;
+        if (this.patrolAngle > Math.PI * 2.0D) {
+            this.patrolAngle -= Math.PI * 2.0D;
+        }
+        double x = home.getX() + 0.5D + Math.cos(this.patrolAngle) * HOME_PATROL_RADIUS;
+        double z = home.getZ() + 0.5D + Math.sin(this.patrolAngle) * HOME_PATROL_RADIUS;
+        BlockPos sample = new BlockPos((int) Math.floor(x), home.getY(), (int) Math.floor(z));
+        /* 采样点还没加载时读高度图会强制生成区块, 改为先原地拉升, 至少不贴着地面 */
+        if (!level.hasChunkAt(sample)) {
+            this.getMoveControl().setWantedPosition(this.getX(), this.getY() + 1.0D, this.getZ(), 1.0D);
+            return;
+        }
+        BlockPos ground = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, sample);
+        double wave = 0.5D + 0.5D * Math.sin(this.patrolAngle * 2.0D);
+        double y = ground.getY() + FLY_MIN_HEIGHT + FLY_HEIGHT_SPAN * wave;
+        this.getMoveControl().setWantedPosition(x, y, z, 1.0D);
     }
 
     /* 内外两圈交替: 绕满一圈换一圈, 高度取当前位置地面以上八到十六格之间往复 */

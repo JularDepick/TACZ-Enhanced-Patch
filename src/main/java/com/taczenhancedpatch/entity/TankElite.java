@@ -43,6 +43,8 @@ import java.util.EnumSet;
 public class TankElite extends Monster {
     /* 炮塔与炮管的瞄准速度, 单位角度每 tick */
     private static final float AIM_SPEED = 20.0F;
+    /* 载员落点高度: 车体顶面在 1.5 格, 座位再抬一点, 免得半个身子陷进装甲里 */
+    private static final double DECK_HEIGHT = 1.6D;
     /* 炮弹出膛后的初速, 比恶魂火球更慢, 给玩家留出躲避窗口 */
     private static final double SHELL_SPEED = 0.55D;
 
@@ -118,27 +120,33 @@ public class TankElite extends Monster {
         return this.getPassengers().size() < 4;
     }
 
+    /*
+     * 载员落点。
+     * move 回调写的是绝对坐标, 必须叠上车体自身的位置, 只给相对偏移会把乘客送到世界原点附近,
+     * 于是骑乘看上去"没有建模"。四个点位落在炮塔两侧的车体顶面, 按乘坐顺序分配并随车体朝向旋转。
+     */
     @Override
     public void positionRider(Entity passenger, Entity.MoveFunction move) {
         if (!this.hasPassenger(passenger)) {
             return;
         }
         if (passenger instanceof Player) {
-            move.accept(passenger, 0.0D, 2.05D, -0.15D);
+            /* 驾驶位在炮塔后方, 炮管朝 -Z, 因此车尾在 +Z */
+            move.accept(passenger, this.getX(), this.getY() + DECK_HEIGHT, this.getZ() + 1.15D);
             return;
         }
         int index = Math.floorMod(this.getPassengers().indexOf(passenger), 4);
         double[][] offsets = {
-                {-1.15D, 2.15D, -0.7D},
-                {1.15D, 2.15D, -0.7D},
-                {-1.15D, 2.15D, 0.8D},
-                {1.15D, 2.15D, 0.8D}
+                {-1.05D, DECK_HEIGHT, -0.55D},
+                {1.05D, DECK_HEIGHT, -0.55D},
+                {-1.05D, DECK_HEIGHT, 0.55D},
+                {1.05D, DECK_HEIGHT, 0.55D}
         };
         double[] offset = offsets[index];
         double yaw = Math.toRadians(this.getYRot());
         double x = offset[0] * Math.cos(yaw) - offset[2] * Math.sin(yaw);
         double z = offset[0] * Math.sin(yaw) + offset[2] * Math.cos(yaw);
-        move.accept(passenger, x, offset[1], z);
+        move.accept(passenger, this.getX() + x, this.getY() + offset[1], this.getZ() + z);
     }
 
     @Override
