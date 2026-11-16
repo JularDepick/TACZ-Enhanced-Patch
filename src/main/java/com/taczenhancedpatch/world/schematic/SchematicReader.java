@@ -34,8 +34,12 @@ public final class SchematicReader {
     /* 调色板告警的全局计数, 用于限流 */
     private static final java.util.concurrent.atomic.AtomicInteger PALETTE_WARNINGS =
             new java.util.concurrent.atomic.AtomicInteger();
-    /* 单座蓝图的方块上限, 防止异常文件把服务端内存打满 */
-    private static final int MAX_VOLUME = 4_000_000;
+    /* 单座蓝图的尺寸上限: 三个方向各自受限, 体积上限由此为 256*128*256 */
+    public static final int MAX_WIDTH = 256;
+    public static final int MAX_HEIGHT = 128;
+    public static final int MAX_DEPTH = 256;
+    /* 单座蓝图允许的实用方块数上限, 与世界生成配置的硬上限一致 */
+    public static final int MAX_USEFUL_BLOCKS = 250_000;
     private static final int MAX_VERSION = 3;
     private static final HolderGetter<Block> BLOCKS = BuiltInRegistries.BLOCK.asLookup();
 
@@ -190,12 +194,12 @@ public final class SchematicReader {
         if (width <= 0 || height <= 0 || depth <= 0) {
             throw new IOException("bad size " + width + "x" + height + "x" + depth + ": " + id);
         }
-        /* 三个维度相乘可能溢出 int, 先用 long 算完再收紧到上限, 避免绕过体积限制 */
-        long volume = (long) width * (long) height * (long) depth;
-        if (volume <= 0L || volume > MAX_VOLUME) {
-            throw new IOException("too large " + volume + " blocks: " + id);
+        /* 三个方向各自受限, 不是只看总体积: 一条极长的细条同样算超限 */
+        if (width > MAX_WIDTH || height > MAX_HEIGHT || depth > MAX_DEPTH) {
+            throw new IOException("size " + width + "x" + height + "x" + depth + " over limit "
+                    + MAX_WIDTH + "x" + MAX_HEIGHT + "x" + MAX_DEPTH + ": " + id);
         }
-        return (int) volume;
+        return width * height * depth;
     }
 
     /* 尺寸在标准里是短整型, 少数导出工具写整型, 两种都接受 */

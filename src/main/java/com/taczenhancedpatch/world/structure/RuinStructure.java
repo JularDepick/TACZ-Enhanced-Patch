@@ -54,11 +54,11 @@ public class RuinStructure extends Structure {
         int width = blueprint.width();
         int height = blueprint.height();
         int depth = blueprint.depth();
-        int solid = blueprint.solidCount();
-        if (solid > WorldgenConfig.maxSolidBlocks()) {
+        int useful = blueprint.usefulCount();
+        if (useful > WorldgenConfig.maxUsefulBlocks()) {
             if (REJECTED.add(picked.get())) {
-                TACZEnhancedPatch.LOGGER.warn("[ruin] blueprint {} has {} solid blocks, over the {} limit, skipped",
-                        picked.get(), solid, WorldgenConfig.maxSolidBlocks());
+                TACZEnhancedPatch.LOGGER.warn("[ruin] blueprint {} has {} useful blocks, over the {} limit, skipped",
+                        picked.get(), useful, WorldgenConfig.maxUsefulBlocks());
             }
             return Optional.empty();
         }

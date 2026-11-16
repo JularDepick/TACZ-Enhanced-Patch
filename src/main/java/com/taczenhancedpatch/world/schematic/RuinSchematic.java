@@ -30,8 +30,8 @@ public record RuinSchematic(String id, int width, int height, int depth, short[]
         return stateAt(index(x, y, z));
     }
 
-    /* 实心方块数, 世界生成用它按上限挡掉过大的蓝图 */
-    public int solidCount() {
+    /* 实用方块数: 只数非空气方块, 空气在解析时已被跳过; 世界生成用它按上限挡掉过大的蓝图 */
+    public int usefulCount() {
         int count = 0;
         for (short slot : blocks) {
             if (slot > 0) {

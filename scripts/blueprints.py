@@ -27,7 +27,10 @@ ALPHA_SUFFIX = ".schematic"
 DEFAULT_INPUT = ".input"
 DEFAULT_OUTPUT = ".output"
 DATA_VERSION = 3465
-MAX_VOLUME = 4000000
+MAX_WIDTH = 256
+MAX_HEIGHT = 128
+MAX_DEPTH = 256
+MAX_USEFUL_BLOCKS = 250000
 
 TAG_END = 0
 TAG_BYTE = 1
@@ -294,11 +297,16 @@ def _check_size(name, width, height, depth, errors):
     if width <= 0 or height <= 0 or depth <= 0:
         errors.append("%s 尺寸非法 %dx%dx%d" % (name, width, height, depth))
         return 0
-    volume = width * height * depth
-    if volume > MAX_VOLUME:
-        errors.append("%s 方块数超出上限 %d" % (name, volume))
+    # 三个方向各自受限, 不是只看总体积: 一条极长的细条同样算超限
+    if width > MAX_WIDTH or height > MAX_HEIGHT or depth > MAX_DEPTH:
+        errors.append("%s 尺寸 %dx%dx%d 超出上限 %dx%dx%d"
+                      % (name, width, height, depth, MAX_WIDTH, MAX_HEIGHT, MAX_DEPTH))
         return 0
-    return volume
+    return width * height * depth
+
+
+def _is_air(text):
+    return text in ("minecraft:air", "minecraft:cave_air", "minecraft:void_air")
 
 
 def _varint_ids(data, volume, name, errors):
@@ -344,7 +352,8 @@ def validate(root, name):
     fmt, version = detect_format(root)
     errors = []
     info = {"path": name, "format": fmt, "version": version, "valid": False,
-            "width": None, "height": None, "length": None, "palette": None, "errors": errors}
+            "width": None, "height": None, "length": None, "palette": None,
+            "volume": 0, "useful": 0, "errors": errors}
     if fmt == "unknown":
         errors.append("%s 无法识别的格式" % name)
         return info
@@ -362,6 +371,7 @@ def validate(root, name):
     volume = _check_size(name, width, height, depth, errors)
     if volume == 0:
         return info
+    info["volume"] = volume
     if fmt == "sponge":
         if version is None or version < 1 or version > 3:
             errors.append("%s 不支持的 Sponge 版本 %s" % (name, version))
@@ -396,6 +406,11 @@ def validate(root, name):
             missing = sorted({value for value in ids if value not in palette_ids})
             if missing:
                 errors.append("%s 方块数据引用了调色板外的编号 %s" % (name, missing[:5]))
+            air_ids = {tag.value for text, tag in palette.value.items() if _is_air(text)}
+            useful = sum(1 for value in ids if value not in air_ids)
+            info["useful"] = useful
+            if useful > MAX_USEFUL_BLOCKS:
+                errors.append("%s 实用方块数 %d 超出上限 %d" % (name, useful, MAX_USEFUL_BLOCKS))
     else:
         blocks = tag_map.get("Blocks")
         data = tag_map.get("Data")
@@ -405,6 +420,18 @@ def validate(root, name):
         add = tag_map.get("AddBlocks")
         if add is not None and add.type == TAG_BYTE_ARRAY and len(add.value) < (volume + 1) // 2:
             errors.append("%s AddBlocks 长度不足" % name)
+        # 旧格式里编号 0 就是空气, 其余一律算实用方块
+        useful = 0
+        for index in range(volume):
+            legacy_id = blocks.value[index] & 0xFF
+            if add is not None and add.type == TAG_BYTE_ARRAY and (index >> 1) < len(add.value):
+                high = add.value[index >> 1] & 0xFF
+                legacy_id |= ((high & 0x0F) << 8) if (index & 1) == 0 else ((high & 0xF0) << 4)
+            if legacy_id != 0:
+                useful += 1
+        info["useful"] = useful
+        if useful > MAX_USEFUL_BLOCKS:
+            errors.append("%s 实用方块数 %d 超出上限 %d" % (name, useful, MAX_USEFUL_BLOCKS))
     info["valid"] = not errors
     return info
 
