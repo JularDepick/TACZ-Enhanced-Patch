@@ -148,16 +148,7 @@ public class PhantomElite extends Phantom {
         }
         double x = home.getX() + 0.5D + Math.cos(this.patrolAngle) * HOME_PATROL_RADIUS;
         double z = home.getZ() + 0.5D + Math.sin(this.patrolAngle) * HOME_PATROL_RADIUS;
-        BlockPos sample = new BlockPos((int) Math.floor(x), home.getY(), (int) Math.floor(z));
-        /* 采样点还没加载时读高度图会强制生成区块, 改为先原地拉升, 至少不贴着地面 */
-        if (!level.hasChunkAt(sample)) {
-            this.getMoveControl().setWantedPosition(this.getX(), this.getY() + 1.0D, this.getZ(), 1.0D);
-            return;
-        }
-        BlockPos ground = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, sample);
-        double wave = 0.5D + 0.5D * Math.sin(this.patrolAngle * 2.0D);
-        double y = ground.getY() + FLY_MIN_HEIGHT + FLY_HEIGHT_SPAN * wave;
-        this.getMoveControl().setWantedPosition(x, y, z, 1.0D);
+        this.flyTo(level, x, z, home.getY());
     }
 
     /* 内外两圈交替: 绕满一圈换一圈, 高度取当前位置地面以上八到十六格之间往复 */
@@ -174,9 +165,18 @@ public class PhantomElite extends Phantom {
         double radius = site.radius() * (this.outerRing ? OUTER_RATIO : INNER_RATIO);
         double x = banner.getX() + 0.5D + Math.cos(this.patrolAngle) * radius;
         double z = banner.getZ() + 0.5D + Math.sin(this.patrolAngle) * radius;
-        BlockPos sample = new BlockPos((int) Math.floor(x), banner.getY(), (int) Math.floor(z));
-        /* 外圈最远到领地的九成半径, 常在未加载区块里: 那里高度图返回基岩层, 幻机会朝地底俯冲 */
+        this.flyTo(level, x, z, banner.getY());
+    }
+
+    /*
+     * 飞向巡逻点。
+     * 高度一律按目标列的地面算: 地面高度加八到十六格, 与坐标高度无关。
+     * 目标列还没加载时读高度图会强制生成区块, 改为在自己头顶拉升, 保证不会贴着地面飞。
+     */
+    private void flyTo(ServerLevel level, double x, double z, int sampleY) {
+        BlockPos sample = new BlockPos((int) Math.floor(x), sampleY, (int) Math.floor(z));
         if (!level.hasChunkAt(sample)) {
+            this.climb(level);
             return;
         }
         BlockPos ground = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, sample);
@@ -184,6 +184,18 @@ public class PhantomElite extends Phantom {
         double wave = 0.5D + 0.5D * Math.sin(this.patrolAngle * 2.0D);
         double y = ground.getY() + FLY_MIN_HEIGHT + FLY_HEIGHT_SPAN * wave;
         this.getMoveControl().setWantedPosition(x, y, z, 1.0D);
+    }
+
+    /* 按自己所在列的地面高度算巡航高度; 自身所在区块一定已加载 */
+    private void climb(ServerLevel level) {
+        BlockPos here = this.blockPosition();
+        BlockPos ground = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, here);
+        this.getMoveControl().setWantedPosition(this.getX(), ground.getY() + FLY_MIN_HEIGHT + FLY_HEIGHT_SPAN,
+                this.getZ(), 1.0D);
+        /* 原版幻翼的移动控制对竖直方向不够积极, 低于巡航高度时直接给一点上推力 */
+        if (this.getY() < ground.getY() + FLY_MIN_HEIGHT) {
+            this.setDeltaMovement(this.getDeltaMovement().add(0.0D, 0.08D, 0.0D));
+        }
     }
 
     /* 报警: 发出警报声, 把目标通报给领地内其他遗迹生物, 自己也锁定该目标 */

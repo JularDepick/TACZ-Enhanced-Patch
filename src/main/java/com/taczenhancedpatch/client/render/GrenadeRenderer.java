@@ -57,8 +57,8 @@ public class GrenadeRenderer extends EntityRenderer<ShellProjectile> {
             poseStack.mulPose(Axis.YP.rotationDegrees(heading));
             poseStack.mulPose(Axis.XP.rotationDegrees(-pitch));
         }
-        /* 缓慢自转, 让静止的炮弹也有立体感 */
-        poseStack.mulPose(Axis.YP.rotationDegrees((entity.tickCount + partialTick) * 6.0F));
+        /* 不自转: 炮弹落地后停在原朝向, 转起来会让人以为它还在滚 */
+        poseStack.scale(1.35F, 1.35F, 1.35F);
         /* 按投射物自己的属性重建物品栈, 颜色与炮弹实际属性一致 */
         if (!entity.settings().equals(this.cachedSettings)) {
             ItemStack built = new ItemStack(this.item.get());

@@ -65,6 +65,10 @@ public final class ArmedShapeAttach {
             if (living.getModel() instanceof HumanoidModel) {
                 continue;
             }
+            /* 幻机是飞行单位, 挂人形骨架会长出一个拿枪的人, 与它的模型完全对不上 */
+            if (living instanceof PhantomEliteRenderer) {
+                continue;
+            }
             attach(living, skeleton, itemInHand);
         }
     }
