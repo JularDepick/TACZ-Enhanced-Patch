@@ -10,6 +10,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.util.Mth;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderGuiEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -58,7 +59,8 @@ public final class HitIndicatorOverlay {
         }
     }
 
-    @SubscribeEvent
+    /* 层级: 最低, 战斗反馈要压在本模组所有面板与信息条之上 */
+    @SubscribeEvent(priority = EventPriority.LOW)
     public static void onRenderGui(RenderGuiEvent.Post event) {
         if (!ClientConfig.hitIndicator() || HITS.isEmpty()) {
             return;

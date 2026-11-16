@@ -11,6 +11,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderGuiEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -36,7 +37,8 @@ public final class MortarHudOverlay {
     private MortarHudOverlay() {
     }
 
-    @SubscribeEvent
+    /* 层级: 面板, 压住信息条, 但让位给战斗反馈 */
+    @SubscribeEvent(priority = EventPriority.NORMAL)
     public static void onRenderGui(RenderGuiEvent.Post event) {
         BlockPos pos = MortarClientHandler.displayPos();
         Minecraft minecraft = Minecraft.getInstance();

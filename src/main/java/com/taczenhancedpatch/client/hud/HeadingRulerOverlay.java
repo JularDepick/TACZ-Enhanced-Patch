@@ -8,6 +8,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.util.Mth;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderGuiEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -40,7 +41,8 @@ public final class HeadingRulerOverlay {
     private HeadingRulerOverlay() {
     }
 
-    @SubscribeEvent
+    /* 层级: 信息条, 最先绘制, 位于面板之下 */
+    @SubscribeEvent(priority = EventPriority.HIGH)
     public static void onRenderGui(RenderGuiEvent.Post event) {
         if (!ClientConfig.headingRuler()) {
             return;

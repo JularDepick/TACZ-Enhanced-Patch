@@ -10,6 +10,10 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.RegistryObject;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
 /**
  * 快速扩容弹匣物品页。
  * 物品页里列出的仍然是上游的扩容弹匣物品, 每一条都在物品栈上打了等级标记并在原名称后追加后缀,
@@ -25,7 +29,11 @@ public final class FastMagCreativeTab {
                     .withTabsBefore(new ResourceLocation("tacz:extended_mag"))
                     .icon(FastMagCreativeTab::iconStack)
                     .displayItems((parameters, output) -> {
-                        for (TaczApi.ExtendedMagEntry entry : TaczApi.extendedMags()) {
+                        /* 同一把枪的 I 到 III 级挨在一起, 级内再按名称排, 方便对着找 */
+                        List<TaczApi.ExtendedMagEntry> entries = new ArrayList<>(TaczApi.extendedMags());
+                        entries.sort(Comparator.comparing(TaczApi.ExtendedMagEntry::nameKey)
+                                .thenComparingInt(TaczApi.ExtendedMagEntry::level));
+                        for (TaczApi.ExtendedMagEntry entry : entries) {
                             ItemStack stack = FastMag.create(entry);
                             if (!stack.isEmpty()) {
                                 output.accept(stack);

@@ -28,20 +28,21 @@ public final class PatchCreativeTab {
                     .withTabsBefore(new ResourceLocation(TACZEnhancedPatch.MOD_ID + ":fast_extended_mag"))
                     .icon(PatchCreativeTab::iconStack)
                     .displayItems((parameters, output) -> {
+                        /* 顺序按用法排: 导航与投掷, 迫击炮一套, 弹药补给, 生物刷怪蛋 */
+                        output.accept(PatchItems.RUIN_COMPASS.get());
+                        output.accept(PatchItems.GRENADE.get());
+                        output.accept(MortarRegistry.MORTAR_ITEM.get());
+                        output.accept(MortarRegistry.MORTAR_SHELL.get());
+                        output.accept(MortarRegistry.MORTAR_REMOTE.get());
                         for (InfiniteMag.Family family : InfiniteMag.FAMILIES) {
                             ItemStack infinite = InfiniteMag.create(family);
                             if (!infinite.isEmpty()) {
                                 output.accept(infinite);
                             }
                         }
-                        output.accept(PatchItems.RUIN_COMPASS.get());
-                        output.accept(PatchItems.GRENADE.get());
                         output.accept(GruntRegistry.SPAWN_EGG.get());
                         output.accept(TankRegistry.SPAWN_EGG.get());
                         output.accept(PhantomRegistry.SPAWN_EGG.get());
-                        output.accept(MortarRegistry.MORTAR_ITEM.get());
-                        output.accept(MortarRegistry.MORTAR_SHELL.get());
-                        output.accept(MortarRegistry.MORTAR_REMOTE.get());
                     })
                     .build());
 

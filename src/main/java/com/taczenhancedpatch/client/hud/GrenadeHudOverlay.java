@@ -8,6 +8,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderGuiEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -17,7 +18,8 @@ import java.util.Locale;
 
 /*
  * 手雷面板。
- * 靠屏幕右侧显示属性与对应按键; 引信倒计时单独一块, 居中贴在快捷栏上方, 最多并排两颗。
+ * 靠屏幕右侧显示属性与对应按键, 纵坐标由右上角的占用情况决定, 不与药水效果和遗迹兵力读数重叠;
+ * 引信倒计时单独一块, 居中贴在快捷栏上方, 最多并排两颗。
  * 倒计时从按下蓄力就开始走, 投出后继续, 因此蓄力期间也能看到还剩多少。
  */
 @Mod.EventBusSubscriber(modid = TACZEnhancedPatch.MOD_ID, value = Dist.CLIENT)
@@ -42,7 +44,8 @@ public final class GrenadeHudOverlay {
     private GrenadeHudOverlay() {
     }
 
-    @SubscribeEvent
+    /* 层级: 面板, 压住信息条, 但让位给战斗反馈 */
+    @SubscribeEvent(priority = EventPriority.NORMAL)
     public static void onRenderGui(RenderGuiEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.options.hideGui) {
@@ -69,9 +72,10 @@ public final class GrenadeHudOverlay {
         int width = contentWidth + PADDING_X * 2;
         int height = PADDING_Y * 2 + ROW_HEIGHT + rows.size() * ROW_HEIGHT;
         int left = minecraft.getWindow().getGuiScaledWidth() - MARGIN - width;
-        graphics.fill(left, TOP, left + width, TOP + height, BACKGROUND);
-        graphics.drawString(minecraft.font, title, left + PADDING_X, TOP + PADDING_Y, TITLE_COLOR, false);
-        int y = TOP + PADDING_Y + ROW_HEIGHT;
+        int top = rightTop(minecraft);
+        graphics.fill(left, top, left + width, top + height, BACKGROUND);
+        graphics.drawString(minecraft.font, title, left + PADDING_X, top + PADDING_Y, TITLE_COLOR, false);
+        int y = top + PADDING_Y + ROW_HEIGHT;
         for (String[] row : rows) {
             graphics.drawString(minecraft.font, row[0], left + PADDING_X, y, LABEL_COLOR, false);
             graphics.drawString(minecraft.font, row[1], left + PADDING_X + labelWidth + GAP, y, VALUE_COLOR, false);
@@ -79,6 +83,24 @@ public final class GrenadeHudOverlay {
                     y, HINT_COLOR, false);
             y += ROW_HEIGHT;
         }
+    }
+
+    /*
+     * 右上角纵坐标。
+     * 先让开原版药水效果, 再让开遗迹兵力读数, 两者都不占位时才回到固定高度;
+     * 排布依据统一来自 HudLayout 与遗迹读数的底边, 不再各自写死数字。
+     */
+    private static int rightTop(Minecraft minecraft) {
+        int top = TOP;
+        int columnTop = HudLayout.rightColumnTop(minecraft);
+        if (columnTop > HudLayout.MARGIN) {
+            top = Math.max(top, columnTop + HudLayout.GAP);
+        }
+        int garrisonBottom = RuinGarrisonOverlay.bottomY();
+        if (garrisonBottom > 0) {
+            top = Math.max(top, garrisonBottom + HudLayout.GAP);
+        }
+        return top;
     }
 
     /* 引信倒计时: 单独一块, 居中并排, 最多两颗 */
