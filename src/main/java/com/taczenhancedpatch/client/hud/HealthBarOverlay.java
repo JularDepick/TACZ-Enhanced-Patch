@@ -1,9 +1,11 @@
 package com.taczenhancedpatch.client.hud;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.taczenhancedpatch.TACZEnhancedPatch;
 import com.taczenhancedpatch.config.ClientConfig;
@@ -11,8 +13,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderStateShard;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
@@ -23,15 +23,17 @@ import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.joml.Matrix4f;
-import org.lwjgl.opengl.GL11;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /*
  * 生物血量显示。
  * 在生物与玩家头顶渲染一条随剩余生命收缩的血条, 上方再写当前生命与生命上限, 数值不画阴影。
- * 绘制放在关卡渲染的最后一个阶段, 因此不会被云层, 其他生物或粒子盖住;
- * 同时关掉深度测试, 方块与地形也挡不住它。只影响本客户端显示, 默认开启, 距离超过 48 格不画。
+ * 绘制放在关卡渲染的最后一个阶段, 因此不会被云层, 其他生物或粒子盖住; 同时关掉深度测试, 方块也挡不住。
+ * 血条走即时绘制(Tesselator), 文字走独立的一次性缓冲源, 两者都不借用关卡渲染共用的缓冲, 避免顶点格式被别的批次污染。
+ * 只影响本客户端显示, 默认开启, 距离超过 48 格不画。
  */
 @Mod.EventBusSubscriber(modid = TACZEnhancedPatch.MOD_ID, value = Dist.CLIENT)
 public final class HealthBarOverlay {
@@ -41,40 +43,11 @@ public final class HealthBarOverlay {
     private static final float SCALE = 0.025F;
     private static final int FULL_BRIGHT = 0xF000F0;
 
-    /*
-     * 血条专用批次: 半透明四边形, 关闭上传前的距离排序。
-     * 底色与填充两块四边形共面, 排序按质心到相机的距离决定先后, 而填充块未满血时质心会偏移,
-     * 两者的先后顺序随视角翻转, 底色偶尔盖到填充上, 看上去就是颜色在闪;
-     * 关闭排序后按提交顺序绘制, 底色恒定在填充之下。
-     * 深度测试恒通过: 血条要压在云层与生物之上, 不写深度, 避免挡住之后绘制的文字。
-     */
-    private static final RenderStateShard.ShaderStateShard BAR_SHADER =
-            new RenderStateShard.ShaderStateShard(GameRenderer::getPositionColorShader);
-    private static final RenderStateShard.TransparencyStateShard BAR_TRANSLUCENT =
-            new RenderStateShard.TransparencyStateShard("tacz_enhanced_patch_translucent", () -> {
-                RenderSystem.enableBlend();
-                RenderSystem.defaultBlendFunc();
-            }, () -> {
-                RenderSystem.disableBlend();
-                RenderSystem.defaultBlendFunc();
-            });
-    private static final RenderStateShard.DepthTestStateShard BAR_DEPTH_TEST =
-            new RenderStateShard.DepthTestStateShard("always", GL11.GL_ALWAYS);
-    private static final RenderStateShard.WriteMaskStateShard BAR_COLOR_WRITE =
-            new RenderStateShard.WriteMaskStateShard(true, false);
-    private static final RenderStateShard.CullStateShard BAR_NO_CULL =
-            new RenderStateShard.CullStateShard(false);
-    private static final RenderType HEALTH_BAR = RenderType.create("tacz_enhanced_patch_health_bar",
-            DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS, 256, false, false,
-            RenderType.CompositeState.builder()
-                    .setShaderState(BAR_SHADER)
-                    .setTransparencyState(BAR_TRANSLUCENT)
-                    .setDepthTestState(BAR_DEPTH_TEST)
-                    .setWriteMaskState(BAR_COLOR_WRITE)
-                    .setCullState(BAR_NO_CULL)
-                    .createCompositeState(false));
-
     private HealthBarOverlay() {
+    }
+
+    /* 一帧内要画的一个条目: 相对相机的坐标, 高度, 生命比例与文字 */
+    private record Row(double x, double y, double z, float height, float ratio, String text) {
     }
 
     @SubscribeEvent
@@ -91,9 +64,7 @@ public final class HealthBarOverlay {
         }
         Vec3 camera = event.getCamera().getPosition();
         float partial = event.getPartialTick();
-        PoseStack pose = event.getPoseStack();
-        MultiBufferSource.BufferSource buffers = minecraft.renderBuffers().bufferSource();
-        VertexConsumer quads = buffers.getBuffer(HEALTH_BAR);
+        List<Row> rows = new ArrayList<>();
         for (Entity entity : minecraft.level.entitiesForRendering()) {
             if (!(entity instanceof LivingEntity living) || !living.isAlive() || living.isInvisible()) {
                 continue;
@@ -107,21 +78,63 @@ public final class HealthBarOverlay {
             if (!event.getFrustum().isVisible(living.getBoundingBox().inflate(0.5D))) {
                 continue;
             }
-            double x = Mth.lerp(partial, living.xOld, living.getX()) - camera.x;
-            double y = Mth.lerp(partial, living.yOld, living.getY()) - camera.y;
-            double z = Mth.lerp(partial, living.zOld, living.getZ()) - camera.z;
             float ratio = Mth.clamp(living.getHealth() / Math.max(1.0F, living.getMaxHealth()), 0.0F, 1.0F);
+            rows.add(new Row(
+                    Mth.lerp(partial, living.xOld, living.getX()) - camera.x,
+                    Mth.lerp(partial, living.yOld, living.getY()) - camera.y,
+                    Mth.lerp(partial, living.zOld, living.getZ()) - camera.z,
+                    living.getBbHeight(),
+                    ratio,
+                    format(living.getHealth()) + "/" + format(living.getMaxHealth())));
+        }
+        if (rows.isEmpty()) {
+            return;
+        }
+        PoseStack pose = event.getPoseStack();
+        drawBars(minecraft, pose, rows);
+        drawTexts(minecraft, pose, rows);
+    }
+
+    /* 血条本体: 即时绘制, 不碰关卡渲染的共用缓冲源 */
+    private static void drawBars(Minecraft minecraft, PoseStack pose, List<Row> rows) {
+        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.disableDepthTest();
+        RenderSystem.depthMask(false);
+        RenderSystem.disableCull();
+        try {
+            Tesselator tesselator = Tesselator.getInstance();
+            BufferBuilder builder = tesselator.getBuilder();
+            builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+            for (Row row : rows) {
+                pose.pushPose();
+                pose.translate(row.x(), row.y() + row.height() + 0.55D, row.z());
+                pose.mulPose(minecraft.getEntityRenderDispatcher().cameraOrientation());
+                pose.scale(-SCALE, -SCALE, SCALE);
+                Matrix4f matrix = pose.last().pose();
+                quad(builder, matrix, -BAR_WIDTH / 2.0F - 1.0F, -1.0F, BAR_WIDTH + 2.0F, BAR_HEIGHT + 2.0F,
+                        0.0F, 0.0F, 0.0F, 0.6F);
+                quad(builder, matrix, -BAR_WIDTH / 2.0F, 0.0F, BAR_WIDTH * row.ratio(), BAR_HEIGHT,
+                        red(row.ratio()), green(row.ratio()), 0.2F, 1.0F);
+                pose.popPose();
+            }
+            BufferUploader.drawWithShader(builder.end());
+        } finally {
+            RenderSystem.depthMask(true);
+            RenderSystem.enableDepthTest();
+            RenderSystem.enableCull();
+            RenderSystem.disableBlend();
+        }
+    }
+
+    /* 数值: 文字只能走缓冲源, 这里用一次性的即时源, 画完立刻冲刷 */
+    private static void drawTexts(Minecraft minecraft, PoseStack pose, List<Row> rows) {
+        MultiBufferSource.BufferSource buffers = MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
+        for (Row row : rows) {
+            Component text = Component.literal(row.text());
             pose.pushPose();
-            pose.translate(x, y + living.getBbHeight() + 0.55D, z);
-            pose.mulPose(minecraft.getEntityRenderDispatcher().cameraOrientation());
-            pose.scale(-SCALE, -SCALE, SCALE);
-            Matrix4f matrix = pose.last().pose();
-            quad(quads, matrix, -BAR_WIDTH / 2.0F - 1.0F, -1.0F, BAR_WIDTH + 2.0F, BAR_HEIGHT + 2.0F, 0.0F, 0.0F, 0.0F, 0.6F);
-            quad(quads, matrix, -BAR_WIDTH / 2.0F, 0.0F, BAR_WIDTH * ratio, BAR_HEIGHT, red(ratio), green(ratio), 0.2F, 1.0F);
-            pose.popPose();
-            Component text = Component.literal(format(living.getHealth()) + "/" + format(living.getMaxHealth()));
-            pose.pushPose();
-            pose.translate(x, y + living.getBbHeight() + 0.78D, z);
+            pose.translate(row.x(), row.y() + row.height() + 0.78D, row.z());
             pose.mulPose(minecraft.getEntityRenderDispatcher().cameraOrientation());
             pose.scale(-SCALE * 0.8F, -SCALE * 0.8F, SCALE * 0.8F);
             float width = minecraft.font.width(text);
@@ -130,8 +143,15 @@ public final class HealthBarOverlay {
                     Font.DisplayMode.NORMAL, 0, FULL_BRIGHT);
             pose.popPose();
         }
-        /* 关卡末阶段没有统一的批次收尾, 这里自己把血条与文字刷出去 */
         buffers.endBatch();
+    }
+
+    private static void quad(BufferBuilder consumer, Matrix4f matrix, float x, float y, float width, float height,
+                             float red, float green, float blue, float alpha) {
+        consumer.vertex(matrix, x, y, 0.0F).color(red, green, blue, alpha).endVertex();
+        consumer.vertex(matrix, x, y + height, 0.0F).color(red, green, blue, alpha).endVertex();
+        consumer.vertex(matrix, x + width, y + height, 0.0F).color(red, green, blue, alpha).endVertex();
+        consumer.vertex(matrix, x + width, y, 0.0F).color(red, green, blue, alpha).endVertex();
     }
 
     /* 整数就不带小数, 出现小数才保留一位 */
@@ -140,14 +160,6 @@ public final class HealthBarOverlay {
             return String.valueOf(Math.round(value));
         }
         return String.format(Locale.ROOT, "%.1f", value);
-    }
-
-    private static void quad(VertexConsumer consumer, Matrix4f matrix, float x, float y, float width, float height,
-                             float red, float green, float blue, float alpha) {
-        consumer.vertex(matrix, x, y, 0.0F).color(red, green, blue, alpha).endVertex();
-        consumer.vertex(matrix, x, y + height, 0.0F).color(red, green, blue, alpha).endVertex();
-        consumer.vertex(matrix, x + width, y + height, 0.0F).color(red, green, blue, alpha).endVertex();
-        consumer.vertex(matrix, x + width, y, 0.0F).color(red, green, blue, alpha).endVertex();
     }
 
     /* 满血偏绿, 半血偏黄, 残血偏红 */
